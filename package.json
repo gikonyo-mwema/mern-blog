@@ -1,0 +1,27 @@
+{
+  "name": "mern-blog",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Hello, this is the first blog application I am working on. Prepare to be amazed!",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon api/index.js",
+    "start": "node api/index.js"
+     
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://{API_TOKEN}@github.com/gikonyo-mwema/mern-blog.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/gikonyo-mwema/mern-blog/issues"
+  },
+  "homepage": "https://github.com/gikonyo-mwema/mern-blog#readme",
+  "dependencies": {
+    "express": "^4.21.1",
+    "nodemon": "^3.1.7"
+  }
+}
