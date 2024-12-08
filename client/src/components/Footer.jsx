@@ -66,7 +66,7 @@ export default function FooterComponent() {
                         </Footer.LinkGroup>
                     </div>
                     <div>
-                    <Footer.Title title='Follow Us' />
+                        <Footer.Title title='Follow Us' />
                         <Footer.LinkGroup col>
                             <Footer.Link
                             href='#'
@@ -89,11 +89,9 @@ export default function FooterComponent() {
                         </Footer.LinkGroup>
                     </div>
                 </div>
-            </div>
-        </div>  
-        
-        <Footer.Divider/>
-        <div className='w-full sm:flex sm:items-center sm:justify-between'>
+            </div> 
+            <Footer.Divider/>
+                <div className='w-full sm:flex sm:items-center sm:justify-between'>
             <Footer.Copyright
                 href='#'
              by='Ecodeed Blog'
@@ -105,8 +103,9 @@ export default function FooterComponent() {
                 <Footer.Icon href='#' icon={BsYoutube}/>
                 <Footer.Icon href='#' icon={BsGithub}/>
                 <Footer.Icon href='#' icon={BsTwitter}/>
+                </div>
             </div>
         </div>
     </Footer>
-  );
+);
 }
