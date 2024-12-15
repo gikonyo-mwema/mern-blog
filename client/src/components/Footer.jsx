@@ -1,111 +1,81 @@
-import React from 'react'
-import { BsFacebook, BsInstagram, BsYoutube, BsGithub, BsTwitter } from 'react-icons/bs'
-import { Footer } from 'flowbite-react'
-import { Link } from 'react-router-dom'
+import React from 'react';
+import { BsFacebook, BsInstagram, BsYoutube, BsGithub, BsTwitter } from 'react-icons/bs';
+import { Footer } from 'flowbite-react';
+import { Link } from 'react-router-dom';
 
 export default function FooterComponent() {
-  return (
-    <Footer container className='border border-t-8 border-teal-500'>
-        <div className='w-full max-w-7xl mx-auto'>
-            <div className='grid w-full justify-between sm:flex md:grid-cols-1'>
-                <div className='mt-5'>
-                    <Link
-                    to='/'
-                    className='self-center whitespace-nowrap text-lg sm:text-xl font-semibold dark:text-white'>
-                        <span className='px-2 py-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-lg text-white'>
-                            Ecodeed
-                        </span>
-                        Blog
-                    </Link>
-                </div>
-                <div className='grid grid-cols-2 gap-8 mt-4 sm:grid-cols-3 sm:gap-6'>
-                    <div>
-                        <Footer.Title title='About Us' />
-                        <Footer.LinkGroup col>
-                            <Footer.Link
-                            href='#'
-                            target='_blank'
-                            rel='noopener noreferrer'>
-                                Ecodeed Blog
-                            </Footer.Link>
-                            <Footer.Link
-                            href='#'
-                            target='_blank'
-                            rel='noopener noreferrer'>
-                                About Us
-                            </Footer.Link>
-                            <Footer.Link
-                            href='#'
-                            target='_blank'
-                            rel='noopener noreferrer'>
-                                About Us
-                            </Footer.Link>
-                        </Footer.LinkGroup>
+    return (
+        <Footer container className="border border-t-8 border-teal-500 mt-auto">
+            <div className="w-full max-w-7xl mx-auto">
+                <div className="grid w-full justify-between sm:flex md:grid-cols-1">
+                    <div className="mt-5">
+                        <Link
+                            to="/"
+                            className="self-center whitespace-nowrap text-lg sm:text-xl font-semibold dark:text-white"
+                        >
+                            <span className="px-2 py-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-lg text-white">
+                                Ecodeed
+                            </span>
+                            Blog
+                        </Link>
                     </div>
-                    <div>
-                    <Footer.Title title='Our Services' />
+                    <div className="grid grid-cols-2 gap-8 mt-4 sm:grid-cols-3 sm:gap-6">
+                        <div>
+                            <Footer.Title title="About Us" />
                             <Footer.LinkGroup col>
-                            <Footer.Link
-                            href='#'
-                            target='_blank'
-                            rel='noopener noreferrer'>
-                                EIA
-                            </Footer.Link>
-                            <Footer.Link
-                            href='#'
-                            target='_blank'
-                            rel='noopener noreferrer'>
-                                Environmental Audits  
-                            </Footer.Link>
-                            <Footer.Link
-                            href='#'
-                            target='_blank'
-                            rel='noopener noreferrer'>
-                                Environmental Surveys
-                            </Footer.Link>
-                        </Footer.LinkGroup>
-                    </div>
-                    <div>
-                        <Footer.Title title='Follow Us' />
-                        <Footer.LinkGroup col>
-                            <Footer.Link
-                            href='#'
-                            target='_blank'
-                            rel='noopener noreferrer'>
-                               Twitter
-                            </Footer.Link>
-                            <Footer.Link
-                            href='#'
-                            target='_blank'
-                            rel='noopener noreferrer'>
-                               Youtube
-                            </Footer.Link>
-                            <Footer.Link
-                            href='#'
-                            target='_blank'
-                            rel='noopener noreferrer'>
-                                Facebook
-                            </Footer.Link>
-                        </Footer.LinkGroup>
+                                <Footer.Link href="#" target="_blank" rel="noopener noreferrer">
+                                    Ecodeed Blog
+                                </Footer.Link>
+                                <Footer.Link href="#" target="_blank" rel="noopener noreferrer">
+                                    About Us
+                                </Footer.Link>
+                                <Footer.Link href="#" target="_blank" rel="noopener noreferrer">
+                                    Contact Us
+                                </Footer.Link>
+                            </Footer.LinkGroup>
+                        </div>
+                        <div>
+                            <Footer.Title title="Our Services" />
+                            <Footer.LinkGroup col>
+                                <Footer.Link href="#" target="_blank" rel="noopener noreferrer">
+                                    EIA
+                                </Footer.Link>
+                                <Footer.Link href="#" target="_blank" rel="noopener noreferrer">
+                                    Environmental Audits
+                                </Footer.Link>
+                                <Footer.Link href="#" target="_blank" rel="noopener noreferrer">
+                                    Environmental Surveys
+                                </Footer.Link>
+                            </Footer.LinkGroup>
+                        </div>
+                        <div>
+                            <Footer.Title title="Follow Us" />
+                            <Footer.LinkGroup col>
+                                <Footer.Link href="#" target="_blank" rel="noopener noreferrer">
+                                    Twitter
+                                </Footer.Link>
+                                <Footer.Link href="#" target="_blank" rel="noopener noreferrer">
+                                    YouTube
+                                </Footer.Link>
+                                <Footer.Link href="#" target="_blank" rel="noopener noreferrer">
+                                    Facebook
+                                </Footer.Link>
+                            </Footer.LinkGroup>
+                        </div>
                     </div>
                 </div>
-            </div> 
-            <Footer.Divider/>
-                <div className='w-full sm:flex sm:items-center sm:justify-between'>
-            <Footer.Copyright
-                href='#'
-             by='Ecodeed Blog'
-             year={new Date().getFullYear()}
-            />
-            <div className='flex gap-6 sm:mt-0 mt-4 sm:justify-center'>
-                <Footer.Icon href='#' icon={BsFacebook}/>
-                <Footer.Icon href='#' icon={BsInstagram}/>
-                <Footer.Icon href='#' icon={BsYoutube}/>
-                <Footer.Icon href='#' icon={BsGithub}/>
-                <Footer.Icon href='#' icon={BsTwitter}/>
+                <Footer.Divider />
+                <div className="w-full sm:flex sm:items-center sm:justify-between">
+                    <Footer.Copyright href="#" by="Ecodeed Blog" year={new Date().getFullYear()} />
+                    <div className="flex gap-6 sm:mt-0 mt-4 sm:justify-center">
+                        <Footer.Icon href="#" icon={BsFacebook} />
+                        <Footer.Icon href="#" icon={BsInstagram} />
+                        <Footer.Icon href="#" icon={BsYoutube} />
+                        <Footer.Icon href="#" icon={BsGithub} />
+                        <Footer.Icon href="#" icon={BsTwitter} />
+                    </div>
                 </div>
             </div>
-        </div>
-    </Footer>
-);
+        </Footer>
+    );
 }
