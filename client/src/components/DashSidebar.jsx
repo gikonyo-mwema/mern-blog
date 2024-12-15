@@ -1,10 +1,8 @@
-import React from 'react'
-import { Sidebar } from 'flowbite-react'
+import React from 'react';
+import { Sidebar } from 'flowbite-react';
 import { HiUser, HiArrowSmRight } from 'react-icons/hi';
-import { set } from 'mongoose';
 import { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
-
+import { useLocation, Link } from 'react-router-dom';
 
 export default function DashSidebar() {
     const location = useLocation();
@@ -16,21 +14,25 @@ export default function DashSidebar() {
             setTab(tabFromUrl);
         }
     }, [location.search]);
-  return (
-    <Sidebar className='w-full md:w-56'>
-        <Sidebar.Items>
-            <Sidebar.ItemGroupGroup>
-                 <Link to="/dashboard?tab=profile">
-                    <Sidebar.Item active={tab === 'profile'} icon={<HiUser />} label={'User'} labelColor='dark' >
-                    Profile
-                    </Sidebar.Item>
-                    <Sidebar.Item icon={HiArrowSmRight} className='cursor-pointer'>
+
+    return (
+        <Sidebar className='w-full md:w-56'>
+            <Sidebar.Items>
+                <Sidebar.ItemGroup>
+                    <Link to='/dashboard?tab=profile'>
+                        <Sidebar.Item
+                            active={tab === 'profile'}
+                            icon={HiUser}
+                            label={'User'}
+                            labelColor='dark'>
+                                Profile
+                        </Sidebar.Item>
+                    </Link>
+                    <Sidebar.Item icon={HiArrowSmRight } className='cursor-pointer'>
                         Sign Out
                     </Sidebar.Item>
-                </Link>
-            </Sidebar.ItemGroupGroup>
-        </Sidebar.Items>
-    </Sidebar>  
-    
-  )
+                </Sidebar.ItemGroup>
+            </Sidebar.Items>
+        </Sidebar>
+    );
 }
