@@ -45,25 +45,26 @@ export default function DashPosts  () {
         console.log(error.message);
       }
     }
-  }
+  };
 
   const handleDeletepost = async () => {
     setShowModal(false);
     try {
       const res = await fetch(`/api/post/deletepost/${postIdToDelete}/${currentUser._id}`, {
         method: 'DELETE',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        console.log(data.message);
+      } else {
+        setUserPosts((prev) => 
+          prev.filter((post) => post._id !== postIdToDelete)
+        );
+      }
+    } catch (error) {
+      console.log(error.message);
     }
-  );
-  const data = await res.json();
-  if (!res.ok) {
-    console.log(data.message);
-  } else {
-    setUserPosts((prev) => 
-      prev.filter((post) => post._id !== postIdToDelete)
-    });
-  } catch (error) {
-    console.log(error.message);
-  }
+  };
 
 
   return (
@@ -119,7 +120,7 @@ export default function DashPosts  () {
           ))}
         </Table>
         {showMore && (
-          <button onClick={handleShowMore} className='w-full text-teal-500 self-center text-sm py-7'>
+          <button onClick={handleShowMore()} className='w-full text-teal-500 self-center text-sm py-7'>
             Show more
           </button>
         )}
@@ -156,6 +157,5 @@ export default function DashPosts  () {
                 </div>
               </Modal.Body>
             </Modal>
-    </div>
-  )
-}
+  </div>
+)
