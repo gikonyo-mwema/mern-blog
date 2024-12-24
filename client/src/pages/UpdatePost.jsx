@@ -3,7 +3,7 @@ import { Button, FileInput, Select, TextInput } from 'flowbite-react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { App } from '../firebase';
+import { app } from '../firebase';
 import { useState } from 'react';
 import { CircularProgressbar } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
@@ -50,7 +50,7 @@ export default function UpdatePost() {
                 return;
             }
             setImageUploadError(null);
-            const storage = getStorage(App);
+            const storage = getStorage(app);
             const fileName = new Date() + '-' + file.name;
             const storageRef = ref(storage, fileName);
             const uploadTask = uploadBytesResumable(storageRef, file);

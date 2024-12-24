@@ -2,10 +2,9 @@ import React, { useEffect } from 'react';
 import { useSelector } from 'react-redux';
 
 export default function ThemeProvider({ children }) {
-  const { theme } = useSelector((state) => state.theme);
+  const theme = useSelector((state) => state.theme.theme);
 
   useEffect(() => {
-    // Dynamically add 'dark' class to <html>
     const rootElement = document.documentElement;
     if (theme === 'dark') {
       rootElement.classList.add('dark');

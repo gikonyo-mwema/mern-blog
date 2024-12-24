@@ -24,7 +24,12 @@ export default function DashSidebar() {
       const res = await fetch("/api/user/signout", {
         method: "POST",
       });
-      const data = await res.json();
+      let data;
+      if (res.ok) {
+        data = await res.json();
+      } else {
+        data = await res.text();
+      }
 
       if (!res.ok) {
         console.log(data.message);

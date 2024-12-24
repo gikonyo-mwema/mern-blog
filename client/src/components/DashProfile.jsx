@@ -1,10 +1,11 @@
-import { Modal, TextInput, Button, Alert, Link } from 'flowbite-react';
-import { useEffect, useRef, useState } from 'react';
-import { useSelector } from 'react-redux';
-import { CircularProgressbar } from 'react-circular-progressbar';
-import 'react-circular-progressbar/dist/styles.css';
-import dotenv from 'dotenv';
-
+import { Modal, TextInput, Button, Alert } from "flowbite-react";
+import React from "react";
+import { Link } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useSelector } from "react-redux";
+import { CircularProgressbar } from "react-circular-progressbar";
+import "react-circular-progressbar/dist/styles.css";
+//import dotenv from 'dotenv-browser';
 
 import {
   updateStart,
@@ -14,20 +15,20 @@ import {
   deleteUserSuccess,
   deleteUserFailure,
   signoutSuccess,
-} from '../redux/user/userSlice';
-import { useDispatch } from 'react-redux';
-import { HiOutlineExclamationCircle } from 'react-icons/hi';
-dotenv.config();
+} from "../redux/user/userSlice";
+import { useDispatch } from "react-redux";
+import { HiOutlineExclamationCircle } from "react-icons/hi";
+//dotenv.config();
 
 export default function DashProfile() {
   const { currentUser, error, loading } = useSelector((state) => state.user);
   const [imageFile, setImageFile] = useState(null);
   const [imageFileUrl, setImageFileUrl] = useState(null);
-  const [imageFileUploadProgress, setImageFileUploadProgress] = useState(null);
+  const [imageFileUploadProgress] = useState(null);
   const [imageFileUploading, setImageFileUploading] = useState(false);
   const [imageFileUploadError, setImageFileUploadError] = useState(null);
   const [updateUserSuccess, setUpdateUserSuccess] = useState(null);
-  const [updateUserError, setUpdateUserError] = useState(null);
+  const [updateUserError] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({});
   const filePickerRef = useRef(null);
@@ -48,61 +49,40 @@ export default function DashProfile() {
   }, [imageFile]);
 
   const uploadImage = async () => {
-    setImageFileUploading(true);
-    setImageFileUploadError(null);
+    setImageFileUploading(true); // Indicate uploading state
+    setImageFileUploadError(null); // Clear any previous errors
+
+    // Prepare form data for Cloudinary
+    const imageFormData = new FormData();
+    imageFormData.append("file", imageFile); // Append the selected image file
+    imageFormData.append("upload_preset", process.env.REACT_APP_UPLOAD_PRESET); // Unsigned upload preset from your .env file
 
     try {
-      const data = await uploadToCloudinary(imageFile); // Call your upload function directly
-      setImageFileUrl(data.secure_url);
+      // Make a POST request to Cloudinary's API
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${process.env.REACT_APP_CLOUD_NAME}/image/upload`,
+        {
+          method: "POST",
+          body: imageFormData,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to upload image to Cloudinary"); // Handle response errors
+      }
+
+      const data = await response.json(); // Parse Cloudinary response
+      setImageFileUrl(data.secure_url); // Set the secure URL of the uploaded image
       setFormData((prevFormData) => ({
         ...prevFormData,
-        profilePicture: data.secure_url,
+        profilePicture: data.secure_url, // Add image URL to form data
       }));
     } catch (error) {
-      setImageFileUploadError('Could not upload image. Please try again.');
+      setImageFileUploadError("Could not upload image. Please try again."); // Display error message
     } finally {
-      setImageFileUploading(false);
+      setImageFileUploading(false); // Reset uploading state
     }
-};
-
-
-
-  // const uploadImage = async () => {
-  //   setImageFileUploading(true); // Indicate uploading state
-  //   setImageFileUploadError(null); // Clear any previous errors
-    
-  //   // Prepare form data for Cloudinary
-  //   const formData = new FormData();
-  //   const imageFormData = new FormData();
-  //   imageFormData.append('file', imageFile); // Append the selected image file
-  //   imageFormData.append('upload_preset', process.env.REACT_APP_UPLOAD_PRESET); // Unsigned upload preset from your .env file
-  //   try {
-  //     // Make a POST request to Cloudinary's API
-  //     const response = await fetch(
-  //       `https://api.cloudinary.com/v1_1/${process.env.REACT_APP_CLOUD_NAME}/image/upload`,
-  //       {
-  //         method: 'POST',
-  //         body: imageFormData,
-  //       }
-  //     );
-  
-  //     if (!response.ok) {
-  //       throw new Error('Failed to upload image to Cloudinary'); // Handle response errors
-  //     }
-  
-  //     const data = await response.json(); // Parse Cloudinary response
-  //     setImageFileUrl(data.secure_url); // Set the secure URL of the uploaded image
-  //     setFormData((prevFormData) => ({
-  //       ...prevFormData,
-  //       profilePicture: data.secure_url, // Add image URL to form data
-  //     }));
-  //   } catch (error) {
-  //     setImageFileUploadError('Could not upload image. Please try again.'); // Display error message
-  //   } finally {
-  //     setImageFileUploading(false); // Reset uploading state
-  //   }
-  // };
-
+  };
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
@@ -114,20 +94,20 @@ export default function DashProfile() {
     setUpdateUserSuccess(null);
 
     if (Object.keys(formData).length === 0) {
-      setUpdateUserError('Please update at least one field');
+      setUpdateUserError("Please update at least one field");
       return;
     }
     if (imageFileUploading) {
-      setUpdateUserError('Please wait for the image to finish uploading');
+      setUpdateUserError("Please wait for the image to finish uploading");
       return;
     }
 
     try {
       dispatch(updateStart());
       const res = await fetch(`/api/user/update/${currentUser._id}`, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(formData),
       });
@@ -138,7 +118,7 @@ export default function DashProfile() {
         setUpdateUserError(data.message);
       } else {
         dispatch(updateSuccess(data));
-        setUpdateUserSuccess('Profile updated successfully');
+        setUpdateUserSuccess("Profile updated successfully");
       }
     } catch (error) {
       dispatch(updateFailure(error.message));
@@ -151,7 +131,7 @@ export default function DashProfile() {
     try {
       dispatch(deleteUserStart());
       const res = await fetch(`/api/user/delete/${currentUser._id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
       const data = await res.json();
       if (!res.ok) {
@@ -166,8 +146,8 @@ export default function DashProfile() {
 
   const handleSignOut = async () => {
     try {
-      const res = await fetch('/api/user/signout', {
-        method: 'POST',
+      const res = await fetch("/api/user/signout", {
+        method: "POST",
       });
       const data = await res.json();
 
@@ -204,14 +184,16 @@ export default function DashProfile() {
                 strokeWidth={5}
                 styles={{
                   root: {
-                    width: '100%',
-                    height: '100%',
-                    position: 'absolute',
+                    width: "100%",
+                    height: "100%",
+                    position: "absolute",
                     top: 0,
                     left: 0,
                   },
                   path: {
-                    stroke: `rgba(62, 231, 153, ${imageFileUploadProgress / 100})`,
+                    stroke: `rgba(62, 231, 153, ${
+                      imageFileUploadProgress / 100
+                    })`,
                   },
                 }}
               />
@@ -221,7 +203,7 @@ export default function DashProfile() {
                 className={`object-cover w-full h-full rounded-full border-8 border=[lightgray] ${
                   imageFileUploadProgress &&
                   imageFileUploadProgress < 100 &&
-                  'opacity-60'
+                  "opacity-60"
                 }`}
               />
             </>
@@ -257,31 +239,24 @@ export default function DashProfile() {
           gradientDuoTone="purpleToBlue"
           outline
           disabled={loading || imageFileUploading}
-          >
-         {loading ? 'Loading...' : 'Update Profile'}
+        >
+          {loading ? "Loading..." : "Update Profile"}
         </Button>
-        {
-          currentUser.isAdmin && (
-            <Link to="/create-post">
-              <Button 
-               type="button"
-               gradientDuoTone="purpleToPink"
-                className='w-full'
-              >
-                Create a Post
-              </Button>
-            </Link>
-          )
-        }
-
-
+        {currentUser.isAdmin && (
+          <Link to="/create-post">
+            <Button
+              type="button"
+              gradientDuoTone="purpleToPink"
+              className="w-full"
+            >
+              Create a Post
+            </Button>
+          </Link>
+        )}
       </form>
 
       <div className="text-red-500 flex justify-between mt-5">
-        <span
-          onClick={() => setShowModal(true)}
-          className="cursor-pointer"
-        >
+        <span onClick={() => setShowModal(true)} className="cursor-pointer">
           Delete Account
         </span>
         <span onClick={handleSignOut} className="cursor-pointer">
@@ -317,10 +292,7 @@ export default function DashProfile() {
               <Button color="failure" onClick={handleDeleteUser}>
                 Yes, I'm sure
               </Button>
-              <Button
-                color="gray"
-                onClick={() => setShowModal(false)}
-              >
+              <Button color="gray" onClick={() => setShowModal(false)}>
                 No, cancel
               </Button>
             </div>
@@ -330,6 +302,3 @@ export default function DashProfile() {
     </div>
   );
 }
-
-
-

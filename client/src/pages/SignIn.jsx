@@ -7,8 +7,8 @@ import OAuth from '../components/OAuth';
 
 
 export default function SignIn() {
-  const [formData, setFormData] = useState({});
-  const {loading, error: errorMessage} = useSelector(state => state.user);
+  const [formData, setFormData] = useState({ email: '', password: '' });
+  const { loading, errorMessage } = useSelector(state => state.user);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const handleChange = (e) => {
@@ -16,12 +16,12 @@ export default function SignIn() {
   };
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if ( !formData.email || !formData.password) {
+    if (!formData?.email || !formData?.password) {
       return dispatch(signInFailure('Please fill all the fields'));
     }
     try {
       dispatch(signInStart());
-      const res = await fetch('api/auth/signin', {
+      const res = await fetch('/api/auth/signin', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -31,14 +31,17 @@ export default function SignIn() {
       const data = await res.json();
       if (data.success === false) {
         dispatch(signInFailure(data.message));
+        return;
       }
    
       if (res.ok) {
         dispatch(signInSuccess(data));
         navigate('/');
+      } else {
+        dispatch(signInFailure(data.message));
       }
     } catch (error) {
-     dispatch(signInFailure(error.message));
+      dispatch(signInFailure(error.message));
     }
   };
 
@@ -54,10 +57,10 @@ export default function SignIn() {
          
 
           Blog
-          </Link>
           <p className='text-sm mt-5'>
-           You can sign in with you email and password or google account.
+            Welcome back! Please sign in to continue.
           </p>
+          </Link>
         </div>
 
         {/* right */}

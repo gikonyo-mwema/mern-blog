@@ -2,12 +2,12 @@ import bcryptjs from 'bcryptjs';
 import { errorHandler } from '../utils/error.js';
 import User from '../models/user.model.js';
 
-export const test = (req, res) => {
+export const test = (res) => {
     res.json({ message: "API is working!"});
 
 };
 
-export const updateUser = async (req, res) => {
+export const updateUser = async (req, res, next) => {
     if (req.user.id !== req.params.userId) {
         return next(errorHandler(403, "You are not authorized to update this user's information"));
     }
@@ -62,7 +62,7 @@ export const deleteUser = async (req, res, next) => {
 
 };
 
-export const signout = (req, res) => {
+export const signout = (req, res, next) => {
     try {
         res.clearCookie('access_token')
            .status(200)
