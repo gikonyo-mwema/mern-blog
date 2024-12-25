@@ -1,17 +1,16 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Sidebar } from "flowbite-react";
-import { HiUser, HiArrowSmRight, HiDocumentText, HiOutlineUserGroup } from "react-icons/hi";
-import { useEffect, useState } from "react";
+import { HiUser, HiArrowSmRight, HiDocumentText, HiOutlineUserGroup, HiAnnotation } from "react-icons/hi";
 import { useLocation, Link } from "react-router-dom";
 import { signoutSuccess } from "../redux/user/userSlice";
-import { useDispatch } from "react-redux";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 
 export default function DashSidebar() {
   const location = useLocation();
   const dispatch = useDispatch();
   const { currentUser } = useSelector((state) => state.user);
   const [tab, setTab] = useState("");
+
   useEffect(() => {
     const urlParams = new URLSearchParams(location.search);
     const tabFromUrl = urlParams.get("tab");
@@ -19,6 +18,7 @@ export default function DashSidebar() {
       setTab(tabFromUrl);
     }
   }, [location.search]);
+
   const handleSignOut = async () => {
     try {
       const res = await fetch("/api/user/signout", {
@@ -69,15 +69,23 @@ export default function DashSidebar() {
               <Link to="/dashboard?tab=users">
                 <Sidebar.Item
                   active={tab === "users"}
-                  icon={HiOutlineUserGroup}
+                  icon={HiAnnotation}
                   as="div"
                 >
                   Users
                 </Sidebar.Item>
               </Link>
+              <Link to="/dashboard?tab=comments">
+                <Sidebar.Item
+                  active={tab === "comments"}
+                  icon={HiOutlineUserGroup}
+                  as="div"
+                >
+                  Comments
+                </Sidebar.Item>
+              </Link>
             </>
           )}
-
           <Sidebar.Item
             icon={HiArrowSmRight}
             className="cursor-pointer"
