@@ -13,7 +13,7 @@ export default function DashComments() {
     const [commentIdToDelete, setCommentIdToDelete] = useState('');
 
     useEffect(() => {
-        const fetchCommentasync () => {
+        const fetchComments = async () => {
             try {
                 const res = await fetch(`/api/comment/getComments`);
                 const data = await res.json();
@@ -28,9 +28,10 @@ export default function DashComments() {
             }
         };
 
-        if (currentfetchCommentisAdmin) {
-            fetchComment        }
-    }, [currentfetchComment);
+        if (currentUser.isAdmin) {
+            fetchComments();
+        }
+    }, [currentUser]);
 
     const handleShowMore = async () => {
         const startIndex = fetchComment.length;
