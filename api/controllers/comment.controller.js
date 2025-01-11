@@ -1,5 +1,4 @@
-import comment from '../models/comment.model';
-import Comment from '../models/comment.model';
+import Comment from '../models/comment.model.js';
 
 export const createComment = async (req, res, next) => {
     try {
@@ -15,6 +14,7 @@ export const createComment = async (req, res, next) => {
             userId,
         });
         await newComment.save();
+        res.status(201).json(newComment);
 
     } catch (error) {
         next(error);
@@ -38,7 +38,7 @@ export const createComment = async (req, res, next) => {
 
 export const likeComment = async (req, res, next) => {
     try {
-        const commnent = await Comment.findById(req.params.commentId);
+        const comment = await Comment.findById(req.params.commentId);
         if (!comment) {
             return next(errorHandler(404, 'Comment not found'));
         }
@@ -96,7 +96,7 @@ export const deleteComment = async (req, res, next) => {
         if (comment.userId !== req.user.id && !req.user.isAdmin) {
             return next(errorHandler(403, 'You are not allowed to delete this comment'));
         }
-        await Commment.findByIdAndDelete(req.params.commentId);
+        await Comment.findByIdAndDelete(req.params.commentId);
         res.status(200).json('Comment has been deleted');
         
          
