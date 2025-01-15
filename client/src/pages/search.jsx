@@ -1,15 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { Button, Select, TextInput } from 'flowbite-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import PostCard from '../components/PostCard';
 
 export default function Search() {
+    // State to manage sidebar filter data
     const [sidebarData, setSidebarData] = useState({
         searchTerm: '',
         sort: 'desc',
         category: 'uncategorized',
     });
+    // State to manage fetched posts
     const [posts, setPosts] = useState([]);
+    // State to manage loading status
     const [loading, setLoading] = useState(true);
+    // State to manage "Show More" button visibility
     const [showMore, setShowMore] = useState(false);
 
     const location = useLocation();

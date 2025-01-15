@@ -7,6 +7,8 @@ import postRoutes from './routes/post.route.js';
 import commentRoutes from './routes/comment.route.js';
 import cookieParser from 'cookie-parser';
 import path from 'path';
+import cloudinary from 'cloudinary';
+import fileUpload from 'express-fileupload';
 
 dotenv.config();
 
@@ -19,12 +21,22 @@ mongoose
     console.log(err);
   });
 
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
 const __dirname = path.resolve();
 
 const app = express();
 
 app.use(express.json());
 app.use(cookieParser());
+
+
+app.use(fileUpload());
+
 
 app.listen(3000, () => {
   console.log('Server is running on port 3000!');
