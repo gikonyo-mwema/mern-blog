@@ -1,24 +1,40 @@
 import { errorHandler } from '../utils/error.js';
 import Post from '../models/post.model.js';
-// import Comment from '../models/comment.model.js';
+import cloudinary from '../utils/cloudinaryConfig.js';
 
-export const create = (req, res, next) => {
+// Create a new post with image upload
+export const create = async (req, res, next) => {
     if (!req.user.isAdmin) {
-        return next(errorHandler(403, 'You are not allowed to create a post'))
+        return next(errorHandler(403, 'You are not allowed to create a post'));
     }
-    if (!req.body.title || !req.body.content) {
-        return next(errorHandler(400, "Please provide all required fields"))
-    }
-    const slug = req.body.title.split(" ").join('-').toLowerCase().replace(/[^a-zA-Z0-9-]/g, "")
-    const newPost = new Post({
-        ...req.body,
-        slug,
-        userId: req.user.id,
-    });
 
-    newPost.save()
-        .then(post => res.status(201).json(post))
-        .catch(err => next(errorHandler(500, err.message)));
+    const { title, content } = req.body;
+    if (!title || !content) {
+        return next(errorHandler(400, "Please provide all required fields"));
+    }
+
+    try {
+        let imageUrl = '';
+        if (req.file) {
+            const result = await cloudinary.uploader.upload(req.file.path, {
+                folder: 'post_images',
+            });
+            imageUrl = result.secure_url;
+        }
+
+        const slug = title.split(' ').join('-').toLowerCase().replace(/[^a-zA-Z0-9-]/g, '');
+        const newPost = new Post({
+            ...req.body,
+            slug,
+            userId: req.user.id,
+            image: imageUrl,
+        });
+
+        await newPost.save();
+        res.status(201).json(newPost);
+    } catch (error) {
+        next(errorHandler(500, error.message));
+    }
 };
 
 export const getPosts = async (req, res) => {
@@ -66,8 +82,8 @@ export const getPosts = async (req, res) => {
 export const deletePost = async (req, res, next) => {
     if (!req.user.isAdmin || req.user.id !== req.params.userId) {
         return next(errorHandler(403, 'You are not allowed to delete this post'));
-
-    } try {
+    }
+    try {
         await Post.findByIdAndDelete(req.params.postId);
         res.status(200).json({ message: 'Post deleted successfully' });
     } catch (error) {
@@ -75,24 +91,29 @@ export const deletePost = async (req, res, next) => {
     }
 };
 
+// Update an existing post with image upload
 export const updatePost = async (req, res, next) => {
     if (!req.user.isAdmin || req.user.id !== req.params.userId) {
         return next(errorHandler(403, 'You are not allowed to update this post'));
     }
+
     try {
-        const updatePost = await Post.findByIdAndUpdate(
+        let updateData = { ...req.body };
+
+        if (req.file) {
+            const result = await cloudinary.uploader.upload(req.file.path, {
+                folder: 'post_images',
+            });
+            updateData.image = result.secure_url;
+        }
+
+        const updatedPost = await Post.findByIdAndUpdate(
             req.params.postId,
-            {
-                $set: {
-                    title: req.body.title,
-                    content: req.body.content,
-                    category: req.body.category,
-                    Image: req.body.image,
-                }
-            },
+            { $set: updateData },
             { new: true }
         );
-        res.status(200).json(updatePost);
+
+        res.status(200).json(updatedPost);
     } catch (error) {
         next(error);
     }

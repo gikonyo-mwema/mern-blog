@@ -1,6 +1,7 @@
 import bcryptjs from 'bcryptjs';
 import { errorHandler } from '../utils/error.js';
 import User from '../models/user.model.js';
+import cloudinary from '../utils/cloudinaryConfig.js';
 
 // Test endpoint to check if API is working
 export const test = (req, res) => {
@@ -33,76 +34,54 @@ export const signUp = async (req, res, next) => {
   try {
     // Hash password
     const hashedPassword = bcryptjs.hashSync(password, 10);
-    
+
     // Create user
     const newUser = new User({
       username,
       email,
       password: hashedPassword,
+      profilePicture: '', // Placeholder for default profile picture
     });
 
     await newUser.save();
-    
+
     // Exclude password from response
     const { password: pwd, ...userWithoutPassword } = newUser._doc;
     res.status(201).json(userWithoutPassword);
-    
   } catch (error) {
     next(error);
   }
 };
 
-// Update user details
+// Update user details (with profile picture upload)
 export const updateUser = async (req, res, next) => {
-  // Check if the user is authorized to update the user
   if (req.user.id !== req.params.userId) {
     return next(errorHandler(403, 'You are not allowed to update this user'));
   }
 
-  // Validate and hash the new password if provided
-  if (req.body.password) {
-    if (req.body.password.length < 6) {
-      return next(errorHandler(400, 'Password must be at least 6 characters'));
-    }
-    req.body.password = bcryptjs.hashSync(req.body.password, 10);
-  }
-
-  // Validate the new username if provided
-  if (req.body.username) {
-    if (req.body.username.length < 7 || req.body.username.length > 20) {
-      return next(
-        errorHandler(400, 'Username must be between 7 and 20 characters')
-      );
-    }
-    if (req.body.username.includes(' ')) {
-      return next(errorHandler(400, 'Username cannot contain spaces'));
-    }
-    if (req.body.username !== req.body.username.toLowerCase()) {
-      return next(errorHandler(400, 'Username must be lowercase'));
-    }
-    if (!req.body.username.match(/^[a-zA-Z0-9]+$/)) {
-      return next(
-        errorHandler(400, 'Username can only contain letters and numbers')
-      );
-    }
-  }
-
   try {
-    // Update the user in the database
-    const updatedUser = await User.findByIdAndUpdate(
-      req.params.userId,
-      {
-        $set: {
-          username: req.body.username,
-          email: req.body.email,
-          profilePicture: req.body.profilePicture,
-          password: req.body.password,
-        },
-      },
-      { new: true }
-    );
+    const updateData = { ...req.body };
 
-    // Exclude the password from the response
+    // Handle profile picture upload
+    if (req.file) {
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: 'profile_pictures',
+      });
+      updateData.profilePicture = result.secure_url;
+    }
+
+    // Hash the new password if provided
+    if (req.body.password) {
+      if (req.body.password.length < 6) {
+        return next(errorHandler(400, 'Password must be at least 6 characters'));
+      }
+      updateData.password = bcryptjs.hashSync(req.body.password, 10);
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(req.params.userId, {
+      $set: updateData,
+    }, { new: true });
+
     const { password, ...rest } = updatedUser._doc;
     res.status(200).json(rest);
   } catch (error) {
@@ -112,13 +91,11 @@ export const updateUser = async (req, res, next) => {
 
 // Delete a user
 export const deleteUser = async (req, res, next) => {
-  // Check if the user is authorized to delete the user
   if (!req.user.isAdmin && req.user.id !== req.params.userId) {
     return next(errorHandler(403, 'You are not allowed to delete this user'));
   }
 
   try {
-    // Delete the user from the database
     await User.findByIdAndDelete(req.params.userId);
     res.status(200).json('User has been deleted');
   } catch (error) {
@@ -140,7 +117,6 @@ export const signout = (req, res, next) => {
 
 // Get a list of users
 export const getUsers = async (req, res, next) => {
-  // Check if the user is authorized to see all users
   if (!req.user.isAdmin) {
     return next(errorHandler(403, 'You are not allowed to see all users'));
   }
@@ -150,13 +126,11 @@ export const getUsers = async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 9;
     const sortDirection = req.query.sort === 'asc' ? 1 : -1;
 
-    // Fetch users from the database with pagination and sorting
     const users = await User.find()
       .sort({ createdAt: sortDirection })
       .skip(startIndex)
       .limit(limit);
 
-    // Exclude passwords from the response
     const usersWithoutPassword = users.map((user) => {
       const { password, ...rest } = user._doc;
       return rest;
@@ -171,7 +145,6 @@ export const getUsers = async (req, res, next) => {
       now.getDate()
     );
 
-    // Count users created in the last month
     const lastMonthUsers = await User.countDocuments({
       createdAt: { $gte: oneMonthAgo },
     });
@@ -194,7 +167,6 @@ export const getUser = async (req, res, next) => {
       return next(errorHandler(404, 'User not found'));
     }
 
-    // Exclude the password from the response
     const { password, ...rest } = user._doc;
     res.status(200).json(rest);
   } catch (error) {
