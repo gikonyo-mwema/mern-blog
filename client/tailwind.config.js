@@ -1,11 +1,13 @@
 import tailwindScrollbar from "tailwind-scrollbar";
+import { Flowbite } from "flowbite-react";
+import "flowbite-react/dist/index.css";
 
 export default {
   darkMode: "class",
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
-    ...flowbite.content(),
+    ...Flowbite.content(),
   ],
   theme: {
     extend: {},
@@ -13,5 +15,5 @@ export default {
   variants: {
     extend: {},
   },
-  plugins: [tailwindScrollbar, flowbite.plugin()],
+  plugins: [tailwindScrollbar, Flowbite.plugin()],
 };
