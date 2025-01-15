@@ -23,9 +23,10 @@ export default function DashPosts() {
           }
         }
       } catch (error) {
-        console.log(error.message);
+        console.error("Error fetching posts:", error.message);
       }
     };
+
     fetchPosts();
   }, [currentUser._id]);
 
@@ -41,7 +42,7 @@ export default function DashPosts() {
         }
       }
     } catch (error) {
-      console.log(error.message);
+      console.error("Error fetching more posts:", error.message);
     }
   };
 
@@ -52,23 +53,23 @@ export default function DashPosts() {
         method: 'DELETE',
       });
       const data = await res.json();
-      if (!res.ok) {
-        console.log(data.message);
-      } else {
+      if (res.ok) {
         setUserPosts((prev) => prev.filter((post) => post._id !== postIdToDelete));
+      } else {
+        console.error("Error deleting post:", data.message);
       }
     } catch (error) {
-      console.log(error.message);
+      console.error("Error deleting post:", error.message);
     }
   };
 
   return (
-    <div className='table-auto overflow-x-scroll md:mx-auto p-3 scrollbar scrollbar-track-slate-100 scrollbar-thumb-slate-300 dark:scrollbar-track-slate-700 dark:scrollbar-thumb-slate-500'>
+    <div className="table-auto overflow-x-scroll md:mx-auto p-3 scrollbar scrollbar-track-slate-100 scrollbar-thumb-slate-300 dark:scrollbar-track-slate-700 dark:scrollbar-thumb-slate-500">
       {currentUser.isAdmin ? (
         <>
           {userPosts.length > 0 ? (
             <>
-              <Table hoverable className='shadow-md'>
+              <Table hoverable className="shadow-md">
                 <Table.Head>
                   <Table.HeadCell>Date updated</Table.HeadCell>
                   <Table.HeadCell>Post Image</Table.HeadCell>
@@ -77,17 +78,17 @@ export default function DashPosts() {
                   <Table.HeadCell>Delete</Table.HeadCell>
                   <Table.HeadCell>Edit</Table.HeadCell>
                 </Table.Head>
-                <Table.Body className='divide-y'>
+                <Table.Body className="divide-y">
                   {userPosts.map((post) => (
-                    <Table.Row key={post._id} className='bg-white dark:border-gray-700 dark:bg-gray-800'>
+                    <Table.Row key={post._id} className="bg-white dark:border-gray-700 dark:bg-gray-800">
                       <Table.Cell>{new Date(post.updatedAt).toLocaleDateString()}</Table.Cell>
                       <Table.Cell>
                         <Link to={`/post/${post.slug}`}>
-                          <img src={post.image} alt={post.title} className='w-20 h-10 object-cover bg-gray-500' />
+                          <img src={post.image} alt={post.title} className="w-20 h-10 object-cover bg-gray-500" />
                         </Link>
                       </Table.Cell>
                       <Table.Cell>
-                        <Link className='font-medium text-gray-500 dark:text-white' to={`/post/${post.slug}`}>
+                        <Link className="font-medium text-gray-500 dark:text-white" to={`/post/${post.slug}`}>
                           {post.title}
                         </Link>
                       </Table.Cell>
@@ -100,14 +101,14 @@ export default function DashPosts() {
                             setShowModal(true);
                             setPostIdToDelete(post._id);
                           }}
-                          className='font-medium text-red-500 hover:underline cursor-pointer'
+                          className="font-medium text-red-500 hover:underline cursor-pointer"
                         >
                           Delete
                         </span>
                       </Table.Cell>
                       <Table.Cell>
                         <Link to={`/post/edit/${post.slug}`}>
-                          <span className='font-medium text-blue-500 hover:underline cursor-pointer'>Edit</span>
+                          <span className="font-medium text-blue-500 hover:underline cursor-pointer">Edit</span>
                         </Link>
                       </Table.Cell>
                     </Table.Row>
@@ -116,7 +117,7 @@ export default function DashPosts() {
               </Table>
 
               {showMore && (
-                <button onClick={handleShowMore} className='w-full text-teal-500 self-center text-sm py-7'>
+                <button onClick={handleShowMore} className="w-full text-teal-500 self-center text-sm py-7">
                   Show more
                 </button>
               )}
@@ -151,3 +152,4 @@ export default function DashPosts() {
     </div>
   );
 }
+

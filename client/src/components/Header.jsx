@@ -8,7 +8,6 @@ import { signoutSuccess } from "../redux/user/userSlice";
 import { useEffect, useState } from "react";
 
 export default function Header() {
-  const path = useLocation().pathname;
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -26,17 +25,15 @@ export default function Header() {
 
   const handleSignout = async () => {
     try {
-      const res = await fetch("/api/user/signout", {
-        method: "POST",
-      });
+      const res = await fetch("/api/user/signout", { method: "POST" });
       const data = await res.json();
-      if (!res.ok) {
-        console.log(data.message);
-      } else {
+      if (res.ok) {
         dispatch(signoutSuccess());
+      } else {
+        console.error(data.message);
       }
     } catch (error) {
-      console.log(error.message);
+      console.error("Sign-out failed:", error.message);
     }
   };
 
@@ -44,12 +41,12 @@ export default function Header() {
     e.preventDefault();
     const urlParams = new URLSearchParams(location.search);
     urlParams.set("searchTerm", searchTerm);
-    const searchQuery = urlParams.toString();
-    navigate(`/search?${searchQuery}`);
+    navigate(`/search?${urlParams.toString()}`);
   };
 
   return (
     <Navbar className="border-b-2">
+      {/* Brand */}
       <Link
         to="/"
         className="self-center whitespace-nowrap text-sm sm:text-xl font-semibold dark:text-white"
@@ -59,35 +56,39 @@ export default function Header() {
         </span>
         Blog
       </Link>
-      <form onSubmit={handleSubmit}>
+
+      {/* Search */}
+      <form onSubmit={handleSubmit} className="hidden lg:block">
         <TextInput
           type="text"
           placeholder="Search..."
           rightIcon={AiOutlineSearch}
-          className="hidden lg:inline"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </form>
-      <Button className="w-12 h-10 lg:hidden" color="gray" pill>
+      <Button className="lg:hidden w-12 h-10" color="gray" pill>
         <AiOutlineSearch />
       </Button>
+
+      {/* Right-side Controls */}
       <div className="flex gap-2 md:order-2">
+        {/* Theme Toggle */}
         <Button
-          className="w-12 h-10 hidden sm:inline"
+          className="hidden sm:inline w-12 h-10"
           color="gray"
           pill
           onClick={() => dispatch(toggleTheme())}
         >
           {theme === "light" ? <FaSun /> : <FaMoon />}
         </Button>
+
+        {/* User Dropdown */}
         {currentUser ? (
           <Dropdown
             arrowIcon={false}
             inline
-            label={
-              <Avatar alt="user" img={currentUser.profilePicture} rounded />
-            }
+            label={<Avatar alt="user" img={currentUser.profilePicture} rounded />}
           >
             <Dropdown.Header>
               <span className="block text-sm">@{currentUser.username}</span>
@@ -95,7 +96,7 @@ export default function Header() {
                 {currentUser.email}
               </span>
             </Dropdown.Header>
-            <Link to={"/dashboard?tab=profile"}>
+            <Link to="/dashboard?tab=profile">
               <Dropdown.Item>Profile</Dropdown.Item>
             </Link>
             <Dropdown.Divider />
@@ -108,19 +109,24 @@ export default function Header() {
             </Button>
           </Link>
         )}
+
+        {/* Mobile Toggle */}
         <Navbar.Toggle />
       </div>
+
+      {/* Navbar Links */}
       <Navbar.Collapse>
-        <Navbar.Link active={path === "/"} as={"div"}>
+        <Navbar.Link active={location.pathname === "/"} as="div">
           <Link to="/">Home</Link>
         </Navbar.Link>
-        <Navbar.Link active={path === "/about"} as={"div"}>
+        <Navbar.Link active={location.pathname === "/about"} as="div">
           <Link to="/about">About</Link>
         </Navbar.Link>
-        <Navbar.Link active={path === "/projects"} as={"div"}>
+        <Navbar.Link active={location.pathname === "/projects"} as="div">
           <Link to="/projects">Projects</Link>
         </Navbar.Link>
       </Navbar.Collapse>
     </Navbar>
   );
 }
+
