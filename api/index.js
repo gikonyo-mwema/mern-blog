@@ -6,53 +6,50 @@ import authRoutes from './routes/auth.route.js';
 import postRoutes from './routes/post.route.js';
 import commentRoutes from './routes/comment.route.js';
 import cookieParser from 'cookie-parser';
+import multer from 'multer';
 import path from 'path';
 import cloudinary from 'cloudinary';
-import fileUpload from 'express-fileupload';
 
 dotenv.config();
 
+// MongoDB Connection
 mongoose
   .connect(process.env.MONGODB_URI)
-  .then(() => {
-    console.log('MongoDb is connected');
-  })
-  .catch((err) => {
-    console.log(err);
-  });
+  .then(() => console.log('MongoDB is connected'))
+  .catch((err) => console.error('MongoDB connection error:', err));
 
+// Cloudinary Configuration
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+const app = express();
 const __dirname = path.resolve();
 
-const app = express();
-
+// Middleware
 app.use(express.json());
 app.use(cookieParser());
 
+// File upload middleware with Multer
+const upload = multer({ limits: { fileSize: 2 * 1024 * 1024 } }); // 2MB limit
 
-app.use(fileUpload());
+// Serve static files
+app.use(express.static(path.join(__dirname, '/client/dist')));
 
-
-app.listen(3000, () => {
-  console.log('Server is running on port 3000!');
-});
-
+// Routes
 app.use('/api/user', userRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/post', postRoutes);
 app.use('/api/comment', commentRoutes);
 
-app.use(express.static(path.join(__dirname, '/client/dist')));
-
+// SPA fallback
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'client', 'dist', 'index.html'));
 });
 
+// Error Handling Middleware
 app.use((err, req, res, next) => {
   const statusCode = err.statusCode || 500;
   const message = err.message || 'Internal Server Error';
@@ -62,3 +59,7 @@ app.use((err, req, res, next) => {
     message,
   });
 });
+
+// Start the server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
