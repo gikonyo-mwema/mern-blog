@@ -6,7 +6,8 @@ import {
   HiAnnotation,
   HiArrowNarrowUp,
   HiDocumentText,
-  HiOutlineUserGroup,
+  HiOutlineUserGroup,  
+  HiOutlineChat
 } from "react-icons/hi";
 
 export default function DashboardComponent() {
@@ -24,7 +25,7 @@ export default function DashboardComponent() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res = await fetch("/api/user/getusers?limit=5");
+        const res = await fetch("/api/user/getUsers?limit=5");
         const data = await res.json();
         if (res.ok) {
           setUsers(data.users);
@@ -38,7 +39,7 @@ export default function DashboardComponent() {
 
     const fetchPosts = async () => {
       try {
-        const res = await fetch("/api/user/getposts?limit=5");
+        const res = await fetch("/api/user/getPosts?limit=5");
         const data = await res.json();
         if (res.ok) {
           setPosts(data.posts);
@@ -52,7 +53,7 @@ export default function DashboardComponent() {
 
     const fetchComments = async () => {
       try {
-        const res = await fetch("/api/comment/getcomments?limit=5");
+        const res = await fetch("/api/comment/getComments?limit=5");
         const data = await res.json();
         if (res.ok) {
           setComments(data.comments);
@@ -96,7 +97,7 @@ export default function DashboardComponent() {
               </h3>
               <p className="text-2xl">{totalComments}</p>
             </div>
-            <HiOutlineCommentGroup className="bg-teal-600 text-white rounded-full text-5xl p-3 shadow-lg" />
+            <HiOutlineChat className="bg-teal-600 text-white rounded-full text-5xl p-3 shadow-lg" />
             <div className="flex gap-2 text-sm">
               <span className="text-indigo-500 flex items-center">
                 <HiAnnotation />
@@ -125,8 +126,12 @@ export default function DashboardComponent() {
         <div className="flex flex-col w-full md:w-auto shadow-md p-2 rounded-md dark:bg-gray-800">
           <div className="flex justify-between p-3 text-sm font-semibold">
             <h1 className="text-center p-2">Recent Users</h1>
-            <Button outline gradientDuoTone="purpleToPink">
-              <Link to={"/dashboard?tab=users"}>See all</Link>
+            <Button 
+              outline
+              gradientDuoTone="purpleToPink"
+              onClick={() => navigate("/dashboard?tab=users")}
+            >
+              See all
             </Button>
           </div>
           <Table hoverable>
