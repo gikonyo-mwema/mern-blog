@@ -46,7 +46,7 @@ export default function Header() {
   };
 
   return (
-    <Navbar className="border-b-2 px-4">
+    <Navbar className="border-b-2 border-yellow-500 px-4 mt-auto ">
       {/* Logo Section */}
       <Link
         to="/"
