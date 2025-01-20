@@ -8,6 +8,7 @@ import { signoutSuccess } from "../redux/user/userSlice";
 import { useEffect, useState } from "react";
 
 export default function Header() {
+  const path = useLocation().pathname;
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -45,50 +46,61 @@ export default function Header() {
   };
 
   return (
-    <Navbar className="border-b-2">
-      {/* Brand */}
+    <Navbar className="border-b-2 px-4">
+      {/* Logo Section */}
       <Link
         to="/"
-        className="self-center whitespace-nowrap text-sm sm:text-xl font-semibold dark:text-white"
+        className="flex items-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-full"
       >
-        <span className="px-2 py-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-lg text-white">
-          Ecodeed
-        </span>
-        Blog
+        <img
+          src="https://res.cloudinary.com/dcrubaesi/image/upload/v1737333837/ECODEED_COLORED_LOGO_wj2yy8.png"
+          alt="Logo"
+          className="h-16 w-16" // Slightly larger logo
+        />
       </Link>
 
-      {/* Search */}
-      <form onSubmit={handleSubmit} className="hidden lg:block">
+      {/* Search Form */}
+      <form onSubmit={handleSubmit} className="">
         <TextInput
           type="text"
           placeholder="Search..."
           rightIcon={AiOutlineSearch}
+          className="rounded-full w-full h-10 pl-4 pr-10 text-sm border-none focus:ring focus:ring-indigo-300 focus:outline-none" // Removed inner squared border
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </form>
-      <Button className="lg:hidden w-12 h-10" color="gray" pill>
-        <AiOutlineSearch />
-      </Button>
 
-      {/* Right-side Controls */}
+      {/* Navbar Links */}
+      <Navbar.Collapse className="hidden lg:flex justify-center space-x-6">
+        <Navbar.Link active={path === "/"} as="div">
+          <Link to="/">Home</Link>
+        </Navbar.Link>
+        <Navbar.Link active={path === "/about"} as="div">
+          <Link to="/about">About</Link>
+        </Navbar.Link>
+        <Navbar.Link active={path === "/projects"} as="div">
+          <Link to="/projects">Projects</Link>
+        </Navbar.Link>
+      </Navbar.Collapse>
+
+      {/* Theme Toggle and Profile Section */}
       <div className="flex gap-2 md:order-2">
-        {/* Theme Toggle */}
         <Button
-          className="hidden sm:inline w-12 h-10"
+          className="w-12 h-10 hidden sm:inline"
           color="gray"
           pill
           onClick={() => dispatch(toggleTheme())}
         >
           {theme === "light" ? <FaSun /> : <FaMoon />}
         </Button>
-
-        {/* User Dropdown */}
         {currentUser ? (
           <Dropdown
             arrowIcon={false}
             inline
-            label={<Avatar alt="user" img={currentUser.profilePicture} rounded />}
+            label={
+              <Avatar alt="user" img={currentUser.profilePicture} rounded />
+            }
           >
             <Dropdown.Header>
               <span className="block text-sm">@{currentUser.username}</span>
@@ -96,7 +108,7 @@ export default function Header() {
                 {currentUser.email}
               </span>
             </Dropdown.Header>
-            <Link to="/dashboard?tab=profile">
+            <Link to={"/dashboard?tab=profile"}>
               <Dropdown.Item>Profile</Dropdown.Item>
             </Link>
             <Dropdown.Divider />
@@ -109,24 +121,8 @@ export default function Header() {
             </Button>
           </Link>
         )}
-
-        {/* Mobile Toggle */}
         <Navbar.Toggle />
       </div>
-
-      {/* Navbar Links */}
-      <Navbar.Collapse>
-        <Navbar.Link active={location.pathname === "/"} as="div">
-          <Link to="/">Home</Link>
-        </Navbar.Link>
-        <Navbar.Link active={location.pathname === "/about"} as="div">
-          <Link to="/about">About</Link>
-        </Navbar.Link>
-        <Navbar.Link active={location.pathname === "/projects"} as="div">
-          <Link to="/projects">Projects</Link>
-        </Navbar.Link>
-      </Navbar.Collapse>
     </Navbar>
   );
 }
-
