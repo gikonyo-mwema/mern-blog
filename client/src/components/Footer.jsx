@@ -5,20 +5,21 @@ import { Link } from 'react-router-dom';
 
 export default function FooterComponent() {
     return (
-        <Footer container className="border-t-8 border-green-600 bg-gray-50 mt-auto">
-            <div className="w-full max-w-7xl mx-auto px-6 py-10">
+        <Footer container className="border-t-8 border-yellow-500 bg-gray-50 mt-auto">
+            <div className="w-full max-w-7xl mx-auto px-6 py-6">
                 {/* Top Section */}
                 <div className="grid w-full justify-between sm:flex md:grid-cols-1">
                     <div className="mt-5">
-                        <Link
-                            to="/"
-                            className="self-center whitespace-nowrap text-lg sm:text-xl font-semibold dark:text-white"
-                        >
-                            <span className="px-2 py-1 bg-gradient-to-r from-green-500 to-teal-500 rounded-lg text-white">
-                                Ecodeed
-                            </span>
-                            Blog
-                        </Link>
+                    <Link
+                        to="/"
+                        className="flex items-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-full"
+                    >
+                        <img
+                            src="https://res.cloudinary.com/dcrubaesi/image/upload/v1737333837/ECODEED_COLORED_LOGO_wj2yy8.png"
+                            alt="Logo"
+                            className="h-16 w-16"
+                        />
+                    </Link>
                         <p className="mt-3 text-sm text-gray-500">
                             Empowering a sustainable future through expert environmental consulting.
                         </p>
