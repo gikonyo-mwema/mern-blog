@@ -11,11 +11,13 @@ import {
 
 const router = express.Router();
 
-router.post('/create', verifyToken, createComment);
-router.get('/getPostComments/:postId', getPostComments);
-router.put('/likeComment/:commentId', verifyToken, likeComment);
-router.put('/editComment/:commentId', verifyToken, editComment);
-router.delete('/deleteComment/:commentId', verifyToken, deleteComment);
-router.get('/getComments', verifyToken, getComments);
+// Comment-related routes
+router.post('/create', verifyToken, createComment);  // Create a new comment
+router.get('/getPostComments/:postId', getPostComments);  // Get comments for a specific post
+router.put('/likeComment/:commentId', verifyToken, likeComment);  // Like a comment
+router.put('/editComment/:commentId', verifyToken, editComment);  // Edit a comment
+router.delete('/deleteComment/:commentId', verifyToken, deleteComment);  // Delete a comment
+router.get('/getComments', verifyToken, getComments);  // Fetch all comments
 
 export default router;
+
