@@ -1,4 +1,4 @@
-import { Alert, Button, Modal, ModalBody, TextInput } from 'flowbite-react';
+import { Alert, Button, Modal, TextInput } from 'flowbite-react';
 import { useEffect, useRef, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { CircularProgressbar } from 'react-circular-progressbar';
@@ -13,7 +13,6 @@ import {
 } from '../redux/user/userSlice';
 import { HiOutlineExclamationCircle } from 'react-icons/hi';
 import { Link } from 'react-router-dom';
-
 import 'react-circular-progressbar/dist/styles.css';
 
 const DeleteAccountModal = ({ showModal, setShowModal, handleDeleteUser, isLoading }) => (
@@ -86,14 +85,14 @@ export default function DashProfile() {
     }
 
     const formData = new FormData();
-    formData.append('uploadFile', imageFile);
+    formData.append('uploadFile', imageFile); // Ensure the key matches the server's expectation
 
     try {
       dispatch(updateStart());
 
       const response = await fetch('/upload', {
         method: 'POST',
-        body: formData,
+        body: formData, // No need to set Content-Type header for FormData
       });
 
       if (!response.ok) {
@@ -104,7 +103,7 @@ export default function DashProfile() {
         const data = await response.json();
         dispatch(updateSuccess(data));
         setUpdateUserSuccess('Profile updated successfully.');
-        setImageFileUrl(data.url);
+        setImageFileUrl(data.url); // Update the image URL in the state
       }
     } catch (error) {
       setUpdateUserError('Unexpected error occurred. Please try again.');
