@@ -21,11 +21,14 @@ export default function DashboardComponent() {
   const [lastMonthComments, setLastMonthComments] = useState(0);
   const { currentUser } = useSelector((state) => state.user);
 
+  console.log("DashboardComponent rendered"); // Log when the component renders
+
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         const res = await fetch("/api/user/getusers?limit=5");
         const data = await res.json();
+        console.log("Users Data:", data); // Log users data
         if (res.ok) {
           setUsers(data.users);
           setTotalUsers(data.totalUsers);
@@ -38,15 +41,18 @@ export default function DashboardComponent() {
 
     const fetchPosts = async () => {
       try {
-        const res = await fetch("/api/user/getposts?limit=5");
+        const res = await fetch("/api/post/getPosts?limit=5"); // Corrected endpoint
+        console.log("Response:", res); // Log the response
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
+        console.log("Posts Data:", data); // Log the data
         if (res.ok) {
           setPosts(data.posts);
           setTotalPosts(data.totalPosts);
           setLastMonthPosts(data.lastMonthPosts);
         }
       } catch (error) {
-        console.error(error.message);
+        console.error("Error fetching posts:", error.message);
       }
     };
 
@@ -54,6 +60,7 @@ export default function DashboardComponent() {
       try {
         const res = await fetch("/api/comment/getcomments?limit=5");
         const data = await res.json();
+        console.log("Comments Data:", data); // Log comments data
         if (res.ok) {
           setComments(data.comments);
           setTotalComments(data.totalComments);
@@ -70,6 +77,10 @@ export default function DashboardComponent() {
       fetchComments();
     }
   }, [currentUser]);
+
+  if (!currentUser?.isAdmin) {
+    return <p>You do not have permission to view this page.</p>;
+  }
 
   return (
     <div className="p-3 md:mx-auto">
@@ -181,7 +192,7 @@ export default function DashboardComponent() {
                   <Table.Cell>
                     <p className="line-clamp-2">{comment.content}</p>
                   </Table.Cell>
-                  <Table.Cell>{comment.numbeOfLikes}</Table.Cell>
+                  <Table.Cell>{comment.numberOfLikes}</Table.Cell> {/* Fix the typo */}
                 </Table.Row>
               ))}
             </Table.Body>
@@ -223,4 +234,3 @@ export default function DashboardComponent() {
     </div>
   );
 }
-
