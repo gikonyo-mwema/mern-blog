@@ -19,7 +19,7 @@ const postSchema = new mongoose.Schema(
     image: {
       type: String,
       default:
-        'https://www.hostinger.com/tutorials/wp-content/uploads/sites/2/2021/09/how-to-write-a-blog-post.png',
+        'https://www.africaodyssey.com/site/odyssey-image-proxy/park/laikipia-safaris-tailor-made-safari-holidays-in-kenya=402978-320.jpg',
     },
     category: {
       type: String,
