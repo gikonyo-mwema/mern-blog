@@ -6,19 +6,31 @@ import authRoutes from './routes/auth.route.js';
 import postRoutes from './routes/post.route.js';
 import commentRoutes from './routes/comment.route.js';
 import cookieParser from 'cookie-parser';
-import multer from 'multer';
 import path from 'path';
 import cloudinary from 'cloudinary';
+import uploadRouter from './utils/upload.js';
 
 dotenv.config();
+console.log('Environment Variables:', {
+    MONGODB_URI: process.env.MONGODB_URI,
+    CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
+});
 
 // MongoDB Connection
 mongoose
   .connect(process.env.MONGODB_URI)
   .then(() => console.log('MongoDB is connected'))
-  .catch((err) => console.error('MongoDB connection error:', err));
+  .catch((err) => {
+    console.error('MongoDB connection error:', err);
+    process.exit(1); // Exit the process if MongoDB connection fails
+  });
 
 // Cloudinary Configuration
+if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+  console.error('Cloudinary environment variables are missing.');
+  process.exit(1); // Exit the process if Cloudinary config is missing
+}
+
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -32,8 +44,8 @@ const __dirname = path.resolve();
 app.use(express.json());
 app.use(cookieParser());
 
-// File upload middleware with Multer
-const upload = multer({ limits: { fileSize: 2 * 1024 * 1024 } }); // 2MB limit
+// Mount the upload router
+app.use('/upload', uploadRouter);
 
 // Serve static files
 app.use(express.static(path.join(__dirname, '/client/dist')));
@@ -53,6 +65,7 @@ app.get('*', (req, res) => {
 app.use((err, req, res, next) => {
   const statusCode = err.statusCode || 500;
   const message = err.message || 'Internal Server Error';
+  console.error('Error:', err); // Log the error
   res.status(statusCode).json({
     success: false,
     statusCode,
@@ -63,3 +76,11 @@ app.use((err, req, res, next) => {
 // Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+// Graceful shutdown
+process.on('SIGINT', () => {
+  mongoose.connection.close(() => {
+    console.log('MongoDB connection closed due to app termination');
+    process.exit(0);
+  });
+});
