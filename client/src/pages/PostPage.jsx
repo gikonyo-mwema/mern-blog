@@ -1,6 +1,7 @@
 import { Button, Spinner } from 'flowbite-react';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import CallToAction from '../components/CallToAction';
 import CommentSection from '../components/CommentSection';
 import PostCard from '../components/PostCard';
@@ -11,6 +12,7 @@ export default function PostPage() {
   const [error, setError] = useState(false);
   const [post, setPost] = useState(null);
   const [recentPosts, setRecentPosts] = useState(null);
+  const { currentUser } = useSelector((state) => state.user);
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -33,6 +35,7 @@ export default function PostPage() {
         setLoading(false);
       }
     };
+
     fetchPost();
   }, [postSlug]);
 
@@ -51,6 +54,11 @@ export default function PostPage() {
     }
   }, []);
 
+  if (!currentUser || !currentUser._id) {
+    console.error('currentUser is undefined or does not have an _id');
+    return null; // or render a fallback UI
+  }
+
   if (loading)
     return (
       <div className='flex justify-center items-center min-h-screen'>
@@ -62,6 +70,7 @@ export default function PostPage() {
       <h1 className='text-3xl mt-10 p-3 text-center font-serif max-w-2xl mx-auto lg:text-4xl'>
         {post && post.title}
       </h1>
+      <Link to={`/user/${currentUser._id}`}>User Profile</Link>
       <Link
         to={`/search?category=${post && post.category}`}
         className='self-center mt-5'
@@ -100,4 +109,3 @@ export default function PostPage() {
     </main>
   );
 }
-   
