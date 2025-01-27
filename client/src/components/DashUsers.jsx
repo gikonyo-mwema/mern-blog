@@ -15,8 +15,17 @@ export default function DashUsers() {
     useEffect(() => {
         const fetchUsers = async () => {
             try {
-                const res = await fetch(`/api/user/getUsers`);
+                console.log('Fetching users...'); // Debugging
+                const token = localStorage.getItem('token'); // Retrieve token from localStorage
+                console.log('Current user token:', token); // Debugging
+                const res = await fetch(`/api/user/getUsers`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`, // Include the token
+                    },
+                });
+                if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
                 const data = await res.json();
+                console.log('API response:', data); // Debugging
                 if (res.ok) {
                     setUsers(data.users);
                     if (data.users.length < 9) {
@@ -24,11 +33,11 @@ export default function DashUsers() {
                     }
                 }
             } catch (error) {
-                console.log(error.message);
+                console.log('Error fetching users:', error.message); // Debugging
             }
         };
 
-        if (currentUser.isAdmin) {
+        if (currentUser?.isAdmin) {
             fetchUsers();
         }
     }, [currentUser]);
@@ -36,7 +45,12 @@ export default function DashUsers() {
     const handleShowMore = async () => {
         const startIndex = users.length;
         try {
-            const res = await fetch(`/api/user/getUsers?startIndex=${startIndex}`);
+            const token = localStorage.getItem('token'); // Retrieve token from localStorage
+            const res = await fetch(`/api/user/getUsers?startIndex=${startIndex}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`, // Include the token
+                },
+            });
             const data = await res.json();
             if (res.ok) {
                 setUsers((prev) => [...prev, ...data.users]);
@@ -51,8 +65,12 @@ export default function DashUsers() {
 
     const handleDeleteUsers = async () => {
         try {
-            const res = await fetch(`/api/user/delete/${userIdToDelete}`, { // Fixed URL
+            const token = localStorage.getItem('token'); // Retrieve token from localStorage
+            const res = await fetch(`/api/user/delete/${userIdToDelete}`, {
                 method: 'DELETE',
+                headers: {
+                    Authorization: `Bearer ${token}`, // Include the token
+                },
             });
             const data = await res.json();
             if (res.ok) {
@@ -83,7 +101,7 @@ export default function DashUsers() {
                             {users.map((user) => (
                                 <Table.Row key={user._id} className='bg-white dark:border-gray-700 dark:bg-gray-800'>
                                     <Table.Cell>
-                                        {new Date(user.CreatedAt).toLocaleDateString()} {/* Ensure correct casing */}
+                                        {new Date(user.createdAt).toLocaleDateString()} {/* Ensure correct casing */}
                                     </Table.Cell>
                                     <Table.Cell>
                                         <img
@@ -96,10 +114,15 @@ export default function DashUsers() {
                                     <Table.Cell>{user.email}</Table.Cell>
                                     <Table.Cell>{user.isAdmin ? <FaCheck className="text-green-500" /> : <FaTimes className="text-red-500" />}</Table.Cell>
                                     <Table.Cell>
-                                        <span onClick={() => {
-                                            setShowModal(true);
-                                            setUserIdToDelete(user._id);
-                                        }} className='font-medium text-red-500 hover:underline cursor-pointer'>Delete</span>
+                                        <span
+                                            onClick={() => {
+                                                setShowModal(true);
+                                                setUserIdToDelete(user._id);
+                                            }}
+                                            className='font-medium text-red-500 hover:underline cursor-pointer'
+                                        >
+                                            Delete
+                                        </span>
                                     </Table.Cell>
                                 </Table.Row>
                             ))}
@@ -138,4 +161,3 @@ export default function DashUsers() {
         </div>
     );
 }
-
