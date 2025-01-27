@@ -10,41 +10,29 @@ export default function DashPosts() {
   const [showModal, setShowModal] = useState(false);
   const [showMore, setShowMore] = useState(true);
   const [postIdToDelete, setPostIdToDelete] = useState('');
-  const [loading, setLoading] = useState(false);  // State for loading
+  const [loading, setLoading] = useState(false);
 
-  // Fetch posts with pagination
-  const fetchPosts = useCallback(async (startIndex = 0) => {
-    if (!currentUser || !currentUser._id) {
-      console.error('currentUser is undefined or does not have an _id');
-      return;
-    }
-
+  // Fetch posts without pagination (fetch all posts at once)
+  const fetchPosts = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/post/getPosts?userId=${currentUser._id}&startIndex=${startIndex}`);
+      console.log('Fetching all posts...'); // Debugging
+      const res = await fetch('/api/post/getPosts');
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();
-      console.log('API response:', data); // Log the API response
-      setUserPosts((prevPosts) => (startIndex === 0 ? data.posts : [...prevPosts, ...data.posts]));
-      if (data.posts.length < 9) {
-        setShowMore(false); // Disable 'Show More' button when fewer than 9 posts are returned
-      }
+      console.log('API response:', data); // Debugging
+      setUserPosts(data.posts);
+      setShowMore(false); // Disable "Show more" button since all posts are fetched
     } catch (error) {
       console.error('Error fetching posts:', error.message);
     } finally {
       setLoading(false);
     }
-  }, [currentUser]);
+  }, []);
 
   useEffect(() => {
     fetchPosts();
   }, [fetchPosts]);
-
-  // Handle "Show More" button click
-  const handleShowMore = () => {
-    const startIndex = userPosts.length;
-    fetchPosts(startIndex);
-  };
 
   // Handle post deletion
   const handleDeletePost = async () => {
@@ -65,6 +53,7 @@ export default function DashPosts() {
     }
   };
 
+  // Only allow admin users to access this dashboard
   if (!currentUser || !currentUser.isAdmin) {
     return <p>You are not authorized to view this content.</p>;
   }
@@ -91,11 +80,11 @@ export default function DashPosts() {
                   <Table.Cell>
                     <Link to={`/post/${post.slug}`}>
                       <img
-                        src={post.image || 'https://i.pinimg.com/736x/44/68/91/446891d2e588b94f5c1b4f42f3593f39.jpg'} 
-                        alt={post.title} 
-                        className="w-20 h-10 object-cover bg-gray-500" 
+                        src={post.image || 'https://i.pinimg.com/736x/44/68/91/446891d2e588b94f5c1b4f42f3593f39.jpg'}
+                        alt={post.title}
+                        className="w-20 h-10 object-cover bg-gray-500"
                       />
-		                </Link>
+                    </Link>
                   </Table.Cell>
                   <Table.Cell>
                     <Link className="font-medium text-gray-500 dark:text-white" to={`/post/${post.slug}`}>
@@ -125,17 +114,12 @@ export default function DashPosts() {
               ))}
             </Table.Body>
           </Table>
-
-          {showMore && (
-            <button onClick={handleShowMore} className="w-full text-teal-500 self-center text-sm py-7">
-              Show more
-            </button>
-          )}
         </>
       ) : (
         <p>You have no posts yet!</p>
       )}
 
+      {/* Delete Confirmation Modal */}
       <Modal show={showModal} onClose={() => setShowModal(false)} popup size="md">
         <Modal.Header />
         <Modal.Body>
