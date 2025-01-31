@@ -1,7 +1,7 @@
 import express from 'express';
 import { verifyToken } from '../utils/verifyUser.js';
 import { create, deletePost, getPosts, updatePost } from '../controllers/post.controller.js';
-import { upload } from '../utils/upload.js'
+import { upload } from '../utils/upload.js'; // Import the upload middleware
 
 const router = express.Router();
 
@@ -12,4 +12,3 @@ router.delete('/deletePost/:postId/:userId', verifyToken, deletePost);  // Delet
 router.put('/updatePost/:postId/:userId', verifyToken, upload.single('image'), updatePost);  // Update a post with an optional image
 
 export default router;
-

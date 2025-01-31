@@ -9,6 +9,7 @@ import cookieParser from 'cookie-parser';
 import path from 'path';
 import cloudinary from 'cloudinary';
 import uploadRouter from './utils/upload.js';
+import  upload  from './utils/upload.js';
 
 dotenv.config();
 console.log('Environment Variables:', {
@@ -45,7 +46,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 // Mount the upload router
-app.use('/upload', uploadRouter);
+app.use('/api/upload', uploadRouter);
 
 // Serve static files
 app.use(express.static(path.join(__dirname, '/client/dist')));
