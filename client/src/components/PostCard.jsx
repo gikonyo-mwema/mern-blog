@@ -2,24 +2,60 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 export default function PostCard({ post }) {
+  // Category colors mapping
+  const categoryColors = {
+    technology: 'bg-blue-100 text-blue-800',
+    business: 'bg-green-100 text-green-800',
+    health: 'bg-red-100 text-red-800',
+    design: 'bg-purple-100 text-purple-800',
+    default: 'bg-gray-100 text-gray-800'
+  };
+
+  // Calculate reading time (approx 200 words per minute)
+  const words = post.content.split(' ').length;
+  const readingTime = Math.ceil(words / 200);
+
   return (
-    <div className='group relative w-full border border-teal-500 hover:border-2 h-[400px] overflow-hidden rounded-lg sm:w-[430px] transition-all'>
+    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
+      {/* Thumbnail */}
       <Link to={`/post/${post.slug}`}>
         <img
-          src={post.image || 'https://i.pinimg.com/736x/44/68/91/446891d2e588b94f5c1b4f42f3593f39.jpg'} // Fallback image
-          alt="post cover"
-          className='h-[260px] w-full object-cover group-hover:h-[200px] transition-all duration-300 z-20'
+          src={post.image || '/default-thumbnail.jpg'}
+          alt={post.title}
+          className="w-full h-48 object-cover"
         />
       </Link>
-      <div className='p-3 flex flex-col gap-2'>
-        <p className='text-lg font-semibold line-clamp-2'>{post.title}</p>
-        <span className='italic text-sm'>{post.category}</span>
-        <Link
-          to={`/post/${post.slug}`}
-          className='z-10 group-hover:bottom-0 absolute bottom-[-200px] left-0 right-0 border border-teal-500 text-teal-500 hover:bg-teal-500 hover:text-white transition-all duration-300 text-center py-2 rounded-md !rounded-tl-none m-2'
-        >
-          Read More
-        </Link>
+
+      {/* Card Content */}
+      <div className="p-4">
+        {/* Category Badge */}
+        <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
+          categoryColors[post.category.toLowerCase()] || categoryColors.default
+        }`}>
+          {post.category}
+        </span>
+
+        {/* Title */}
+        <h3 className="font-bold text-lg mt-2 mb-1 line-clamp-2">
+          <Link to={`/post/${post.slug}`}>{post.title}</Link>
+        </h3>
+
+        {/* Excerpt */}
+        <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+          {post.excerpt || post.content.substring(0, 100) + '...'}
+        </p>
+
+        {/* Meta Info */}
+        <div className="flex items-center justify-between text-xs text-gray-500">
+          <span>{post.author}</span>
+          <div className="flex items-center gap-2">
+            <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+            <span>•</span>
+            <span>{readingTime} min read</span>
+            <span>•</span>
+            <span>👁️ {post.views || 0}</span>
+          </div>
+        </div>
       </div>
     </div>
   );
