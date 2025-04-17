@@ -1,96 +1,132 @@
 import React from 'react';
-import { BsFacebook, BsInstagram, BsYoutube, BsGithub, BsTwitter } from 'react-icons/bs';
+import { BsFacebook, BsInstagram, BsYoutube, BsLinkedin, BsTwitter } from 'react-icons/bs';
 import { Footer } from 'flowbite-react';
 import { Link } from 'react-router-dom';
 
 export default function FooterComponent() {
     return (
-        <Footer container className="border-t-8 border-yellow-500 bg-gray-50 mt-auto">
-            <div className="w-full max-w-7xl mx-auto px-6 py-6">
+        <Footer container className="border-t-8 border-yellow-500 bg-gray-50 dark:bg-gray-800 mt-auto">
+            <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* Top Section */}
-                <div className="grid w-full justify-between sm:flex md:grid-cols-1">
-                    <div className="mt-5">
-                    <Link
-                        to="/"
-                        className="flex items-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-full"
-                    >
-                        <img
-                            src="https://res.cloudinary.com/dcrubaesi/image/upload/v1737333837/ECODEED_COLORED_LOGO_wj2yy8.png"
-                            alt="Logo"
-                            className="h-16 w-16"
-                        />
-                    </Link>
-                        <p className="mt-3 text-sm text-gray-500">
-                            Empowering a sustainable future through expert environmental consulting.
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                    {/* Company Info */}
+                    <div className="md:col-span-2">
+                        <Link to="/" className="flex items-center mb-4">
+                            <img
+                                src="https://res.cloudinary.com/dcrubaesi/image/upload/v1737333837/ECODEED_COLORED_LOGO_wj2yy8.png"
+                                alt="Ecodeed Logo"
+                                className="h-16 w-16 mr-3"
+                            />
+                            <span className="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">
+                                Ecodeed
+                            </span>
+                        </Link>
+                        <p className="text-gray-600 dark:text-gray-300 mb-4">
+                            Empowering a sustainable future through expert environmental consulting and education.
                         </p>
+                        <div className="flex space-x-4 mt-4">
+                            <Footer.Icon 
+                                href="https://facebook.com" 
+                                icon={BsFacebook} 
+                                className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-white"
+                            />
+                            <Footer.Icon 
+                                href="https://twitter.com" 
+                                icon={BsTwitter} 
+                                className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-white"
+                            />
+                            <Footer.Icon 
+                                href="https://instagram.com" 
+                                icon={BsInstagram} 
+                                className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-white"
+                            />
+                            <Footer.Icon 
+                                href="https://youtube.com" 
+                                icon={BsYoutube} 
+                                className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-white"
+                            />
+                            <Footer.Icon 
+                                href="https://linkedin.com" 
+                                icon={BsLinkedin} 
+                                className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-white"
+                            />
+                        </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-8 mt-4 sm:grid-cols-3 sm:gap-6">
-                        {/* About Us */}
-                        <div>
-                            <Footer.Title title="About Us" />
-                            <Footer.LinkGroup col>
-                                <Footer.Link href="/about-us" target="_self">
-                                    About Us
-                                </Footer.Link>
-                                <Footer.Link href="/contact" target="_self">
-                                    Contact Us
-                                </Footer.Link>
-                                <Footer.Link href="/blog" target="_self">
-                                    Our Blog
-                                </Footer.Link>
-                            </Footer.LinkGroup>
-                        </div>
-                        {/* Services */}
-                        <div>
-                            <Footer.Title title="Our Services" />
-                            <Footer.LinkGroup col>
-                                <Footer.Link href="/services/eia" target="_self">
-                                    EIA Reports
-                                </Footer.Link>
-                                <Footer.Link href="/services/audits" target="_self">
-                                    Environmental Audits
-                                </Footer.Link>
-                                <Footer.Link href="/services/surveys" target="_self">
-                                    Environmental Surveys
-                                </Footer.Link>
-                            </Footer.LinkGroup>
-                        </div>
-                        {/* Follow Us */}
-                        <div>
-                            <Footer.Title title="Follow Us" />
-                            <Footer.LinkGroup col>
-                                <Footer.Link href="https://twitter.com" target="_blank" rel="noopener noreferrer">
-                                    Twitter
-                                </Footer.Link>
-                                <Footer.Link href="https://youtube.com" target="_blank" rel="noopener noreferrer">
-                                    YouTube
-                                </Footer.Link>
-                                <Footer.Link href="https://facebook.com" target="_blank" rel="noopener noreferrer">
-                                    Facebook
-                                </Footer.Link>
-                            </Footer.LinkGroup>
+
+                    {/* Quick Links */}
+                    <div>
+                        <Footer.Title title="Quick Links" className="mb-4 text-lg font-semibold text-gray-900 dark:text-white" />
+                        <Footer.LinkGroup col className="space-y-2">
+                            <Footer.Link href="/" className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-white">
+                                Home
+                            </Footer.Link>
+                            <Footer.Link href="/about" className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-white">
+                                About Us
+                            </Footer.Link>
+                            <Footer.Link href="/blog" className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-white">
+                                Blog
+                            </Footer.Link>
+                            <Footer.Link href="/contact" className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-white">
+                                Contact
+                            </Footer.Link>
+                        </Footer.LinkGroup>
+                    </div>
+
+                    {/* Services */}
+                    <div>
+                        <Footer.Title title="Our Services" className="mb-4 text-lg font-semibold text-gray-900 dark:text-white" />
+                        <Footer.LinkGroup col className="space-y-2">
+                            <Footer.Link href="/services/eia" className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-white">
+                                EIA Reports
+                            </Footer.Link>
+                            <Footer.Link href="/services/audits" className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-white">
+                                Environmental Audits
+                            </Footer.Link>
+                            <Footer.Link href="/services/surveys" className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-white">
+                                Environmental Surveys
+                            </Footer.Link>
+                            <Footer.Link href="/services/consulting" className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-white">
+                                Consulting Services
+                            </Footer.Link>
+                        </Footer.LinkGroup>
+                    </div>
+
+                    {/* Contact Info */}
+                    <div>
+                        <Footer.Title title="Contact Us" className="mb-4 text-lg font-semibold text-gray-900 dark:text-white" />
+                        <div className="text-gray-600 dark:text-gray-300 space-y-2">
+                            <p>123 Greenway Blvd</p>
+                            <p>Eco City, EC 12345</p>
+                            <p>Email: info@ecodeed.com</p>
+                            <p>Phone: (123) 456-7890</p>
                         </div>
                     </div>
                 </div>
+
                 {/* Divider */}
-                <Footer.Divider />
+                <Footer.Divider className="my-8 border-gray-200 dark:border-gray-700" />
+
                 {/* Bottom Section */}
-                <div className="w-full sm:flex sm:items-center sm:justify-between">
+                <div className="w-full flex flex-col md:flex-row justify-between items-center">
                     <Footer.Copyright
                         href="/"
-                        by="Ecodeed Blog"
+                        by="Ecodeed"
                         year={new Date().getFullYear()}
+                        className="text-gray-600 dark:text-gray-300"
                     />
-                    <div className="flex gap-6 mt-4 sm:mt-0 sm:justify-center">
-                        <Footer.Icon href="https://facebook.com" icon={BsFacebook} />
-                        <Footer.Icon href="https://instagram.com" icon={BsInstagram} />
-                        <Footer.Icon href="https://youtube.com" icon={BsYoutube} />
-                        <Footer.Icon href="https://github.com" icon={BsGithub} />
-                        <Footer.Icon href="https://twitter.com" icon={BsTwitter} />
+                    <div className="mt-4 md:mt-0 flex space-x-6">
+                        <Link to="/privacy-policy" className="text-sm text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-white">
+                            Privacy Policy
+                        </Link>
+                        <Link to="/terms" className="text-sm text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-white">
+                            Terms & Conditions
+                        </Link>
+                        <Link to="/sitemap" className="text-sm text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-white">
+                            Sitemap
+                        </Link>
                     </div>
                 </div>
             </div>
         </Footer>
     );
 }
-
