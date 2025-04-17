@@ -79,6 +79,22 @@ export const getPosts = async (req, res) => {
     }
 };
 
+export const getTrendingPosts = async (req, res) => {
+    try {
+        // Get posts with most views in the last 7 days
+        const trendingPosts = await Post.find({
+            createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+        })
+            .sort({ views: -1 })
+            .limit(5);
+
+        res.status(200).json({ posts: trendingPosts });
+    } catch (error) {
+        console.error('Error fetching trending posts:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
+
 export const deletePost = async (req, res, next) => {
     if (!req.user.isAdmin || req.user.id !== req.params.userId) {
         return next(errorHandler(403, 'You are not allowed to delete this post'));
