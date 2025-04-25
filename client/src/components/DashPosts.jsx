@@ -78,14 +78,17 @@ export default function DashPosts() {
                 <Table.Row key={post._id} className="bg-white dark:border-gray-700 dark:bg-gray-800">
                   <Table.Cell>{new Date(post.updatedAt).toLocaleDateString()}</Table.Cell>
                   <Table.Cell>
-                    <Link to={`/post/${post.slug}`}>
-                      <img
-                        src={post.image || 'https://i.pinimg.com/736x/44/68/91/446891d2e588b94f5c1b4f42f3593f39.jpg'}
-                        alt={post.title}
-                        className="w-20 h-10 object-cover bg-gray-500"
-                      />
-                    </Link>
-                  </Table.Cell>
+  <Link to={`/post/${post.slug}`}>
+    <img
+      src={post.image || '/default-eco-thumbnail.jpg'}
+      alt={post.title}
+      className="w-20 h-10 object-cover bg-gray-500"
+      onError={(e) => {
+        e.target.src = '/default-eco-thumbnail.jpg';
+      }}
+    />
+  </Link>
+</Table.Cell>
                   <Table.Cell>
                     <Link className="font-medium text-gray-500 dark:text-white" to={`/post/${post.slug}`}>
                       {post.title}
