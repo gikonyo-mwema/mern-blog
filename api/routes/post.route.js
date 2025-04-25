@@ -7,15 +7,19 @@ import {
     updatePost, 
     getTrendingPosts
 } from '../controllers/post.controller.js';
-import { upload } from '../utils/upload.js'; // Import the upload middleware
 
 const router = express.Router();
 
 // Post-related routes
-router.post('/create', verifyToken, upload.single('image'), create);  // Create a new post with an optional image
-router.get('/getPosts', getPosts);  // Fetch all posts (supporting query params like limit/pagination)
-router.get('/posts/trending', getTrendingPosts); // Add this new route
-router.delete('/deletePost/:postId/:userId', verifyToken, deletePost);  // Delete a specific post
-router.put('/updatePost/:postId/:userId', verifyToken, upload.single('image'), updatePost);  // Update a post with an optional image
+router.post('/create', verifyToken, create);  // Create new post (image URL in body)
+router.get('/getPosts', getPosts);  // Fetch all posts
+router.get('/posts/trending', getTrendingPosts); // Get trending posts
+router.delete('/deletePost/:postId/:userId', verifyToken, deletePost);  // Delete post
+router.put('/updatePost/:postId/:userId', verifyToken, updatePost);  // Update post
+
+// Optional: If you want to keep separate image upload endpoint
+// router.post('/upload-image', verifyToken, upload.single('image'), (req, res) => {
+//   res.json({ url: req.file.path }); // This would be handled by your upload middleware
+// });
 
 export default router;
