@@ -3,59 +3,66 @@ import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { uploadToCloudinary } from '../utils/cloudinary';
 
 export default function CreatePost() {
   const [file, setFile] = useState(null);
   const [imageUploadProgress, setImageUploadProgress] = useState(null);
   const [imageUploadError, setImageUploadError] = useState(null);
-  const [formData, setFormData] = useState({});
+  const [formData, setFormData] = useState({
+    title: '',
+    content: '',
+    category: 'uncategorized',
+    image: ''
+  });
   const [publishError, setPublishError] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const navigate = useNavigate();
 
-  const handleUpdloadImage = async () => {
+  const handleUploadImage = async () => {
+    if (!file) {
+      setImageUploadError('Please select an image');
+      return;
+    }
+
     try {
-      if (!file) {
-        setImageUploadError('Please select an image');
-        return;
-      }
+      setImageUploadProgress(0);
       setImageUploadError(null);
-  
-      const formData = new FormData();
-      formData.append('uploadFile', file);
-  
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-  
-      const rawResponse = await response.text();
-      console.log('Raw Response:', rawResponse);
-  
-      if (!response.ok) {
-        try {
-          const errorData = JSON.parse(rawResponse);
-          setImageUploadError(errorData.message || 'Image upload failed');
-        } catch (error) {
-          setImageUploadError('Image upload failed: Server returned an error');
+      
+      const result = await uploadToCloudinary(file, {
+        onProgress: (progress) => {
+          setImageUploadProgress(progress);
         }
-        return;
-      }
-  
-      const data = JSON.parse(rawResponse);
-      setFormData({ ...formData, image: data.url });
+      });
+      
+      setFormData(prev => ({ ...prev, image: result.url }));
       setImageUploadProgress(null);
-      setImageUploadError(null);
+
     } catch (error) {
-      setImageUploadError('Image upload failed');
+      console.error('Image upload error:', error);
+      setImageUploadError(error.message || 'Image upload failed');
       setImageUploadProgress(null);
-      console.error(error);
     }
   };
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
+    setPublishError(null);
+
     try {
+      // Validate required fields
+      if (!formData.title.trim()) {
+        throw new Error('Title is required');
+      }
+      if (!formData.content.trim()) {
+        throw new Error('Content is required');
+      }
+      if (!formData.image) {
+        throw new Error('Please upload an image');
+      }
+
       const res = await fetch('/api/post/create', {
         method: 'POST',
         headers: {
@@ -63,20 +70,36 @@ export default function CreatePost() {
         },
         body: JSON.stringify(formData),
       });
+
       const data = await res.json();
+      
       if (!res.ok) {
-        setPublishError(data.message);
-        return;
+        throw new Error(data.message || 'Failed to create post');
       }
 
-      if (res.ok) {
-        setPublishError(null);
-        navigate(`/post/${data.slug}`);
-      }
+      navigate(`/post/${data.slug}`);
+      
     } catch (error) {
-      setPublishError('Something went wrong');
+      console.error('Post creation error:', error);
+      setPublishError(error.message || 'Something went wrong');
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
+  const categories = [
+    { value: 'uncategorized', label: '🌍 Select a category' },
+    { value: 'climate-change', label: '🔥 Climate Change' },
+    { value: 'renewable-energy', label: '☀️ Renewable Energy' },
+    { value: 'sustainable-agriculture', label: '🌱 Sustainable Agriculture' },
+    { value: 'conservation', label: '🐘 Wildlife Conservation' },
+    { value: 'zero-waste', label: '♻️ Zero Waste' },
+    { value: 'ocean-preservation', label: '🌊 Ocean Health' },
+    { value: 'green-tech', label: '💡 Green Tech' },
+    { value: 'environmental-policy', label: '📜 Eco Policy' },
+    { value: 'sustainable-cities', label: '🏙️ Sustainable Cities' },
+    { value: 'eco-tourism', label: '✈️ Responsible Travel' }
+  ];
 
   return (
     <div className='p-3 max-w-3xl mx-auto min-h-screen'>
@@ -87,62 +110,95 @@ export default function CreatePost() {
             type='text'
             placeholder='Title'
             required
-            id='title'
+            value={formData.title}
+            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
             className='flex-1'
-            onChange={(e) =>
-              setFormData({ ...formData, title: e.target.value })
-            }
           />
           <Select
-            onChange={(e) =>
-              setFormData({ ...formData, category: e.target.value })
-            }
+            value={formData.category}
+            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
           >
-            <option value='uncategorized'>Select a category</option>
-            <option value='javascript'>JavaScript</option>
-            <option value='reactjs'>React.js</option>
-            <option value='nextjs'>Next.js</option>
+            {categories.map((cat) => (
+              <option key={cat.value} value={cat.value}>
+                {cat.label}
+              </option>
+            ))}
           </Select>
         </div>
+        
         <div className='flex gap-4 items-center justify-between border-4 border-teal-500 border-dotted p-3'>
           <FileInput
             type='file'
             accept='image/*'
-            onChange={(e) => setFile(e.target.files[0])}
+            onChange={(e) => {
+              setFile(e.target.files[0]);
+              setImageUploadError(null);
+            }}
           />
           <Button
             type='button'
             gradientDuoTone='purpleToBlue'
             size='sm'
             outline
-            onClick={handleUpdloadImage}
-            disabled={imageUploadProgress}
+            onClick={handleUploadImage}
+            disabled={!!imageUploadProgress}
           >
-            {imageUploadProgress ? 'Uploading...' : 'Upload Image'}
+            {imageUploadProgress ? `Uploading ${imageUploadProgress}%` : 'Upload Image'}
           </Button>
         </div>
-        {imageUploadError && <Alert color='failure'>{imageUploadError}</Alert>}
-        {formData.image && (
-          <img
-            src={formData.image}
-            alt='upload'
-            className='w-full h-72 object-cover'
-          />
+        
+        {imageUploadError && (
+          <Alert color='failure' onDismiss={() => setImageUploadError(null)}>
+            {imageUploadError}
+          </Alert>
         )}
+        
+        {formData.image && (
+          <div className='relative group'>
+            <img
+              src={formData.image}
+              alt='Preview'
+              className='w-full h-72 object-cover rounded-lg'
+              onError={() => {
+                setImageUploadError('Failed to load image preview');
+                setFormData(prev => ({ ...prev, image: '' }));
+              }}
+            />
+            <div className='absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300' />
+            <span className='absolute bottom-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded'>
+              Preview
+            </span>
+          </div>
+        )}
+
         <ReactQuill
           theme='snow'
-          placeholder='Write something...'
+          placeholder='Write your post content here...'
           className='h-72 mb-12'
-          required
-          onChange={(value) => {
-            setFormData({ ...formData, content: value });
+          value={formData.content}
+          onChange={(content) => setFormData({ ...formData, content })}
+          modules={{
+            toolbar: [
+              [{ 'header': [1, 2, false] }],
+              ['bold', 'italic', 'underline', 'strike', 'blockquote'],
+              [{'list': 'ordered'}, {'list': 'bullet'}],
+              ['link', 'image'],
+              ['clean']
+            ]
           }}
         />
-        <Button type='submit' gradientDuoTone='purpleToPink'>
-          Publish
+        
+        <Button
+          type='submit'
+          gradientDuoTone='purpleToPink'
+          disabled={isSubmitting || !formData.image}
+          isProcessing={isSubmitting}
+        >
+          {isSubmitting ? 'Publishing...' : 'Publish'}
         </Button>
+        
         {publishError && (
-          <Alert className='mt-5' color='failure'>
+          <Alert color='failure' className='mt-5' onDismiss={() => setPublishError(null)}>
             {publishError}
           </Alert>
         )}
