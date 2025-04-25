@@ -4,16 +4,12 @@
 @tailwind components;
 @tailwind utilities;
 
-
-
-
 body{
     height: 100vh;
 }
 
 .ql-editor{
     font-size: 1.05rem;
-
 }
 
 .post-content p{
@@ -44,4 +40,13 @@ body{
 
 .post-content a:hover{
     text-decoration: underline;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+img {
+    animation: fadeIn 300ms ease-out;
 }
