@@ -1,6 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { Sidebar } from "flowbite-react";
-import { HiUser, HiArrowSmRight, HiDocumentText, HiOutlineUserGroup, HiAnnotation, HiChartPie } from "react-icons/hi";
+import { 
+  HiUser, 
+  HiArrowSmRight, 
+  HiDocumentText, 
+  HiOutlineUserGroup, 
+  HiAnnotation, 
+  HiChartPie,
+  HiClipboardCheck,
+  HiBookOpen 
+} from "react-icons/hi";
 import { useLocation, Link } from "react-router-dom";
 import { signoutSuccess } from "../redux/user/userSlice";
 import { useDispatch, useSelector } from "react-redux";
@@ -80,7 +89,7 @@ export default function DashSidebar() {
               <Link to="/dashboard?tab=users">
                 <Sidebar.Item
                   active={tab === "users"}
-                  icon={HiAnnotation}
+                  icon={HiOutlineUserGroup}
                   as="div"
                 >
                   Users
@@ -89,10 +98,28 @@ export default function DashSidebar() {
               <Link to="/dashboard?tab=comments">
                 <Sidebar.Item
                   active={tab === "comments"}
-                  icon={HiOutlineUserGroup}
+                  icon={HiAnnotation}
                   as="div"
                 >
                   Comments
+                </Sidebar.Item>
+              </Link>
+              <Link to="/dashboard?tab=services">
+                <Sidebar.Item
+                  active={tab === "services"}
+                  icon={HiClipboardCheck}
+                  as="div"
+                >
+                  Services
+                </Sidebar.Item>
+              </Link>
+              <Link to="/dashboard?tab=courses">
+                <Sidebar.Item
+                  active={tab === "courses"}
+                  icon={HiBookOpen}
+                  as="div"
+                >
+                  Courses
                 </Sidebar.Item>
               </Link>
             </>
