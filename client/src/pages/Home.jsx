@@ -4,6 +4,7 @@ import PostCard from '../components/PostCard';
 import RightSidebar from '../components/RightSidebar';
 import Pagination from '../components/Pagination';
 
+
 export default function Home() {
   const [posts, setPosts] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
