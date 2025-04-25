@@ -33,6 +33,8 @@ export default function Dashboard() {
       {tab === 'comments' && <DashComments />}
       {/* Dashboard Component Tab */}
       {tab === 'dash' && <DashboardComponent />}
+       {/* Services Component Tab */}
+      {tab === 'services' && <DashServices />}
     </div>
   );
 }
