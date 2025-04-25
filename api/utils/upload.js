@@ -2,72 +2,93 @@ import express from 'express';
 import multer from 'multer';
 import cloudinary from './cloudinaryConfig.js';
 import fs from 'fs';
+import { errorHandler } from './error.js';
 
 const router = express.Router();
 
-// Configure Multer
+// Memory storage - avoids temporary files on disk
+const storage = multer.memoryStorage();
+
+// File validation
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+  const maxSize = 5 * 1024 * 1024; // 5MB
+
+  if (!allowedTypes.includes(file.mimetype)) {
+    return cb(new Error('Only JPEG, PNG, WEBP, or GIF images are allowed'));
+  }
+
+  if (file.size > maxSize) {
+    return cb(new Error('File size exceeds 5MB limit'));
+  }
+
+  cb(null, true);
+};
+
 const upload = multer({
-  dest: 'uploads/',
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif'];
-    if (!allowedMimeTypes.includes(file.mimetype)) {
-      return cb(new Error('Invalid file type. Only JPEG, PNG, and GIF are allowed.'));
-    }
-    cb(null, true);
-  },
+  storage,
+  fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+    files: 1
+  }
 });
 
-// Upload route
-router.post('/upload', upload.single('uploadFile'), async (req, res) => {
+// Standardized upload endpoint
+router.post('/upload', upload.single('image'), async (req, res, next) => {
   try {
     if (!req.file) {
-      console.error('No file uploaded');
-      return res.status(400).json({ message: 'No file uploaded' });
+      return next(errorHandler(400, 'No image file provided'));
     }
 
-    console.log('Received file:', req.file);
-
-    const filePath = req.file.path;
-
-    let result;
-    try {
-      result = await cloudinary.uploader.upload(filePath, {
-        folder: 'uploads',
-        transformation: [{ width: 800, height: 800, crop: 'limit' }],
-      });
-    } catch (cloudinaryError) {
-      console.error('Cloudinary upload error:', cloudinaryError);
-      return res.status(500).json({ message: 'Failed to upload to Cloudinary', error: cloudinaryError.message });
-    }
-
-    fs.unlink(filePath, (err) => {
-      if (err) {
-        console.error('Error deleting local file:', err);
+    // Upload to Cloudinary with optimized settings
+    const result = await cloudinary.uploader.upload_stream({
+      folder: 'post_images',
+      format: 'webp',
+      transformation: [
+        { width: 1200, crop: 'limit' }, // Responsive width
+        { quality: 'auto:best' },
+        { fetch_format: 'auto' }
+      ]
+    }, (error, result) => {
+      if (error) {
+        console.error('Cloudinary upload error:', error);
+        return next(errorHandler(500, 'Image upload failed'));
       }
-    });
 
-    return res.status(200).json({ message: 'Image uploaded successfully', url: result.secure_url });
+      // Return standardized response
+      res.status(200).json({
+        secureUrl: result.secure_url
+          .replace('http://', 'https://')
+          .replace('/upload/', '/upload/q_auto,f_auto/')
+      });
+    }).end(req.file.buffer);
+
   } catch (error) {
-    console.error('Server error:', error);
-    return res.status(500).json({ message: 'Internal server error', error: error.message });
+    console.error('Upload processing error:', error);
+    next(errorHandler(500, 'Image processing failed'));
   }
 });
 
-// Unified error-handling middleware
+// Error handling middleware
 router.use((err, req, res, next) => {
-  console.error('Error caught in middleware:', err);
+  console.error('Upload route error:', err);
+
+  // Handle Multer errors
   if (err instanceof multer.MulterError) {
-    return res.status(400).json({ message: 'Multer error', error: err.message });
+    return res.status(400).json({
+      success: false,
+      message: err.code === 'LIMIT_FILE_SIZE' 
+        ? 'File exceeds 5MB limit' 
+        : 'Invalid file upload'
+    });
   }
-  if (err.message.includes('Invalid file type')) {
-    return res.status(400).json({ message: err.message });
-  }
-  return res.status(500).json({ message: 'Unexpected error', error: err.message });
+
+  // Handle other errors
+  res.status(err.statusCode || 500).json({
+    success: false,
+    message: err.message || 'File upload failed'
+  });
 });
 
-// Export the router and upload middleware
-export { router as default, upload };
-
-
-
+export default router;
