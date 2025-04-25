@@ -91,7 +91,7 @@ export default function FooterComponent() {
                         </Footer.LinkGroup>
                     </div>
 
-                    {/* Contact Info */}
+                    {/* Contact Info 
                     <div>
                         <Footer.Title title="Contact Us" className="mb-4 text-lg font-semibold text-gray-900 dark:text-white" />
                         <div className="text-gray-600 dark:text-gray-300 space-y-2">
@@ -100,7 +100,7 @@ export default function FooterComponent() {
                             <p>Email: info@ecodeed.com</p>
                             <p>Phone: (123) 456-7890</p>
                         </div>
-                    </div>
+                    </div>*/}
                 </div>
 
                 {/* Divider */}
