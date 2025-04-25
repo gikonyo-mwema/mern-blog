@@ -114,12 +114,12 @@ export default function Header() {
             Services
           </Link>
           <Link 
-            to="/blog" 
+            to="/courses" 
             className={`text-gray-700 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-white ${
-              path === "/blog" ? "font-medium text-indigo-600 dark:text-indigo-400" : ""
+              path === "/courses" ? "font-medium text-indigo-600 dark:text-indigo-400" : ""
             }`}
           >
-            Blog
+            Courses
           </Link>
         </div>
 
@@ -156,14 +156,14 @@ export default function Header() {
                   {currentUser.email}
                 </span>
               </Dropdown.Header>
+              <Link to="/dashboard?tab=profile">
+                <Dropdown.Item>My Profile</Dropdown.Item>
+              </Link>
               {currentUser.isAdmin && (
                 <Link to="/dashboard">
                   <Dropdown.Item>Admin Dashboard</Dropdown.Item>
                 </Link>
               )}
-              <Link to="/dashboard?tab=profile">
-                <Dropdown.Item>My Profile</Dropdown.Item>
-              </Link>
               <Dropdown.Divider />
               <Dropdown.Item onClick={handleSignout}>Sign out</Dropdown.Item>
             </Dropdown>
@@ -202,8 +202,8 @@ export default function Header() {
           <Navbar.Link active={path === "/services"} as={Link} to="/services">
             Services
           </Navbar.Link>
-          <Navbar.Link active={path === "/blog"} as={Link} to="/blog">
-            Blog
+          <Navbar.Link active={path === "/courses"} as={Link} to="/courses">
+            Courses
           </Navbar.Link>
         </Navbar.Collapse>
       </Navbar>
