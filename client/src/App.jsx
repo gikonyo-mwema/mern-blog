@@ -17,10 +17,10 @@ import Search from './pages/Search';
 import ThemeProvider from './components/ThemeProvider';
 import Services from './pages/Services';
 import Courses from './pages/Courses';
-import ServiceDetails from './pages/ServiceDetails';
-import DashServices from './pages/DashServices';
-import CreateService from './pages/CreateService';
-import EditService from './pages/EditService';
+//import ServiceDetails from './pages/ServiceDetails';
+import DashServices from './components/DashServices';
+//import CreateService from './pages/CreateService';
+//import EditService from './pages/EditService';
 
 export default function App() {
   return (
@@ -43,12 +43,11 @@ export default function App() {
             <Route path='/create-post' element={<CreatePost />} />
             <Route path='/update-post/:postId' element={<UpdatePost />} />
             <Route path='/dashboard/services' element={<DashServices />} />
-            <Route path='/services/create' element={<CreateService />} />
-            <Route path='/services/edit/:serviceId' element={<EditService />} />
-          </Route>
+           
+                      </Route>
           <Route path='/projects' element={<Projects />} />
           <Route path='/post/:postSlug' element={<PostPage />} />
-          <Route path='/service/:serviceId' element={<ServiceDetails />} />
+          
         </Routes>
         <Footer />
       </ThemeProvider>
