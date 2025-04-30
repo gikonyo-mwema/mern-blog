@@ -19,7 +19,7 @@ export default function RightSidebar() {
 
   return (
     <div className="space-y-8">
-      {/* Search Widget */}
+      {/* Search Widget 
       <div className="bg-white p-4 rounded-lg shadow-md">
         <h3 className="font-bold text-lg mb-3">Search</h3>
         <form className="flex">
@@ -36,6 +36,7 @@ export default function RightSidebar() {
           </button>
         </form>
       </div>
+      */}
 
       {/* Trending Posts */}
       <div className="bg-white p-4 rounded-lg shadow-md">
