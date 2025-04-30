@@ -46,28 +46,30 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-50">
+    <header className="bg-gray-50 dark:bg-gray-800 shadow-sm sticky top-0 z-50">
       {/* Top Quote Bar */}
-      <div className="bg-indigo-50 dark:bg-gray-700 py-2 px-4 text-center">
-        <p className="text-sm italic text-indigo-600 dark:text-indigo-300">
-          "Empowering a sustainable future through expert environmental consulting"
-        </p>
-        <Link 
-          to="/about" 
-          className="text-xs text-indigo-500 dark:text-indigo-400 hover:underline mt-1 inline-block"
-        >
-          Learn more about our mission →
-        </Link>
-      </div>
+      {/* Top Quote Bar */}
+<div className="bg-indigo-50 dark:bg-gray-700 py-2 px-4 text-center">
+  <p className="text-sm italic text-indigo-600 dark:text-indigo-300 inline">
+    "Empowering a sustainable future through expert environmental consulting"{" "}
+    <Link 
+      to="/about" 
+      className="text-xs text-indigo-500 dark:text-indigo-400 hover:underline inline"
+    >
+      Learn more about our mission →
+    </Link>
+  </p>
+</div>
+    
 
       {/* Main Navbar */}
-      <Navbar fluid rounded className="border-b border-gray-200 dark:border-gray-700 max-w-7xl mx-auto px-4">
+      <Navbar fluid rounded className="border-b border-gray-200 dark:border-gray-700 max-w-7xl mx-auto px-4 py-3">
         {/* Logo Section - Combined logo and name */}
         <Navbar.Brand as={Link} to="/" className="flex items-center space-x-2">
           <img
             src="https://res.cloudinary.com/dcrubaesi/image/upload/v1737333837/ECODEED_COLORED_LOGO_wj2yy8.png"
             alt="Ecodeed Logo"
-            className="h-12 w-12"
+            className="h-10 w-10"
           />
           <span className="self-center text-xl font-semibold whitespace-nowrap dark:text-white">
             Ecodeed
@@ -75,48 +77,62 @@ export default function Header() {
         </Navbar.Brand>
 
         {/* Search Form */}
-        <form onSubmit={handleSubmit} className="flex-1 max-w-md mx-4">
-          <TextInput
-            type="text"
-            placeholder="Search articles..."
-            rightIcon={AiOutlineSearch}
-            className="rounded-full w-full h-10 pl-4 pr-10 text-sm border-gray-300 focus:ring-2 focus:ring-indigo-300 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600"
-            icon={AiOutlineSearch}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+        <form onSubmit={handleSubmit} className="flex-1 max-w-xs md:max-w-md mx-2 md:mx-4">
+          <div className="relative">
+            <TextInput
+              type="text"
+              placeholder="Search articles..."
+              className="rounded-full w-full h-10 pl-4 pr-10 text-sm border-gray-300 focus:ring-2 focus:ring-indigo-300 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <button 
+              type="submit" 
+              className="absolute right-2.5 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-300"
+            >
+              <AiOutlineSearch className="w-5 h-5" />
+            </button>
+          </div>
         </form>
 
         {/* Navbar Links - Center */}
-        <div className="hidden lg:flex lg:items-center lg:space-x-8">
+        <div className="hidden lg:flex lg:items-center lg:space-x-6">
           <Link 
             to="/" 
-            className={`text-gray-700 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-white ${
-              path === "/" ? "font-medium text-indigo-600 dark:text-indigo-400" : ""
+            className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+              path === "/" 
+                ? "text-indigo-700 bg-indigo-50 dark:text-indigo-300 dark:bg-gray-700" 
+                : "text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700"
             }`}
           >
             Home
           </Link>
           <Link 
             to="/about" 
-            className={`text-gray-700 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-white ${
-              path === "/about" ? "font-medium text-indigo-600 dark:text-indigo-400" : ""
+            className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+              path === "/about" 
+                ? "text-indigo-700 bg-indigo-50 dark:text-indigo-300 dark:bg-gray-700" 
+                : "text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700"
             }`}
           >
             About
           </Link>
           <Link 
             to="/services" 
-            className={`text-gray-700 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-white ${
-              path === "/services" ? "font-medium text-indigo-600 dark:text-indigo-400" : ""
+            className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+              path === "/services" 
+                ? "text-indigo-700 bg-indigo-50 dark:text-indigo-300 dark:bg-gray-700" 
+                : "text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700"
             }`}
           >
             Services
           </Link>
           <Link 
             to="/courses" 
-            className={`text-gray-700 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-white ${
-              path === "/courses" ? "font-medium text-indigo-600 dark:text-indigo-400" : ""
+            className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+              path === "/courses" 
+                ? "text-indigo-700 bg-indigo-50 dark:text-indigo-300 dark:bg-gray-700" 
+                : "text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700"
             }`}
           >
             Courses
@@ -124,12 +140,13 @@ export default function Header() {
         </div>
 
         {/* Right Side Controls */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {/* Theme Toggle */}
           <Button
-            className="w-10 h-10"
+            className="w-9 h-9"
             color="gray"
             pill
+            size="sm"
             onClick={() => dispatch(toggleTheme())}
             aria-label={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
           >
@@ -146,6 +163,7 @@ export default function Header() {
                   alt="user" 
                   img={currentUser.profilePicture} 
                   rounded 
+                  size="sm"
                   className="border-2 border-indigo-500 cursor-pointer"
                 />
               }
@@ -175,6 +193,7 @@ export default function Header() {
                 <Avatar 
                   alt="user" 
                   rounded 
+                  size="sm"
                   className="border-2 border-gray-300 cursor-pointer bg-gray-100 dark:bg-gray-600"
                 />
               }
@@ -192,17 +211,37 @@ export default function Header() {
         </div>
 
         {/* Mobile Menu */}
-        <Navbar.Collapse className="lg:hidden w-full mt-4">
-          <Navbar.Link active={path === "/"} as={Link} to="/">
+        <Navbar.Collapse className="lg:hidden w-full mt-3 bg-gray-50 dark:bg-gray-800 rounded-lg shadow-lg">
+          <Navbar.Link 
+            active={path === "/"} 
+            as={Link} 
+            to="/"
+            className="px-4 py-3 hover:bg-indigo-50 dark:hover:bg-gray-700 rounded-md"
+          >
             Home
           </Navbar.Link>
-          <Navbar.Link active={path === "/about"} as={Link} to="/about">
+          <Navbar.Link 
+            active={path === "/about"} 
+            as={Link} 
+            to="/about"
+            className="px-4 py-3 hover:bg-indigo-50 dark:hover:bg-gray-700 rounded-md"
+          >
             About
           </Navbar.Link>
-          <Navbar.Link active={path === "/services"} as={Link} to="/services">
+          <Navbar.Link 
+            active={path === "/services"} 
+            as={Link} 
+            to="/services"
+            className="px-4 py-3 hover:bg-indigo-50 dark:hover:bg-gray-700 rounded-md"
+          >
             Services
           </Navbar.Link>
-          <Navbar.Link active={path === "/courses"} as={Link} to="/courses">
+          <Navbar.Link 
+            active={path === "/courses"} 
+            as={Link} 
+            to="/courses"
+            className="px-4 py-3 hover:bg-indigo-50 dark:hover:bg-gray-700 rounded-md"
+          >
             Courses
           </Navbar.Link>
         </Navbar.Collapse>
