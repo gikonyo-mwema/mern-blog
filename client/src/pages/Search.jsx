@@ -1,154 +1,256 @@
-import React, { useEffect, useState } from 'react';
-import { Button, Select, TextInput } from 'flowbite-react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Button, Select, TextInput, Spinner, Alert } from 'flowbite-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import PostCard from '../components/PostCard';
+import { FiSearch, FiFilter, FiChevronDown } from 'react-icons/fi';
 
 export default function Search() {
-    // State to manage sidebar filter data
     const [sidebarData, setSidebarData] = useState({
         searchTerm: '',
         sort: 'desc',
-        category: 'uncategorized',
+        category: 'all',
     });
-    // State to manage fetched posts
     const [posts, setPosts] = useState([]);
-    // State to manage loading status
     const [loading, setLoading] = useState(true);
-    // State to manage "Show More" button visibility
     const [showMore, setShowMore] = useState(false);
+    const [error, setError] = useState(null);
+    const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
     const location = useLocation();
     const navigate = useNavigate();
 
-    // Fetch posts based on current filters
-    const fetchPosts = async () => {
+    // Debounced fetch function
+    const fetchPosts = useCallback(async () => {
         setLoading(true);
+        setError(null);
         try {
             const urlParams = new URLSearchParams(location.search);
             const res = await fetch(`/api/post/getposts?${urlParams.toString()}`);
-            if (res.ok) {
-                const data = await res.json();
-                setPosts(data.posts);
-                setShowMore(data.posts.length === 9); // Show "Show More" if 9 posts are fetched
-            } else {
-                console.error('Failed to fetch posts');
+            const data = await res.json();
+            
+            if (!res.ok) {
+                throw new Error(data.message || 'Failed to fetch posts');
             }
-        } catch (error) {
-            console.error('Error fetching posts:', error);
+
+            setPosts(data.posts);
+            setShowMore(data.posts.length === 9);
+        } catch (err) {
+            console.error('Error fetching posts:', err);
+            setError(err.message);
         } finally {
             setLoading(false);
         }
-    };
+    }, [location.search]);
 
-    // Handle form input changes
+    // Handle input changes with debounce
     const handleChange = (e) => {
         const { id, value } = e.target;
-        setSidebarData((prev) => ({
+        setSidebarData(prev => ({
             ...prev,
-            [id]: value || (id === 'sort' ? 'desc' : 'uncategorized'),
+            [id]: value,
         }));
     };
 
-    // Apply filters and update the URL
+    // Apply filters and update URL
     const handleSubmit = (e) => {
         e.preventDefault();
         const urlParams = new URLSearchParams();
         urlParams.set('searchTerm', sidebarData.searchTerm);
         urlParams.set('sort', sidebarData.sort);
-        urlParams.set('category', sidebarData.category);
+        if (sidebarData.category !== 'all') {
+            urlParams.set('category', sidebarData.category);
+        }
         navigate(`/search?${urlParams.toString()}`);
+        setMobileFiltersOpen(false); // Close mobile filters after submit
     };
 
     // Load more posts
     const handleShowMore = async () => {
-        const startIndex = posts.length; // Pagination start index
-        const urlParams = new URLSearchParams(location.search);
-        urlParams.set('startIndex', startIndex);
+        setLoading(true);
         try {
+            const startIndex = posts.length;
+            const urlParams = new URLSearchParams(location.search);
+            urlParams.set('startIndex', startIndex);
+            
             const res = await fetch(`/api/post/getposts?${urlParams.toString()}`);
-            if (res.ok) {
-                const data = await res.json();
-                setPosts((prevPosts) => [...prevPosts, ...data.posts]); // Append new posts
-                setShowMore(data.posts.length === 9); // Update "Show More" visibility
-            } else {
-                console.error('Failed to fetch more posts');
+            const data = await res.json();
+            
+            if (!res.ok) {
+                throw new Error(data.message || 'Failed to fetch more posts');
             }
-        } catch (error) {
-            console.error('Error loading more posts:', error);
+
+            setPosts(prev => [...prev, ...data.posts]);
+            setShowMore(data.posts.length === 9);
+        } catch (err) {
+            console.error('Error loading more posts:', err);
+            setError(err.message);
+        } finally {
+            setLoading(false);
         }
     };
 
-    // Sync filters from URL to state on component mount and when URL changes
+    // Sync URL params with state
     useEffect(() => {
         const urlParams = new URLSearchParams(location.search);
         setSidebarData({
             searchTerm: urlParams.get('searchTerm') || '',
             sort: urlParams.get('sort') || 'desc',
-            category: urlParams.get('category') || 'uncategorized',
+            category: urlParams.get('category') || 'all',
         });
-        fetchPosts();
     }, [location.search]);
 
+    // Fetch posts with debounce
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            fetchPosts();
+        }, 300); // 300ms debounce
+
+        return () => clearTimeout(timer);
+    }, [fetchPosts]);
+
+    // Categories could be fetched from API in a real app
+    const categories = [
+        { value: 'all', label: 'All Categories' },
+        { value: 'climate-change', label: 'Climate Change' },
+        { value: 'forest', label: 'Forest Conservation' },
+        { value: 'eia', label: 'Environmental Impact' },
+        { value: 'sustainability', label: 'Sustainability' },
+        { value: 'policy', label: 'Environmental Policy' },
+    ];
+
     return (
-        <div className='flex flex-col md:flex-row'>
-            {/* Sidebar with filters */}
-            <div className='p-7 border-b md:border-r md:min-h-screen border-gray-500'>
+        <div className='flex flex-col md:flex-row min-h-screen'>
+            {/* Mobile filter toggle */}
+            <div className='md:hidden p-4 border-b border-gray-200 dark:border-gray-700'>
+                <Button
+                    fullSized
+                    color='gray'
+                    onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
+                >
+                    <div className='flex items-center justify-between w-full'>
+                        <span>Filters</span>
+                        <FiFilter className='ml-2' />
+                        <FiChevronDown className={`ml-2 transition-transform ${mobileFiltersOpen ? 'rotate-180' : ''}`} />
+                    </div>
+                </Button>
+            </div>
+
+            {/* Sidebar - Desktop & Mobile when open */}
+            <div className={`${mobileFiltersOpen ? 'block' : 'hidden'} md:block w-full md:w-64 p-4 md:p-6 border-b md:border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800`}>
                 <form onSubmit={handleSubmit} className='flex flex-col gap-4'>
-                    <div className="flex items-center gap-2">
-                        <label className='whitespace-nowrap font-semibold'>Search Term:</label>
-                        <TextInput
-                            placeholder="Search..."
-                            id='searchTerm'
-                            type='text'
-                            value={sidebarData.searchTerm}
+                    <div>
+                        <label htmlFor='searchTerm' className='block mb-2 text-sm font-medium text-gray-900 dark:text-white'>
+                            Search
+                        </label>
+                        <div className='relative'>
+                            <TextInput
+                                id='searchTerm'
+                                type='text'
+                                placeholder='Search posts...'
+                                value={sidebarData.searchTerm}
+                                onChange={handleChange}
+                                rightIcon={FiSearch}
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label htmlFor='sort' className='block mb-2 text-sm font-medium text-gray-900 dark:text-white'>
+                            Sort By
+                        </label>
+                        <Select
+                            id='sort'
+                            value={sidebarData.sort}
                             onChange={handleChange}
-                        />
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <label className='font-semibold'>Sort</label>
-                        <Select id='sort' value={sidebarData.sort} onChange={handleChange}>
-                            <option value='desc'>Latest</option>
-                            <option value='asc'>Oldest</option>
+                        >
+                            <option value='desc'>Newest First</option>
+                            <option value='asc'>Oldest First</option>
                         </Select>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <label className='font-semibold'>Category</label>
-                        <Select id='category' value={sidebarData.category} onChange={handleChange}>
-                            <option value='uncategorized'>Uncategorized</option>
-                            <option value='climate-change'>Climate Change</option>
-                            <option value='forest'>Forest</option>
-                            <option value='eia'>EIA</option>
+
+                    <div>
+                        <label htmlFor='category' className='block mb-2 text-sm font-medium text-gray-900 dark:text-white'>
+                            Category
+                        </label>
+                        <Select
+                            id='category'
+                            value={sidebarData.category}
+                            onChange={handleChange}
+                        >
+                            {categories.map((cat) => (
+                                <option key={cat.value} value={cat.value}>
+                                    {cat.label}
+                                </option>
+                            ))}
                         </Select>
                     </div>
-                    <Button type='submit' outline gradientDuoTone='purpleToPink'>
+
+                    <Button type='submit' gradientDuoTone='purpleToBlue' className='w-full'>
                         Apply Filters
                     </Button>
                 </form>
             </div>
 
-            {/* Posts results */}
-            <div className='w-full'>
-                <h1 className='text-3xl font-semibold sm:border-b border-gray-500 p-3 mt-5'>Posts Results:</h1>
-                <div className="p-7 flex flex-wrap gap-4">
-                    {loading && <p className='text-xl text-gray-500'>Loading...</p>}
-                    {!loading && posts.length === 0 && (
-                        <p className='text-xl text-gray-500'>No posts found.</p>
+            {/* Main content */}
+            <div className='flex-1 p-4 md:p-6'>
+                <div className='mb-6'>
+                    <h1 className='text-2xl md:text-3xl font-bold text-gray-900 dark:text-white'>
+                        Search Results
+                    </h1>
+                    {sidebarData.searchTerm && (
+                        <p className='text-gray-600 dark:text-gray-400 mt-2'>
+                            Showing results for "{sidebarData.searchTerm}"
+                        </p>
                     )}
+                </div>
+
+                {/* Error message */}
+                {error && (
+                    <Alert color='failure' className='mb-4'>
+                        {error}
+                    </Alert>
+                )}
+
+                {/* Loading state */}
+                {loading && posts.length === 0 && (
+                    <div className='flex justify-center items-center h-64'>
+                        <Spinner size='xl' />
+                    </div>
+                )}
+
+                {/* No results */}
+                {!loading && posts.length === 0 && !error && (
+                    <div className='text-center py-12'>
+                        <h3 className='text-lg font-medium text-gray-900 dark:text-white'>
+                            No posts found
+                        </h3>
+                        <p className='mt-2 text-gray-600 dark:text-gray-400'>
+                            Try adjusting your search or filter criteria
+                        </p>
+                    </div>
+                )}
+
+                {/* Posts grid */}
+                <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6'>
                     {!loading && posts.map((post) => (
                         <PostCard key={post._id} post={post} />
                     ))}
-                    {showMore && (
-                        <button
-                            className='text-teal-500 text-lg hover:underline p-7 w-full'
-                            onClick={handleShowMore}
-                        >
-                            Show More
-                        </button>
-                    )}
                 </div>
+
+                {/* Show more button */}
+                {showMore && (
+                    <div className='text-center mt-8'>
+                        <Button
+                            gradientDuoTone='greenToBlue'
+                            onClick={handleShowMore}
+                            disabled={loading}
+                        >
+                            {loading ? 'Loading...' : 'Show More'}
+                        </Button>
+                    </div>
+                )}
             </div>
         </div>
     );
 }
-
     
