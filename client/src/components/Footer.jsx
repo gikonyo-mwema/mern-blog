@@ -26,17 +26,17 @@ export default function FooterComponent() {
                         </p>
                         <div className="flex space-x-4 mt-4">
                             <Footer.Icon 
-                                href="https://facebook.com" 
+                                href="https://www.facebook.com/ecodeedcompany/" 
                                 icon={BsFacebook} 
                                 className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-white"
                             />
                             <Footer.Icon 
-                                href="https://twitter.com" 
+                                href="https://x.com/EcodeedC" 
                                 icon={BsTwitter} 
                                 className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-white"
                             />
                             <Footer.Icon 
-                                href="https://instagram.com" 
+                                href="https://www.instagram.com/ecodeedcompany/" 
                                 icon={BsInstagram} 
                                 className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-white"
                             />
@@ -46,7 +46,7 @@ export default function FooterComponent() {
                                 className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-white"
                             />
                             <Footer.Icon 
-                                href="https://linkedin.com" 
+                                href="https://www.linkedin.com/company/ecodeed-consultancy-company" 
                                 icon={BsLinkedin} 
                                 className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-white"
                             />
@@ -63,11 +63,11 @@ export default function FooterComponent() {
                             <Footer.Link href="/about" className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-white">
                                 About Us
                             </Footer.Link>
-                            <Footer.Link href="/blog" className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-white">
-                                Blog
+                            <Footer.Link href="/services" className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-white">
+                                Services
                             </Footer.Link>
-                            <Footer.Link href="/contact" className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-white">
-                                Contact
+                            <Footer.Link href="/courses" className="text-gray-600 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-white">
+                                Courses
                             </Footer.Link>
                         </Footer.LinkGroup>
                     </div>
