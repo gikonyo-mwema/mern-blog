@@ -5,69 +5,45 @@ import cookieParser from 'cookie-parser';
 import path from 'path';
 import { v2 as cloudinary } from 'cloudinary';
 import cors from 'cors';
+
 import userRoutes from './routes/user.route.js';
 import authRoutes from './routes/auth.route.js';
 import postRoutes from './routes/post.route.js';
 import commentRoutes from './routes/comment.route.js';
 import uploadRouter from './utils/upload.js';
 import serviceRoutes from './routes/service.route.js';
-dotenv.config({ path: './.env' });  
-
 
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load .env from the api directory
 dotenv.config({ path: path.resolve(__dirname, '.env') });
+console.log('✅ Loaded .env from:', path.resolve(__dirname, '.env'));
 
-console.log('Loading .env from:', path.resolve(__dirname, '.env'));
-
-
-
-// Initialize environment variables
-dotenv.config();
-
-//console.log('All env vars:', Object.keys(process.env));
-
-// Configuration logging
-console.log('Environment Variables:', {
-  NODE_ENV: process.env.NODE_ENV,
-  MONGODB_URI: process.env.MONGODB_URI ? '***configured***' : 'missing',
-  CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME ? '***configured***' : 'missing'
-});
-
-// Initialize Express app
 const app = express();
-// Removed duplicate declaration of __dirname
 
-// Database Connection
+// === 1. Database Connection ===
 const connectDB = async () => {
   try {
     await mongoose.connect(process.env.MONGODB_URI, {
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000
     });
-    console.log('MongoDB connected successfully');
+    console.log('✅ MongoDB connected');
   } catch (err) {
-    console.error('MongoDB connection error:', err);
+    console.error('❌ MongoDB error:', err);
     process.exit(1);
   }
 };
 
-// Cloudinary Configuration
+// === 2. Cloudinary Configuration ===
 const configureCloudinary = () => {
-  const requiredCloudinaryVars = [
-    'CLOUDINARY_CLOUD_NAME',
-    'CLOUDINARY_API_KEY',
-    'CLOUDINARY_API_SECRET'
-  ];
+  const required = ['CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'];
+  const missing = required.filter((key) => !process.env[key]);
 
-  const missingVars = requiredCloudinaryVars.filter(varName => !process.env[varName]);
-
-  if (missingVars.length > 0) {
-    console.error('Missing Cloudinary configuration:', missingVars.join(', '));
+  if (missing.length) {
+    console.error('❌ Missing Cloudinary config:', missing.join(', '));
     process.exit(1);
   }
 
@@ -78,88 +54,70 @@ const configureCloudinary = () => {
     secure: true
   });
 
-  console.log('Cloudinary configured successfully');
+  console.log('✅ Cloudinary configured');
 };
 
-// Middleware Setup
+// === 3. Middleware Setup ===
 const setupMiddleware = () => {
-  // Enhanced CORS configuration
   app.use(cors({
-    origin: [
-      'http://localhost:3000',
-      process.env.CLIENT_URL,
-      'https://your-production-domain.com'
-    ].filter(Boolean),
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'X-Requested-With',
-      'Accept',
-      'Origin'
-    ],
+    origin: 'http://localhost:5173', // Frontend URL
     credentials: true,
-    optionsSuccessStatus: 200
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
   }));
 
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
-  app.use(express.static(path.join(__dirname, '/client/dist')));
+
+  // Static frontend files (for production)
+  app.use(express.static(path.join(__dirname, 'client', 'dist')));
 };
 
-// Route Setup
+// === 4. Route Setup ===
 const setupRoutes = () => {
   app.use('/api/upload', uploadRouter);
   app.use('/api/user', userRoutes);
   app.use('/api/auth', authRoutes);
   app.use('/api/post', postRoutes);
   app.use('/api/comment', commentRoutes);
-  app.use('/api/services', serviceRoutes)
+  app.use('/api/services', serviceRoutes);
 
-  // SPA fallback route
+  // Catch-all for SPA routing
   app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'client', 'dist', 'index.html'));
   });
 };
 
-// Error Handling
+// === 5. Error Handling ===
 const setupErrorHandling = () => {
   app.use((err, req, res, next) => {
-    console.error('[Error]', {
-      path: req.path,
-      method: req.method,
-      error: err.stack || err.message
-    });
+    console.error('[ERROR]', err.stack || err.message);
 
-    const statusCode = err.statusCode || 500;
-    const message = process.env.NODE_ENV === 'production' 
-      ? 'An unexpected error occurred' 
-      : err.message;
-
-    res.status(statusCode).json({
+    res.status(err.statusCode || 500).json({
       success: false,
-      statusCode,
-      message,
+      statusCode: err.statusCode || 500,
+      message: process.env.NODE_ENV === 'production'
+        ? 'Something went wrong'
+        : err.message,
       ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
     });
   });
 };
 
-// Server Initialization
+// === 6. Server Initialization ===
 const startServer = () => {
   const PORT = process.env.PORT || 3000;
   const server = app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🚀 Server running: http://localhost:${PORT}`);
+    console.log(`🛠️  Mode: ${process.env.NODE_ENV || 'development'}`);
   });
 
-  // Graceful shutdown
   const shutdown = (signal) => {
-    console.log(`\nReceived ${signal}, shutting down gracefully...`);
+    console.log(`⚠️  ${signal} received. Closing server...`);
     server.close(async () => {
       await mongoose.connection.close();
-      console.log('HTTP server closed\nMongoDB connection closed');
+      console.log('🛑 Server and DB closed');
       process.exit(0);
     });
   };
@@ -168,7 +126,7 @@ const startServer = () => {
   process.on('SIGTERM', shutdown);
 };
 
-// Initialize Application
+// === 7. Run Everything ===
 (async () => {
   try {
     await connectDB();
@@ -177,8 +135,9 @@ const startServer = () => {
     setupRoutes();
     setupErrorHandling();
     startServer();
-  } catch (error) {
-    console.error('Application initialization failed:', error);
+  } catch (err) {
+    console.error('❌ App startup failed:', err);
     process.exit(1);
   }
 })();
+
