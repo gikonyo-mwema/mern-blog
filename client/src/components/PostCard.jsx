@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { FiEye } from 'react-icons/fi';
 import { getDefaultImageUrl } from '../utils/cloudinary';
 
+const defaultProfilePic = 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png';
+
 export default function PostCard({ post, isCompact = false }) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [currentImage, setCurrentImage] = useState(getDefaultImageUrl());
@@ -22,7 +24,6 @@ export default function PostCard({ post, isCompact = false }) {
   };
 
   useEffect(() => {
-    // Initialize image source when component mounts or post changes
     if (post?.image) {
       setCurrentImage(post.image);
       setImageLoaded(false);
@@ -56,9 +57,7 @@ export default function PostCard({ post, isCompact = false }) {
   };
 
   return (
-    <div className={`bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 h-full flex flex-col ${
-      isCompact ? 'border-l-4 border-teal-500' : ''
-    }`}>
+    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 h-full flex flex-col">
       {/* Image Container */}
       <Link 
         to={`/post/${post?.slug || '#'}`} 
@@ -80,7 +79,7 @@ export default function PostCard({ post, isCompact = false }) {
           onError={handleImageError}
         />
 
-        {/* Loading Skeleton (shown while image is loading) */}
+        {/* Loading Skeleton */}
         {!imageLoaded && (
           <div className="absolute inset-0 bg-gray-200 animate-pulse"></div>
         )}
@@ -114,18 +113,31 @@ export default function PostCard({ post, isCompact = false }) {
           {cleanExcerpt}
         </p>
 
-        <div className="flex items-center justify-between text-sm text-gray-500 mt-auto">
-          <span className="font-medium">{post?.author || 'Eco Author'}</span>
-          <div className="flex items-center space-x-3">
-            <span>{formattedDate}</span>
-            <span className="flex items-center space-x-1">
-              <FiEye className="text-gray-400" />
-              <span>{post?.views || 0}</span>
-            </span>
-            <span className="hidden sm:inline-flex items-center space-x-1">
-              <span>•</span>
-              <span>{readingTime} min read</span>
-            </span>
+        {/* Footer Section - Improved */}
+        <div className="flex items-center justify-between text-xs text-gray-500 mt-auto whitespace-nowrap overflow-hidden">
+          <div className="flex items-center space-x-2 overflow-hidden">
+            <Link 
+              to={`/user/${post?.userId || ''}`} 
+              className="flex items-center space-x-2 hover:underline truncate"
+            >
+              <img 
+                src={post?.authorProfile || defaultProfilePic} 
+                alt={post?.author || 'Author'}
+                className="w-5 h-5 rounded-full object-cover flex-shrink-0"
+                onError={(e) => {
+                  e.target.src = defaultProfilePic;
+                }}
+              />
+              <span className="font-medium hover:text-teal-600 transition-colors truncate">
+                {post?.author || 'Eco Author'}
+              </span>
+            </Link>
+          </div>
+          <div className="flex items-center space-x-2 flex-shrink-0">
+            <span className="truncate">{formattedDate}</span>
+            <FiEye className="text-gray-400" />
+            <span>{post?.views || 0}</span>
+            <span className="hidden sm:inline">&bull; {readingTime} min read</span>
           </div>
         </div>
       </div>
