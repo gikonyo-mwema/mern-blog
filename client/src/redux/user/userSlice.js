@@ -1,4 +1,5 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import axios from 'axios';
 
 // Initial state
 const initialState = {
@@ -20,84 +21,140 @@ const validateUser = (user) => {
     return true;
 };
 
+// Async thunk for regular sign-in
+export const signIn = createAsyncThunk(
+    'user/signin',
+    async (userData, { rejectWithValue }) => {
+        try {
+            const res = await axios.post('/api/auth/signin', userData, {
+                withCredentials: true
+            });
+            return res.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data || error.message);
+        }
+    }
+);
+
+// Async thunk for Google sign-in
+export const googleSignIn = createAsyncThunk(
+    'user/googleSignin',
+    async (userData, { rejectWithValue }) => {
+        try {
+            const res = await axios.post('/api/auth/google', userData, {
+                withCredentials: true
+            });
+            return res.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data || error.message);
+        }
+    }
+);
+
 // Create slice
 const userSlice = createSlice({
     name: 'user',
     initialState,
     reducers: {
-        // Sign-in actions
+        // Manual sign-in actions (for components that need direct control)
         signInStart: (state) => {
-            console.log('Sign In Started');
             state.loading = true;
             state.error = null;
         },
         signInSuccess: (state, action) => {
-            console.log('Sign In Success Payload:', action.payload);
             if (validateUser(action.payload)) {
                 state.currentUser = action.payload;
             } else {
-                console.error('Invalid user data received in signInSuccess');
                 state.error = 'Invalid user data';
             }
             state.loading = false;
         },
         signInFailure: (state, action) => {
-            console.error('Sign In Failure:', action.payload);
             state.loading = false;
             state.error = action.payload;
         },
 
         // Update user actions
         updateStart: (state) => {
-            console.log('Update Started');
             state.loading = true;
             state.error = null;
         },
         updateSuccess: (state, action) => {
-            console.log('Update Success Payload:', action.payload);
             if (validateUser(action.payload)) {
                 state.currentUser = action.payload;
             } else {
-                console.error('Invalid user data received in updateSuccess');
                 state.error = 'Invalid user data';
             }
             state.loading = false;
         },
         updateFailure: (state, action) => {
-            console.error('Update Failure:', action.payload);
             state.loading = false;
             state.error = action.payload;
         },
 
         // Delete user actions
         deleteUserStart: (state) => {
-            console.log('Delete User Started');
             state.loading = true;
             state.error = null;
         },
         deleteUserSuccess: (state) => {
-            console.log('Delete User Success');
             state.currentUser = null;
             state.loading = false;
             state.error = null;
         },
         deleteUserFailure: (state, action) => {
-            console.error('Delete User Failure:', action.payload);
             state.loading = false;
             state.error = action.payload;
         },
 
         // Sign-out action
         signoutSuccess: (state) => {
-            console.log('Sign Out Success');
             state.currentUser = null;
             state.error = null;
             state.loading = false;
         },
     },
+    extraReducers: (builder) => {
+        builder
+            // Regular sign-in cases
+            .addCase(signIn.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(signIn.fulfilled, (state, action) => {
+                if (validateUser(action.payload)) {
+                    state.currentUser = action.payload;
+                } else {
+                    state.error = 'Invalid user data';
+                }
+                state.loading = false;
+            })
+            .addCase(signIn.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload || 'Sign in failed';
+            })
+            
+            // Google sign-in cases
+            .addCase(googleSignIn.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(googleSignIn.fulfilled, (state, action) => {
+                if (validateUser(action.payload)) {
+                    state.currentUser = action.payload;
+                } else {
+                    state.error = 'Invalid user data';
+                }
+                state.loading = false;
+            })
+            .addCase(googleSignIn.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload || 'Google sign in failed';
+            });
+    }
 });
 
-// Export actions
+// Export all actions
 export const {
     signInStart,
     signInSuccess,
