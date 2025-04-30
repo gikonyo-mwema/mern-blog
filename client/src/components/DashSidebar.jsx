@@ -10,12 +10,13 @@ import {
   HiClipboardCheck,
   HiBookOpen 
 } from "react-icons/hi";
-import { useLocation, Link } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { signoutSuccess } from "../redux/user/userSlice";
 import { useDispatch, useSelector } from "react-redux";
 
 export default function DashSidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
   const dispatch = useDispatch();
   const { currentUser } = useSelector((state) => state.user);
   const [tab, setTab] = useState("");
@@ -50,84 +51,93 @@ export default function DashSidebar() {
     }
   };
 
+  const handleTabClick = (tabName) => {
+    navigate(`/dashboard?tab=${tabName}`);
+  };
+
   return (
     <Sidebar className="w-full md:w-56">
       <Sidebar.Items>
         <Sidebar.ItemGroup className="flex flex-col gap-1">
           {currentUser.isAdmin && (
-            <Link to="/dashboard?tab=dash">
-              <Sidebar.Item
-                active={tab === "dash" || !tab}
-                icon={HiChartPie}
-                as="div"
-              >
-                Dashboard
-              </Sidebar.Item>
-            </Link>
-          )}
-          <Link to="/dashboard?tab=profile">
             <Sidebar.Item
-              active={tab === "profile"}
-              icon={HiUser}
-              label={currentUser.isAdmin ? "Admin" : "User"}
-              labelColor="dark"
+              active={tab === "dash" || !tab}
+              icon={HiChartPie}
+              onClick={() => handleTabClick("dash")}
+              as="div"
+              className="cursor-pointer"
             >
-              Profile
+              Dashboard
             </Sidebar.Item>
-          </Link>
+          )}
+          <Sidebar.Item
+            active={tab === "profile"}
+            icon={HiUser}
+            label={currentUser.isAdmin ? "Admin" : "User"}
+            labelColor="dark"
+            onClick={() => handleTabClick("profile")}
+            as="div"
+            className="cursor-pointer"
+          >
+            Profile
+          </Sidebar.Item>
+
           {currentUser.isAdmin && (
             <>
-              <Link to="/dashboard?tab=posts">
-                <Sidebar.Item
-                  active={tab === "posts"}
-                  icon={HiDocumentText}
-                  as="div"
-                >
-                  Posts
-                </Sidebar.Item>
-              </Link>
-              <Link to="/dashboard?tab=users">
-                <Sidebar.Item
-                  active={tab === "users"}
-                  icon={HiOutlineUserGroup}
-                  as="div"
-                >
-                  Users
-                </Sidebar.Item>
-              </Link>
-              <Link to="/dashboard?tab=comments">
-                <Sidebar.Item
-                  active={tab === "comments"}
-                  icon={HiAnnotation}
-                  as="div"
-                >
-                  Comments
-                </Sidebar.Item>
-              </Link>
-              <Link to="/dashboard?tab=services">
-                <Sidebar.Item
-                  active={tab === "services"}
-                  icon={HiClipboardCheck}
-                  as="div"
-                >
-                  Services
-                </Sidebar.Item>
-              </Link>
-              <Link to="/dashboard?tab=courses">
-                <Sidebar.Item
-                  active={tab === "courses"}
-                  icon={HiBookOpen}
-                  as="div"
-                >
-                  Courses
-                </Sidebar.Item>
-              </Link>
+              <Sidebar.Item
+                active={tab === "posts"}
+                icon={HiDocumentText}
+                onClick={() => handleTabClick("posts")}
+                as="div"
+                className="cursor-pointer"
+              >
+                Posts
+              </Sidebar.Item>
+              <Sidebar.Item
+                active={tab === "users"}
+                icon={HiOutlineUserGroup}
+                onClick={() => handleTabClick("users")}
+                as="div"
+                className="cursor-pointer"
+              >
+                Users
+              </Sidebar.Item>
+              <Sidebar.Item
+                active={tab === "comments"}
+                icon={HiAnnotation}
+                onClick={() => handleTabClick("comments")}
+                as="div"
+                className="cursor-pointer"
+              >
+                Comments
+              </Sidebar.Item>
+              <Sidebar.Item
+                active={tab === "services"}
+                icon={HiClipboardCheck}
+                onClick={() => handleTabClick("services")}
+                as="div"
+                className="cursor-pointer"
+              >
+                Services
+              </Sidebar.Item>
+              <Sidebar.Item
+                active={tab === "courses"}
+                icon={HiBookOpen}
+                onClick={() => handleTabClick("courses")}
+                as="div"
+                className="cursor-pointer"
+              >
+                Courses
+              </Sidebar.Item>
+                
+
             </>
           )}
           <Sidebar.Item
             icon={HiArrowSmRight}
-            className="cursor-pointer"
             onClick={handleSignOut}
+            as="div"
+            className="cursor-pointer"
           >
             Sign Out
           </Sidebar.Item>

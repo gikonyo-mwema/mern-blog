@@ -12,17 +12,14 @@ export default function DashPosts() {
   const [postIdToDelete, setPostIdToDelete] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Fetch posts without pagination (fetch all posts at once)
   const fetchPosts = useCallback(async () => {
     setLoading(true);
     try {
-      console.log('Fetching all posts...'); // Debugging
       const res = await fetch('/api/post/getPosts');
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();
-      console.log('API response:', data); // Debugging
       setUserPosts(data.posts);
-      setShowMore(false); // Disable "Show more" button since all posts are fetched
+      setShowMore(false);
     } catch (error) {
       console.error('Error fetching posts:', error.message);
     } finally {
@@ -34,7 +31,6 @@ export default function DashPosts() {
     fetchPosts();
   }, [fetchPosts]);
 
-  // Handle post deletion
   const handleDeletePost = async () => {
     setShowModal(false);
     try {
@@ -53,7 +49,6 @@ export default function DashPosts() {
     }
   };
 
-  // Only allow admin users to access this dashboard
   if (!currentUser || !currentUser.isAdmin) {
     return <p>You are not authorized to view this content.</p>;
   }
@@ -77,26 +72,37 @@ export default function DashPosts() {
               {userPosts.map((post) => (
                 <Table.Row key={post._id} className="bg-white dark:border-gray-700 dark:bg-gray-800">
                   <Table.Cell>{new Date(post.updatedAt).toLocaleDateString()}</Table.Cell>
+
+                  {/* Improved Image Cell */}
                   <Table.Cell>
-  <Link to={`/post/${post.slug}`}>
-    <img
-      src={post.image || '/default-eco-thumbnail.jpg'}
-      alt={post.title}
-      className="w-20 h-10 object-cover bg-gray-500"
-      onError={(e) => {
-        e.target.src = '/default-eco-thumbnail.jpg';
-      }}
-    />
-  </Link>
-</Table.Cell>
+                    <Link to={`/post/${post.slug}`}>
+                      <div className="relative w-20 h-10 bg-gray-200 overflow-hidden rounded">
+                        <img
+                          src={post.image || '/default-eco-thumbnail.jpg'}
+                          alt={post.title}
+                          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300 opacity-0"
+                          onLoad={(e) => e.target.classList.add('opacity-100')}
+                          onError={(e) => {
+                            e.target.src = '/default-eco-thumbnail.jpg';
+                            e.target.classList.add('opacity-100');
+                          }}
+                        />
+                      </div>
+                    </Link>
+                  </Table.Cell>
+
                   <Table.Cell>
                     <Link className="font-medium text-gray-500 dark:text-white" to={`/post/${post.slug}`}>
                       {post.title}
                     </Link>
                   </Table.Cell>
+
                   <Table.Cell>
-                    <Link to={`/category/${post.category}`}>{post.category}</Link>
+                    <Link to={`/category/${post.category}`}>
+                      {post.category}
+                    </Link>
                   </Table.Cell>
+
                   <Table.Cell>
                     <span
                       onClick={() => {
@@ -108,9 +114,12 @@ export default function DashPosts() {
                       Delete
                     </span>
                   </Table.Cell>
+
                   <Table.Cell>
                     <Link to={`/post/edit/${post.slug}`}>
-                      <span className="font-medium text-blue-500 hover:underline cursor-pointer">Edit</span>
+                      <span className="font-medium text-blue-500 hover:underline cursor-pointer">
+                        Edit
+                      </span>
                     </Link>
                   </Table.Cell>
                 </Table.Row>
@@ -145,4 +154,5 @@ export default function DashPosts() {
     </div>
   );
 }
+
 

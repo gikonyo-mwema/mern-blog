@@ -13,6 +13,7 @@ import {
 } from '../redux/user/userSlice';
 import { HiOutlineExclamationCircle } from 'react-icons/hi';
 import { Link } from 'react-router-dom';
+import axios from 'axios';
 import 'react-circular-progressbar/dist/styles.css';
 
 const DeleteAccountModal = ({ showModal, setShowModal, handleDeleteUser, isLoading }) => (
@@ -79,35 +80,36 @@ export default function DashProfile() {
     setUpdateUserError(null);
     setUpdateUserSuccess(null);
 
-    if (!imageFile) {
-      setUpdateUserError('No image selected');
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('uploadFile', imageFile); // Ensure the key matches the server's expectation
-
     try {
       dispatch(updateStart());
+      
+      const formDataToSend = new FormData();
+      if (imageFile) formDataToSend.append('file', imageFile);
+      formDataToSend.append('username', formData.username);
+      formDataToSend.append('email', formData.email);
+      if (formData.password) formDataToSend.append('password', formData.password);
 
-      const response = await fetch('/upload', {
-        method: 'POST',
-        body: formData, // No need to set Content-Type header for FormData
+      const { data } = await axios.put('/api/user/update/' + currentUser._id, formDataToSend, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        withCredentials: true,
+        onUploadProgress: (progressEvent) => {
+          const progress = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          );
+          setImageFileUploadProgress(progress);
+        }
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        setUpdateUserError(errorData.message || 'Image upload failed');
-        dispatch(updateFailure(errorData.message));
-      } else {
-        const data = await response.json();
-        dispatch(updateSuccess(data));
-        setUpdateUserSuccess('Profile updated successfully.');
-        setImageFileUrl(data.url); // Update the image URL in the state
-      }
+      dispatch(updateSuccess(data));
+      setUpdateUserSuccess('Profile updated successfully');
+      setImageFileUploadProgress(0);
     } catch (error) {
-      setUpdateUserError('Unexpected error occurred. Please try again.');
-      dispatch(updateFailure(error.message));
+      const errorMessage = error.response?.data?.message || error.message;
+      setUpdateUserError(errorMessage);
+      dispatch(updateFailure(errorMessage));
+      setImageFileUploadProgress(0);
     }
   };
 
@@ -115,33 +117,23 @@ export default function DashProfile() {
     setShowModal(false);
     try {
       dispatch(deleteUserStart());
-      const res = await fetch(`/api/user/delete/${currentUser._id}`, {
-        method: 'DELETE',
+      await axios.delete(`/api/user/delete/${currentUser._id}`, {
+        withCredentials: true
       });
-      const data = await res.json();
-      if (!res.ok) {
-        dispatch(deleteUserFailure(data.message));
-      } else {
-        dispatch(deleteUserSuccess(data));
-      }
+      dispatch(deleteUserSuccess());
     } catch (error) {
-      dispatch(deleteUserFailure(error.message));
+      dispatch(deleteUserFailure(error.response?.data?.message || error.message));
     }
   };
 
   const handleSignout = async () => {
     try {
-      const res = await fetch('/api/user/signout', {
-        method: 'POST',
+      await axios.post('/api/user/signout', {}, {
+        withCredentials: true
       });
-      const data = await res.json();
-      if (!res.ok) {
-        console.log(data.message);
-      } else {
-        dispatch(signoutSuccess());
-      }
+      dispatch(signoutSuccess());
     } catch (error) {
-      console.log(error.message);
+      console.error('Signout error:', error);
     }
   };
 
@@ -263,4 +255,3 @@ export default function DashProfile() {
     </div>
   );
 }
-
