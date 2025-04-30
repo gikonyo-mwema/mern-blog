@@ -3,143 +3,128 @@ import bcryptjs from 'bcryptjs';
 import { errorHandler } from '../utils/error.js';
 import jwt from 'jsonwebtoken';
 
-// Utility function for validating email format
+// Utility function to validate email
 const isValidEmail = (email) => {
   const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return re.test(email);
 };
 
-// Utility function for validating password strength
+// Utility function to validate password strength
 const isStrongPassword = (password) => {
-  return password.length >= 8; // Example: Minimum length of 8 characters
+  return password.length >= 8;
 };
 
+// SIGNUP CONTROLLER
 export const signup = async (req, res, next) => {
   const { username, email, password } = req.body;
 
-  // Improved validation for required fields and email format
-  if (!username || !email || !password || username === '' || email === '' || password === '') {
+  if (!username || !email || !password) {
     return next(errorHandler(400, 'All fields are required'));
   }
+
   if (!isValidEmail(email)) {
     return next(errorHandler(400, 'Invalid email format'));
   }
+
   if (!isStrongPassword(password)) {
     return next(errorHandler(400, 'Password must be at least 8 characters long'));
   }
 
-  const hashedPassword = bcryptjs.hashSync(password, 10);
-
-  const newUser = new User({
-    username,
-    email,
-    password: hashedPassword,
-  });
-
   try {
+    const hashedPassword = bcryptjs.hashSync(password, 10);
+    const newUser = new User({
+      username,
+      email,
+      password: hashedPassword,
+    });
+
     await newUser.save();
-    res.status(201).json({ message: 'Signup successful', userId: newUser._id });
+    res.status(201).json({ message: 'Signup successful' });
   } catch (error) {
     next(error);
   }
 };
 
+// SIGNIN CONTROLLER
 export const signin = async (req, res, next) => {
   const { email, password } = req.body;
 
-  // Improved validation for required fields
-  if (!email || !password || email === '' || password === '') {
+  if (!email || !password) {
     return next(errorHandler(400, 'All fields are required'));
   }
-  
+
   if (!isValidEmail(email)) {
     return next(errorHandler(400, 'Invalid email format'));
   }
 
   try {
-    const validUser = await User.findOne({ email });
-    if (!validUser) {
-      return next(errorHandler(404, 'User not found'));
-    }
-    
-    const validPassword = bcryptjs.compareSync(password, validUser.password);
-    if (!validPassword) {
-      return next(errorHandler(400, 'Invalid password'));
-    }
+    const user = await User.findOne({ email });
+    if (!user) return next(errorHandler(404, 'User not found'));
 
-    // Token generation with expiration time set to 1 hour
+    const isPasswordValid = bcryptjs.compareSync(password, user.password);
+    if (!isPasswordValid) return next(errorHandler(400, 'Invalid credentials'));
+
     const token = jwt.sign(
-      { id: validUser._id, isAdmin: validUser.isAdmin },
+      { id: user._id, isAdmin: user.isAdmin },
       process.env.JWT_SECRET,
-      { expiresIn: '1h' } // Improved: Token expiration
+      { expiresIn: '1d' }
     );
 
-    const { password: pass, ...rest } = validUser._doc;
+    const { password: _, ...userData } = user._doc;
 
     res
+      .cookie('access_token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 24 * 60 * 60 * 1000, // 1 day
+      })
       .status(200)
-      .cookie('access_token', token, { httpOnly: true })
-      .json(rest);
-      
+      .json(userData);
   } catch (error) {
     next(error);
   }
 };
 
+// GOOGLE SIGNIN CONTROLLER
 export const google = async (req, res, next) => {
   const { email, name, googlePhotoUrl } = req.body;
-  
+
   try {
-    const user = await User.findOne({ email });
-    
-    if (user) {
-      // Token generation with expiration time set to 1 hour
-      const token = jwt.sign(
-        { id: user._id, isAdmin: user.isAdmin },
-        process.env.JWT_SECRET,
-        { expiresIn: '1h' } // Improved: Token expiration
-      );
-      
-      const { password, ...rest } = user._doc;
-      res
-        .status(200)
-        .cookie('access_token', token, { httpOnly: true })
-        .json(rest);
-      
-    } else {
-      // Improved: Generate a random username based on the user's name
-      const generatedUsername =
-        name.toLowerCase().replace(/\s+/g, '') + Math.random().toString(36).slice(-4);
-      
-      const generatedPassword =
-        Math.random().toString(36).slice(-8); // Improved: Simplified random password generation
-      
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      const generatedUsername = name.toLowerCase().replace(/\s+/g, '') + Math.random().toString(36).slice(-4);
+      const generatedPassword = Math.random().toString(36).slice(-8);
       const hashedPassword = bcryptjs.hashSync(generatedPassword, 10);
-      
-      const newUser = new User({
+
+      user = new User({
         username: generatedUsername,
         email,
         password: hashedPassword,
         profilePicture: googlePhotoUrl,
       });
-      
-      await newUser.save();
-      
-      // Token generation with expiration time set to 1 hour
-      const token = jwt.sign(
-        { id: newUser._id, isAdmin: newUser.isAdmin },
-        process.env.JWT_SECRET,
-        { expiresIn: '1h' } // Improved: Token expiration
-      );
-      
-      const { password, ...rest } = newUser._doc;
-      res
-        .status(200)
-        .cookie('access_token', token, { httpOnly: true })
-        .json(rest);
-      
+
+      await user.save();
     }
-    
+
+    const token = jwt.sign(
+      { id: user._id, isAdmin: user.isAdmin },
+      process.env.JWT_SECRET,
+      { expiresIn: '1d' }
+    );
+
+    const { password: _, ...userData } = user._doc;
+
+    res
+      .cookie('access_token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 24 * 60 * 60 * 1000, // 1 day
+      })
+      .status(200)
+      .json(userData);
   } catch (error) {
     next(error);
   }

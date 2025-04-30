@@ -8,7 +8,7 @@ export const create = async (req, res, next) => {
         return next(errorHandler(403, 'You are not allowed to create a post'));
     }
 
-    const { title, content, image } = req.body;
+    const { title, content, image, category } = req.body;
 
     if (!title || !content || !image) {
         return next(errorHandler(400, 'Title, content, and image URL are required'));
@@ -32,12 +32,11 @@ export const create = async (req, res, next) => {
             image,
             slug,
             userId: req.user.id,
-            category: req.body.category || 'uncategorized'
+            category: category || 'uncategorized'
         });
 
         await newPost.save();
         res.status(201).json(newPost);
-
     } catch (error) {
         next(errorHandler(500, error.message));
     }
@@ -67,7 +66,17 @@ export const getPosts = async (req, res, next) => {
             .sort({ updatedAt: sortDirection })
             .skip(startIndex)
             .limit(limit)
-            .lean(); // Use lean() for better performance
+            .populate({
+                path: 'userId',
+                select: 'username profilePicture' // Only select needed fields
+            })
+            .lean();
+
+        const formattedPosts = posts.map(post => ({
+            ...post,
+            author: post.userId?.username || 'Eco Author',
+            authorProfile: post.userId?.profilePicture || null
+        }));
 
         const totalPosts = await Post.countDocuments(query);
         const lastMonthPosts = await Post.countDocuments({
@@ -76,11 +85,10 @@ export const getPosts = async (req, res, next) => {
         });
 
         res.status(200).json({
-            posts,
+            posts: formattedPosts,
             totalPosts,
             lastMonthPosts
         });
-
     } catch (error) {
         next(errorHandler(500, 'Failed to fetch posts'));
     }
@@ -94,11 +102,19 @@ export const getTrendingPosts = async (req, res, next) => {
         })
         .sort({ views: -1 })
         .limit(5)
-        .select('title image slug views createdAt') // Only select needed fields
+        .populate({
+            path: 'userId',
+            select: 'username'
+        })
+        .select('title image slug views createdAt')
         .lean();
 
-        res.status(200).json({ posts: trendingPosts });
+        const formattedPosts = trendingPosts.map(post => ({
+            ...post,
+            author: post.userId?.username || 'Eco Author'
+        }));
 
+        res.status(200).json({ posts: formattedPosts });
     } catch (error) {
         next(errorHandler(500, 'Failed to fetch trending posts'));
     }
@@ -106,7 +122,7 @@ export const getTrendingPosts = async (req, res, next) => {
 
 // DELETE POST
 export const deletePost = async (req, res, next) => {
-    if (!req.user.isAdmin || req.user.id !== req.params.userId) {
+    if (!req.user.isAdmin && req.user.id !== req.params.userId) {
         return next(errorHandler(403, 'Unauthorized to delete this post'));
     }
 
@@ -116,12 +132,12 @@ export const deletePost = async (req, res, next) => {
             return next(errorHandler(404, 'Post not found'));
         }
 
-        // Optional: Delete image from Cloudinary if needed
+        // Optional: Delete image from Cloudinary
+        // If your Post model saves the public_id from Cloudinary, you could do:
         // await cloudinary.uploader.destroy(post.imagePublicId);
 
         await Post.findByIdAndDelete(req.params.postId);
         res.status(200).json({ message: 'Post deleted successfully' });
-
     } catch (error) {
         next(errorHandler(500, 'Failed to delete post'));
     }
@@ -129,14 +145,14 @@ export const deletePost = async (req, res, next) => {
 
 // UPDATE POST
 export const updatePost = async (req, res, next) => {
-    if (!req.user.isAdmin || req.user.id !== req.params.userId) {
+    if (!req.user.isAdmin && req.user.id !== req.params.userId) {
         return next(errorHandler(403, 'Unauthorized to update this post'));
     }
 
     try {
         const updateData = { 
             ...req.body,
-            ...(req.body.title && { 
+            ...(req.body.title && {
                 slug: req.body.title
                     .trim()
                     .toLowerCase()
@@ -156,7 +172,6 @@ export const updatePost = async (req, res, next) => {
         }
 
         res.status(200).json(updatedPost);
-
     } catch (error) {
         next(errorHandler(500, 'Failed to update post'));
     }
