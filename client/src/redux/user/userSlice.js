@@ -26,7 +26,7 @@ export const signIn = createAsyncThunk(
     'user/signin',
     async (userData, { rejectWithValue }) => {
         try {
-            const res = await axios.post('/api/auth/signin', userData, {
+            const res = await axios.post('/auth/signin', userData, {
                 withCredentials: true
             });
             return res.data;
@@ -36,13 +36,16 @@ export const signIn = createAsyncThunk(
     }
 );
 
-// Async thunk for Google sign-in
+// ✅ Only one definition of googleSignIn (with proper headers)
 export const googleSignIn = createAsyncThunk(
     'user/googleSignin',
     async (userData, { rejectWithValue }) => {
         try {
-            const res = await axios.post('/api/auth/google', userData, {
-                withCredentials: true
+            const res = await axios.post('/auth/google', userData, {
+                withCredentials: true,
+                headers: {
+                    'Content-Type': 'application/json',
+                }
             });
             return res.data;
         } catch (error) {
@@ -56,7 +59,6 @@ const userSlice = createSlice({
     name: 'user',
     initialState,
     reducers: {
-        // Manual sign-in actions (for components that need direct control)
         signInStart: (state) => {
             state.loading = true;
             state.error = null;
@@ -74,7 +76,6 @@ const userSlice = createSlice({
             state.error = action.payload;
         },
 
-        // Update user actions
         updateStart: (state) => {
             state.loading = true;
             state.error = null;
@@ -92,7 +93,6 @@ const userSlice = createSlice({
             state.error = action.payload;
         },
 
-        // Delete user actions
         deleteUserStart: (state) => {
             state.loading = true;
             state.error = null;
@@ -107,7 +107,6 @@ const userSlice = createSlice({
             state.error = action.payload;
         },
 
-        // Sign-out action
         signoutSuccess: (state) => {
             state.currentUser = null;
             state.error = null;
@@ -116,7 +115,6 @@ const userSlice = createSlice({
     },
     extraReducers: (builder) => {
         builder
-            // Regular sign-in cases
             .addCase(signIn.pending, (state) => {
                 state.loading = true;
                 state.error = null;
@@ -133,8 +131,7 @@ const userSlice = createSlice({
                 state.loading = false;
                 state.error = action.payload || 'Sign in failed';
             })
-            
-            // Google sign-in cases
+
             .addCase(googleSignIn.pending, (state) => {
                 state.loading = true;
                 state.error = null;
@@ -154,7 +151,7 @@ const userSlice = createSlice({
     }
 });
 
-// Export all actions
+// Export actions and reducer
 export const {
     signInStart,
     signInSuccess,
@@ -168,5 +165,4 @@ export const {
     signoutSuccess,
 } = userSlice.actions;
 
-// Export reducer
 export default userSlice.reducer;
