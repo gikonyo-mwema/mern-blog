@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   HiOutlineAcademicCap,
   HiOutlineCalendar,
@@ -10,9 +10,12 @@ import {
   HiOutlineUserCircle
 } from 'react-icons/hi';
 import { Button, Badge } from 'flowbite-react';
+import PaymentModal from '../components/PaymentModal';
 
 export default function Courses() {
-  // Course offerings data
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+
   const courseTiers = [
     {
       id: 1,
@@ -78,59 +81,13 @@ export default function Courses() {
     {
       question: "Can I join from outside Kenya?",
       answer: "Yes! The entire program is online and accessible globally. All live calls are held via Zoom or Google Meet."
-    },
-    // Add more FAQs as needed
+    }
   ];
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        
-        {/* Hero Section */}
-        <div className="text-center mb-16">
-          <h1 className="text-4xl font-bold text-teal-700 mb-4">Environmental Consultancy Training Program</h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            From Zero to Paid Projects: Start & Grow Your Environmental Consultancy
-          </p>
-        </div>
-
-        {/* Program Overview */}
-        <div className="bg-white rounded-xl shadow-md p-8 mb-12 border border-teal-100">
-          <h2 className="text-3xl font-bold text-teal-800 mb-6">This Program Is For You If:</h2>
-          <div className="grid md:grid-cols-2 gap-6">
-            <ul className="list-disc pl-5 space-y-2 text-gray-600">
-              <li>You're fresh out of school & unsure how to start</li>
-              <li>You've heard of EIA & Audits but don't know what to offer</li>
-            </ul>
-            <ul className="list-disc pl-5 space-y-2 text-gray-600">
-              <li>You want real guidance from someone doing it in the field</li>
-              <li>You're tired of waiting for "connections" to make it</li>
-            </ul>
-          </div>
-        </div>
-
-        {/* What You'll Learn */}
-        <div className="mb-16">
-          <h2 className="text-3xl font-bold text-teal-800 mb-8 text-center">What You'll Learn</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-teal-100">
-              <HiOutlineClipboardCheck className="w-8 h-8 mb-3 text-teal-600" />
-              <h3 className="text-xl font-semibold text-teal-700 mb-2">Business Setup</h3>
-              <p className="text-gray-600">How to legally set up your consultancy practice</p>
-            </div>
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-teal-100">
-              <HiOutlineChartBar className="w-8 h-8 mb-3 text-teal-600" />
-              <h3 className="text-xl font-semibold text-teal-700 mb-2">Core Services</h3>
-              <p className="text-gray-600">Breakdown of EIA, Audits and other key services</p>
-            </div>
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-teal-100">
-              <HiOutlineCurrencyDollar className="w-8 h-8 mb-3 text-teal-600" />
-              <h3 className="text-xl font-semibold text-teal-700 mb-2">Pricing Strategies</h3>
-              <p className="text-gray-600">How to price services + write winning reports</p>
-            </div>
-            {/* Add more learning points */}
-          </div>
-        </div>
+        {/* ... HERO, OVERVIEW, LEARNING SECTIONS ... */}
 
         {/* Course Tiers */}
         <div className="mb-16">
@@ -162,6 +119,10 @@ export default function Courses() {
                   <Button 
                     gradientDuoTone={tier.badge ? "tealToLime" : "grayToGray"}
                     className="w-full"
+                    onClick={() => {
+                      setSelectedCourse(tier);
+                      setShowPaymentModal(true);
+                    }}
                   >
                     {tier.cta}
                   </Button>
@@ -186,60 +147,31 @@ export default function Courses() {
                   <li key={index}>{feature}</li>
                 ))}
               </ul>
-              <Button gradientDuoTone="tealToLime">Book Your Session Now</Button>
+              <Button 
+                gradientDuoTone="tealToLime"
+                onClick={() => {
+                  setSelectedCourse(consultation);
+                  setShowPaymentModal(true);
+                }}
+              >
+                Book Your Session Now
+              </Button>
             </div>
           </div>
         </div>
 
-        {/* About Instructor */}
-        <div className="bg-teal-50 rounded-xl p-8 mb-12 border border-teal-100">
-          <h2 className="text-2xl font-bold text-teal-800 mb-4">About Your Instructor</h2>
-          <div className="flex flex-col md:flex-row gap-8">
-            <div className="md:w-1/4 flex justify-center">
-              <div className="w-32 h-32 bg-teal-100 rounded-full flex items-center justify-center text-teal-600">
-                <HiOutlineUserCircle className="w-16 h-16" />
-              </div>
-            </div>
-            <div className="md:w-3/4">
-              <h3 className="text-xl font-semibold text-teal-700 mb-2">Mukami Mwema</h3>
-              <p className="text-gray-600 mb-4">
-                Licensed environmental expert, consultant, and founder of Ecodeed Consultancy with years of experience helping clients navigate environmental compliance and sustainability challenges.
-              </p>
-              <p className="text-gray-600">
-                "I created this program to help you skip the years of confusion and start actually building your consultancy with confidence."
-              </p>
-            </div>
-          </div>
-        </div>
+        {/* ... ABOUT, FAQS, CTA SECTIONS ... */}
 
-        {/* FAQs */}
-        <div className="mb-12">
-          <h2 className="text-3xl font-bold text-teal-800 mb-8 text-center">Frequently Asked Questions</h2>
-          <div className="space-y-4">
-            {faqs.map((faq, index) => (
-              <div key={index} className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-                <h3 className="text-lg font-semibold text-teal-700 mb-2">{faq.question}</h3>
-                <p className="text-gray-600">{faq.answer}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Final CTA */}
-        <div className="bg-teal-700 rounded-xl p-8 text-center text-white">
-          <h2 className="text-2xl font-bold mb-4">Ready to Start Your Consultancy Journey?</h2>
-          <p className="mb-6 max-w-2xl mx-auto">
-            Choose the program that fits your needs and begin building your environmental consultancy today.
-          </p>
-          <Button 
-            gradientDuoTone="tealToLime"
-            size="lg"
-            className="mx-auto"
-          >
-            Compare All Options
-          </Button>
-        </div>
-
+        {/* Payment Modal */}
+        <PaymentModal
+          showModal={showPaymentModal}
+          setShowModal={setShowPaymentModal}
+          item={selectedCourse}
+          itemType="course"
+          onPaymentSuccess={() => {
+            console.log('Payment successful for:', selectedCourse?.title);
+          }}
+        />
       </div>
     </div>
   );

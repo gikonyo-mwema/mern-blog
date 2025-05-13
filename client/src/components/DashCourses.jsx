@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Button, TextInput, Textarea, Select, Label, Table, Modal } from 'flowbite-react';
-import { HiOutlineArrowLeft, HiOutlinePlus, HiOutlinePencilAlt, HiOutlineExclamationCircle} from 'react-icons/hi';
+import { Button, TextInput, Textarea, Select, Label, Table, Modal, Checkbox } from 'flowbite-react';
+import { HiOutlineArrowLeft, HiOutlinePlus, HiOutlinePencilAlt, HiOutlineExclamationCircle, HiOutlineCreditCard } from 'react-icons/hi';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
@@ -21,7 +21,11 @@ export function CreateCourse() {
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.id]: e.target.value });
+    const { id, value, type, checked } = e.target;
+    setFormData({ 
+      ...formData, 
+      [id]: type === 'checkbox' ? checked : value 
+    });
   };
 
   const handleFeatureChange = (index, value) => {
@@ -48,7 +52,10 @@ export function CreateCourse() {
 
       const res = await fetch('/api/courses', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+        headers: { 
+          'Content-Type': 'application/json', 
+          'Authorization': `Bearer ${localStorage.getItem('token')}` 
+        },
         body: JSON.stringify(formData),
       });
 
@@ -114,7 +121,7 @@ export function EditCourse() {
           price: data.price,
           isPopular: data.isPopular || false,
           paymentOption: data.paymentOption || '',
-          features: data.features,
+          features: data.features || [''],
           cta: data.cta || 'Enroll Now',
           description: data.description || ''
         });
@@ -129,7 +136,11 @@ export function EditCourse() {
   }, [courseId, currentUser]);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.id]: e.target.value });
+    const { id, value, type, checked } = e.target;
+    setFormData({ 
+      ...formData, 
+      [id]: type === 'checkbox' ? checked : value 
+    });
   };
 
   const handleFeatureChange = (index, value) => {
@@ -156,7 +167,10 @@ export function EditCourse() {
 
       const res = await fetch(`/api/courses/${courseId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+        headers: { 
+          'Content-Type': 'application/json', 
+          'Authorization': `Bearer ${localStorage.getItem('token')}` 
+        },
         body: JSON.stringify(formData),
       });
 
@@ -208,6 +222,8 @@ export function DashCourses() {
   const [showModal, setShowModal] = useState(false);
   const [courseIdToDelete, setCourseIdToDelete] = useState('');
   const [loading, setLoading] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -217,7 +233,7 @@ export function DashCourses() {
         const data = await res.json();
         if (res.ok) {
           setCourses(data.courses || data);
-          if (data.courses && data.courses.length < 9) {
+          if ((data.courses || data).length < 9) {
             setShowMore(false);
           }
         }
@@ -236,8 +252,8 @@ export function DashCourses() {
       const res = await fetch(`/api/courses?startIndex=${startIndex}`);
       const data = await res.json();
       if (res.ok) {
-        setCourses((prev) => [...prev, ...data.courses]);
-        if (data.courses.length < 9) setShowMore(false);
+        setCourses((prev) => [...prev, ...(data.courses || data)]);
+        if ((data.courses || data).length < 9) setShowMore(false);
       }
     } catch (error) {
       console.log(error.message);
@@ -260,6 +276,11 @@ export function DashCourses() {
     } catch (error) {
       console.log(error.message);
     }
+  };
+
+  const handlePaymentClick = (course) => {
+    setSelectedCourse(course);
+    setShowPaymentModal(true);
   };
 
   if (!currentUser?.isAdmin) {
@@ -293,8 +314,8 @@ export function DashCourses() {
               {courses.map((course) => (
                 <Table.Row key={course._id}>
                   <Table.Cell>{course.title}</Table.Cell>
-                  <Table.Cell>{course.price}</Table.Cell>
-                  <Table.Cell>{course.isPopular ? 'Popular' : 'Standard'}</Table.Cell>
+                  <Table.Cell>${course.price}</Table.Cell>
+                  <Table.Cell>{course.isPopular ? 'Yes' : 'No'}</Table.Cell>
                   <Table.Cell>
                     <div className="flex space-x-2">
                       <Link to={`/edit-course/${course._id}`}>
@@ -314,6 +335,15 @@ export function DashCourses() {
                       >
                         Delete
                       </Button>
+                      <Button
+                        outline
+                        gradientDuoTone="purpleToBlue"
+                        size="xs"
+                        onClick={() => handlePaymentClick(course)}
+                      >
+                        <HiOutlineCreditCard className="mr-1" />
+                        Test Payment
+                      </Button>
                     </div>
                   </Table.Cell>
                 </Table.Row>
@@ -321,7 +351,10 @@ export function DashCourses() {
             </Table.Body>
           </Table>
           {showMore && (
-            <button onClick={handleShowMore} className="w-full text-teal-500 py-7 text-sm">
+            <button 
+              onClick={handleShowMore} 
+              className="w-full text-teal-500 py-7 text-sm"
+            >
               Show more
             </button>
           )}
@@ -347,6 +380,17 @@ export function DashCourses() {
           </div>
         </Modal.Body>
       </Modal>
+
+      {/* Payment Modal would be rendered here */}
+      {/* <PaymentModal
+        showModal={showPaymentModal}
+        setShowModal={setShowPaymentModal}
+        item={selectedCourse}
+        itemType="course"
+        onPaymentSuccess={() => {
+          console.log('Payment successful for course:', selectedCourse?.title);
+        }}
+      /> */}
     </div>
   );
 }
@@ -360,7 +404,19 @@ function Unauthorized() {
   );
 }
 
-function CourseForm({ formData, handleChange, handleFeatureChange, addFeatureField, removeFeatureField, handleSubmit, error, loading, title, submitButtonText, isEdit }) {
+function CourseForm({ 
+  formData, 
+  handleChange, 
+  handleFeatureChange, 
+  addFeatureField, 
+  removeFeatureField, 
+  handleSubmit, 
+  error, 
+  loading, 
+  title, 
+  submitButtonText, 
+  isEdit 
+}) {
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
@@ -374,13 +430,123 @@ function CourseForm({ formData, handleChange, handleFeatureChange, addFeatureFie
           <h1 className="text-3xl font-bold text-teal-800 mb-6">{title}</h1>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Fields */}
-            {/* similar fields as before */}
-            {/* Features dynamic */}
-            {/* Submit button */}
-          </form>
+            <div>
+              <Label htmlFor="title" value="Course Title" />
+              <TextInput
+                id="title"
+                type="text"
+                placeholder="Enter course title"
+                required
+                value={formData.title}
+                onChange={handleChange}
+              />
+            </div>
 
-          {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
+            <div>
+              <Label htmlFor="price" value="Price" />
+              <TextInput
+                id="price"
+                type="number"
+                placeholder="Enter price"
+                required
+                value={formData.price}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="description" value="Description" />
+              <Textarea
+                id="description"
+                placeholder="Enter course description"
+                rows={4}
+                value={formData.description}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="isPopular"
+                checked={formData.isPopular}
+                onChange={handleChange}
+              />
+              <Label htmlFor="isPopular">Mark as Popular Course</Label>
+            </div>
+
+            <div>
+              <Label htmlFor="paymentOption" value="Payment Option" />
+              <Select
+                id="paymentOption"
+                value={formData.paymentOption}
+                onChange={handleChange}
+              >
+                <option value="">Select payment option</option>
+                <option value="one-time">One-time Payment</option>
+                <option value="subscription">Subscription</option>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="cta" value="Call to Action Text" />
+              <TextInput
+                id="cta"
+                type="text"
+                placeholder="Enter CTA text"
+                value={formData.cta}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <Label value="Course Features" />
+                <Button
+                  type="button"
+                  outline
+                  gradientDuoTone="tealToLime"
+                  size="xs"
+                  onClick={addFeatureField}
+                >
+                  <HiOutlinePlus className="mr-1" /> Add Feature
+                </Button>
+              </div>
+              {formData.features.map((feature, index) => (
+                <div key={index} className="flex items-center gap-2 mb-2">
+                  <TextInput
+                    type="text"
+                    value={feature}
+                    onChange={(e) => handleFeatureChange(index, e.target.value)}
+                    placeholder={`Feature ${index + 1}`}
+                    className="flex-1"
+                  />
+                  {formData.features.length > 1 && (
+                    <Button
+                      type="button"
+                      color="failure"
+                      size="xs"
+                      onClick={() => removeFeatureField(index)}
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <Button
+              type="submit"
+              gradientDuoTone="tealToLime"
+              className="w-full"
+              disabled={loading}
+            >
+              {loading ? 'Processing...' : submitButtonText}
+            </Button>
+
+            {error && (
+              <p className="text-red-500 text-sm text-center">{error}</p>
+            )}
+          </form>
         </div>
       </div>
     </div>
