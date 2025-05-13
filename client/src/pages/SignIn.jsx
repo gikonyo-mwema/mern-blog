@@ -20,14 +20,30 @@ export default function SignIn() {
       ...prev,
       [e.target.id]: e.target.value.trim(),
     }));
+
+    // Clear previous error message when user edits input
+    if (errorMessage) {
+      dispatch(signInFailure(null));
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const { email, password } = formData;
 
+    // Simple client-side validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
     if (!email || !password) {
       return dispatch(signInFailure("Please fill in all fields."));
+    }
+
+    if (!emailRegex.test(email)) {
+      return dispatch(signInFailure("Please enter a valid email address."));
+    }
+
+    if (password.length < 6) {
+      return dispatch(signInFailure("Password must be at least 6 characters."));
     }
 
     try {
@@ -36,21 +52,26 @@ export default function SignIn() {
       const res = await fetch("/api/auth/signin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include", // Crucial for cookie-based auth
+        credentials: "include",
         body: JSON.stringify({ email, password }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        return dispatch(signInFailure(data.message || "Invalid credentials"));
+        let errorText = "Something went wrong.";
+        if (res.status === 401) errorText = "Invalid credentials. Please try again.";
+        else if (res.status === 500) errorText = "Server error. Please try again later.";
+        else if (data?.message) errorText = data.message;
+
+        return dispatch(signInFailure(errorText));
       }
 
       dispatch(signInSuccess(data));
       navigate("/");
     } catch (err) {
       console.error("Sign-in error:", err);
-      dispatch(signInFailure("Network error. Please try again later."));
+      dispatch(signInFailure("Network error. Please check your connection."));
     }
   };
 
@@ -100,7 +121,7 @@ export default function SignIn() {
             <Button
               gradientDuoTone="purpleToPink"
               type="submit"
-              disabled={loading}
+              disabled={loading || !formData.email || !formData.password}
             >
               {loading ? (
                 <>
@@ -131,3 +152,4 @@ export default function SignIn() {
     </div>
   );
 }
+
