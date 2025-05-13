@@ -77,3 +77,87 @@ router.delete('/:id', verifyToken, async (req, res) => {
 });
 
 export default router;
+
+// In your routes file (e.g., routes/course.routes.js)
+router.post('/:courseId/payment', verifyToken, async (req, res) => {
+  try {
+    // Verify payment (in a real app, you'd integrate with M-Pesa API or Stripe)
+    const { paymentMethod, phoneNumber } = req.body;
+    
+    // Process payment (simulated)
+    const payment = {
+      courseId: req.params.courseId,
+      userId: req.user.id,
+      amount: req.body.amount,
+      paymentMethod,
+      status: 'completed',
+      transactionId: `TXN-${Date.now()}`
+    };
+    
+    // In a real app, save to database
+    // await Payment.create(payment);
+    
+    // Enroll user in course
+    // await User.findByIdAndUpdate(req.user.id, {
+    //   $addToSet: { enrolledCourses: req.params.courseId }
+    // });
+    
+    res.status(200).json({ 
+      success: true,
+      message: 'Payment processed successfully',
+      payment
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false,
+      message: error.message 
+    });
+  }
+});
+
+// Add these new routes before the export
+
+// Get courses with metrics (for dashboard)
+router.get('/metrics', verifyToken, async (req, res) => {
+  if (!req.user.isAdmin) {
+    return res.status(403).json({ message: 'Not authorized' });
+  }
+
+  try {
+    const totalCourses = await Course.countDocuments();
+    const lastMonth = new Date();
+    lastMonth.setMonth(lastMonth.getMonth() - 1);
+    const lastMonthCourses = await Course.countDocuments({
+      createdAt: { $gte: lastMonth }
+    });
+
+    // Get popular courses (example - adjust as needed)
+    const popularCourses = await Course.aggregate([
+      { $sort: { enrolledCount: -1 } },
+      { $limit: 5 },
+      { $project: { title: 1, enrolledCount: 1 } }
+    ]);
+
+    res.status(200).json({
+      totalCourses,
+      lastMonthCourses,
+      popularCourses
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get user's purchased courses
+router.get('/user/:userId', verifyToken, async (req, res) => {
+  try {
+    // In a real implementation, you'd query the user's purchased courses
+    // This is a placeholder - adjust based on your User model
+    const courses = await Course.find({
+      _id: { $in: req.user.purchasedCourses || [] }
+    });
+    res.status(200).json(courses);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
