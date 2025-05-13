@@ -9,26 +9,33 @@ import React from 'react';
 import axios from 'axios';
 
 // Axios Global Configuration
-axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL || '/api'; // Use Vite environment variable
+axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL || ''; // Changed from '/api'
 axios.defaults.withCredentials = true;
 
-// Add request interceptor to include token
+// Enhanced request interceptor
 axios.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  // Check both localStorage and cookies for token
+  const token = localStorage.getItem('token') || 
+                document.cookie.split('; ')
+                  .find(row => row.startsWith('token='))
+                  ?.split('=')[1];
+  
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
+}, (error) => {
+  return Promise.reject(error);
 });
 
-// Add response interceptor to handle 401 errors
+// Enhanced response interceptor
 axios.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Handle unauthorized error (e.g., redirect to login)
-      console.error('Unauthorized request - please login again');
-      // You might want to add logic to redirect to login here
+      // Clear auth state and redirect
+      localStorage.removeItem('token');
+      window.location.href = '/sign-in';
     }
     return Promise.reject(error);
   }
