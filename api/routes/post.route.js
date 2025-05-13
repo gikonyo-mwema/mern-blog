@@ -23,3 +23,4 @@ router.put('/updatePost/:postId/:userId', verifyToken, updatePost);  // Update p
 // });
 
 export default router;
+

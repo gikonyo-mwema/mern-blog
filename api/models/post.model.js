@@ -91,3 +91,5 @@ postSchema.virtual('readingTime').get(function() {
 const Post = mongoose.model('Post', postSchema);
 
 export default Post;
+
+

@@ -42,11 +42,11 @@ export const create = async (req, res, next) => {
     }
 };
 
-// GET POSTS
+// GET POSTS (UPDATED VERSION)
 export const getPosts = async (req, res, next) => {
     try {
-        const startIndex = parseInt(req.query.startIndex) || 0;
-        const limit = parseInt(req.query.limit) || 9;
+        const page = parseInt(req.query.page) || 1; // Get page from query
+        const limit = parseInt(req.query.limit) || 9; // Posts per page
         const sortDirection = req.query.order === 'asc' ? 1 : -1;
 
         const query = {
@@ -62,13 +62,17 @@ export const getPosts = async (req, res, next) => {
             }),
         };
 
+        const totalPosts = await Post.countDocuments(query);
+        const totalPages = Math.ceil(totalPosts / limit);
+        const skip = (page - 1) * limit;
+
         const posts = await Post.find(query)
             .sort({ updatedAt: sortDirection })
-            .skip(startIndex)
+            .skip(skip)
             .limit(limit)
             .populate({
                 path: 'userId',
-                select: 'username profilePicture' // Only select needed fields
+                select: 'username profilePicture'
             })
             .lean();
 
@@ -78,7 +82,6 @@ export const getPosts = async (req, res, next) => {
             authorProfile: post.userId?.profilePicture || null
         }));
 
-        const totalPosts = await Post.countDocuments(query);
         const lastMonthPosts = await Post.countDocuments({
             ...query,
             createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
@@ -87,9 +90,12 @@ export const getPosts = async (req, res, next) => {
         res.status(200).json({
             posts: formattedPosts,
             totalPosts,
+            totalPages,
+            currentPage: page,
             lastMonthPosts
         });
     } catch (error) {
+        console.error("Backend error in getPosts:", error);
         next(errorHandler(500, 'Failed to fetch posts'));
     }
 };
@@ -133,7 +139,6 @@ export const deletePost = async (req, res, next) => {
         }
 
         // Optional: Delete image from Cloudinary
-        // If your Post model saves the public_id from Cloudinary, you could do:
         // await cloudinary.uploader.destroy(post.imagePublicId);
 
         await Post.findByIdAndDelete(req.params.postId);
