@@ -1,3 +1,16 @@
+import React, { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
+import { Link } from "react-router-dom";
+import { Button, Table, Spinner } from "flowbite-react";
+import {
+  HiAnnotation,
+  HiArrowNarrowUp,
+  HiDocumentText,
+  HiOutlineUserGroup,
+  HiOutlineClipboardCheck,
+  HiAcademicCap,
+  HiCurrencyDollar
+} from "react-icons/hi";
 
 const SidebarComponent = ({ tab, setTab }) => {
   return (
@@ -16,19 +29,6 @@ const SidebarComponent = ({ tab, setTab }) => {
     </div>
   );
 };
-import React, { useEffect, useState } from "react";
-import { useSelector } from "react-redux";
-import { Link } from "react-router-dom";
-import { Button, Table, Spinner } from "flowbite-react";
-import {
-  HiAnnotation,
-  HiArrowNarrowUp,
-  HiDocumentText,
-  HiOutlineUserGroup,
-  HiOutlineClipboardCheck,
-  HiAcademicCap,
-  HiCurrencyDollar
-} from "react-icons/hi";
 
 export default function DashboardComponent() {
   const [users, setUsers] = useState([]);
@@ -85,7 +85,12 @@ export default function DashboardComponent() {
       try {
         setError(prev => ({...prev, users: null}));
         const { limit, page } = pagination.users;
-        const res = await fetch(`/api/user/getusers?limit=${limit}&page=${page}`);
+        const res = await fetch(`/api/user/getUsers?limit=${limit}&page=${page}`, {
+          credentials: 'include',
+          headers: {
+            'Authorization': `Bearer ${currentUser.token}`
+          }
+        });
         const data = await res.json();
         if (res.ok) {
           setUsers(data.users);
@@ -106,7 +111,12 @@ export default function DashboardComponent() {
       try {
         setError(prev => ({...prev, posts: null}));
         const { limit, page } = pagination.posts;
-        const res = await fetch(`/api/post/getPosts?limit=${limit}&page=${page}`);
+        const res = await fetch(`/api/post/getPosts?limit=${limit}&page=${page}`, {
+          credentials: 'include',
+          headers: {
+            'Authorization': `Bearer ${currentUser.token}`
+          }
+        });
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
         if (res.ok) {
@@ -126,7 +136,12 @@ export default function DashboardComponent() {
       try {
         setError(prev => ({...prev, comments: null}));
         const { limit, page } = pagination.comments;
-        const res = await fetch(`/api/comment/getcomments?limit=${limit}&page=${page}`);
+        const res = await fetch(`/api/comment/getComments?limit=${limit}&page=${page}`, {
+          credentials: 'include',
+          headers: {
+            'Authorization': `Bearer ${currentUser.token}`
+          }
+        });
         const data = await res.json();
         if (res.ok) {
           setComments(data.comments);
@@ -147,7 +162,12 @@ export default function DashboardComponent() {
       try {
         setError(prev => ({...prev, services: null}));
         const { limit, page } = pagination.services;
-        const res = await fetch(`/api/services?limit=${limit}&page=${page}`);
+        const res = await fetch(`/api/services?limit=${limit}&page=${page}`, {
+          credentials: 'include',
+          headers: {
+            'Authorization': `Bearer ${currentUser.token}`
+          }
+        });
         const data = await res.json();
         if (res.ok) {
           setServices(data.services);
@@ -168,7 +188,12 @@ export default function DashboardComponent() {
       try {
         setError(prev => ({...prev, courses: null}));
         const { limit, page } = pagination.courses;
-        const res = await fetch(`/api/courses?limit=${limit}&page=${page}`);
+        const res = await fetch(`/api/courses?limit=${limit}&page=${page}`, {
+          credentials: 'include',
+          headers: {
+            'Authorization': `Bearer ${currentUser.token}`
+          }
+        });
         const data = await res.json();
         if (res.ok) {
           setCourses(data.courses);
@@ -188,7 +213,12 @@ export default function DashboardComponent() {
     const fetchPaymentMetrics = async () => {
       try {
         setError(prev => ({...prev, metrics: null}));
-        const res = await fetch("/api/payments/metrics");
+        const res = await fetch("/api/user/payments/metrics", {
+          credentials: 'include',
+          headers: {
+            'Authorization': `Bearer ${currentUser.token}`
+          }
+        });
         const data = await res.json();
         if (res.ok) {
           setTotalRevenue(data.totalRevenue);

@@ -31,8 +31,11 @@ export default function Dashboard() {
     if (currentUser) {
       const fetchPurchasedCourses = async () => {
         try {
-          const res = await axios.get(`/api/users/${currentUser._id}/courses`, {
-            withCredentials: true
+          const res = await axios.get(`/api/user/${currentUser._id}/courses`, {
+            withCredentials: true,
+            headers: {
+              Authorization: `Bearer ${currentUser.token}`
+            }
           });
           setPurchasedCourses(res.data);
         } catch (err) {
@@ -51,21 +54,13 @@ export default function Dashboard() {
         <DashSidebar />
       </div>
       <div className="flex-1 p-4 md:p-8">
-        {/* profile... */}
         {tab === 'profile' && <DashProfile />}
-        {/* Posts Tab */}
         {tab === 'posts' && <DashPosts />}
-        {/* Users Tab */}
         {tab === 'users' && <DashUsers />}
-        {/* Comments Tab */}
         {tab === 'comments' && <DashComments />}
-        {/* Dashboard Component Tab */}
         {tab === 'dash' && <DashboardComponent />}
-        {/* Services Component Tab */}
         {tab === 'services' && <DashServices />}
-        {/* Courses Component Tab */}
         {tab === 'courses' && <DashCourses />}
-        {/* User Courses Tab */}
         {tab === 'user-courses' && <UserCourses purchasedCourses={purchasedCourses} loading={loading} />}
       </div>
     </div>
