@@ -5,6 +5,7 @@ import { app } from '../firebase';
 import { useDispatch } from 'react-redux';
 import { googleSignIn } from '../redux/user/userSlice';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 
 export default function OAuth() {
     const auth = getAuth(app);
@@ -16,33 +17,52 @@ export default function OAuth() {
         provider.setCustomParameters({ prompt: 'select_account' });
 
         try {
-            // Sign in with Google via Firebase
             const result = await signInWithPopup(auth, provider);
             const user = result.user;
 
-            if (!user?.email || !user?.displayName) {
-                throw new Error("Missing required Google user information");
+            if (!user?.email) {
+                throw new Error("Google account is missing an email address.");
             }
 
-            // Prepare user data for backend
             const userData = {
-                name: user.displayName,
                 email: user.email,
-                googlePhotoUrl: user.photoURL,
+                name: user.displayName || user.email.split('@')[0],
+                googlePhotoUrl: user.photoURL || '',
             };
 
-            // Dispatch the Google sign-in async thunk
-            const response = await dispatch(googleSignIn(userData));
-            
-            // Check if the sign-in was successful
-            if (googleSignIn.fulfilled.match(response)) {
+            const actionResult = await dispatch(googleSignIn(userData));
+
+            if (googleSignIn.fulfilled.match(actionResult)) {
+                toast.success('Google sign-in successful!');
                 navigate('/');
             } else {
-                throw new Error(response.error.message || 'Google authentication failed');
+                const backendError = actionResult.payload?.message || actionResult.error?.message;
+                throw new Error(backendError || 'Google sign-in failed');
             }
         } catch (error) {
             console.error('Google sign-in error:', error);
-            // Error is already handled by the async thunk
+
+            let errorMessage = 'Failed to sign in with Google';
+
+            if (typeof error === 'object' && error !== null) {
+                switch (error.code) {
+                    case 'auth/popup-closed-by-user':
+                        errorMessage = 'Sign-in popup was closed before completing the sign-in.';
+                        break;
+                    case 'auth/network-request-failed':
+                        errorMessage = 'Network error. Please check your connection and try again.';
+                        break;
+                    case 'auth/popup-blocked':
+                        errorMessage = 'Popup was blocked. Please enable popups and try again.';
+                        break;
+                    default:
+                        if (error.message) {
+                            errorMessage = error.message;
+                        }
+                }
+            }
+
+            toast.error(errorMessage);
         }
     };
 
@@ -53,6 +73,7 @@ export default function OAuth() {
             outline 
             onClick={handleGoogleClick}
             className="w-full"
+            aria-label="Continue with Google"
         >
             <AiFillGoogleCircle className="w-6 h-6 mr-2" />
             Continue with Google
