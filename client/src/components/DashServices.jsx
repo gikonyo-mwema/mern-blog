@@ -10,6 +10,41 @@ import {
 } from 'react-icons/hi';
 import { useSelector } from 'react-redux';
 import axios from 'axios';
+import PaymentModal from '../components/PaymentModal';
+
+const ServiceCard = ({ service, onPurchaseClick }) => {
+  return (
+    <div className="bg-white rounded-xl shadow-md overflow-hidden border border-teal-100 transition-all hover:shadow-lg">
+      <div className="p-6">
+        <div className="flex justify-center text-4xl mb-3">
+          {service.icon || '📋'}
+        </div>
+        <h3 className="text-xl font-bold text-teal-800 mb-3 text-center">
+          {service.title}
+        </h3>
+        <p className="text-gray-600 mb-4 text-center">
+          {service.description}
+        </p>
+        {service.price && (
+          <div className="text-center font-bold text-lg mb-4">
+            KES {service.price.toLocaleString()}
+          </div>
+        )}
+        <div className="mt-6 flex justify-center gap-2">
+          {service.price && (
+            <Button 
+              gradientDuoTone="purpleToBlue" 
+              size="sm"
+              onClick={() => onPurchaseClick(service)}
+            >
+              Test Purchase
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default function DashServices() {
   const { currentUser } = useSelector((state) => state.user);
@@ -28,6 +63,8 @@ export default function DashServices() {
     message: '',
     type: 'success'
   });
+  const [selectedService, setSelectedService] = useState(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -35,7 +72,8 @@ export default function DashServices() {
     category: 'assessments',
     features: [''],
     fullDescription: '',
-    icon: '📋'
+    icon: '📋',
+    price: 0
   });
 
   const categories = [
@@ -72,6 +110,15 @@ export default function DashServices() {
     }
   };
 
+  const handlePurchaseClick = (service) => {
+    setSelectedService(service);
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentSuccess = () => {
+    showAlert(`Payment successful for: ${selectedService.title}`);
+  };
+
   const handleEdit = (service) => {
     setCurrentService(service);
     setFormData({
@@ -80,7 +127,8 @@ export default function DashServices() {
       category: service.category,
       features: service.features,
       fullDescription: service.fullDescription,
-      icon: service.icon || '📋'
+      icon: service.icon || '📋',
+      price: service.price || 0
     });
     setEditMode(true);
     setShowModal(true);
@@ -200,7 +248,8 @@ export default function DashServices() {
               category: 'assessments',
               features: [''],
               fullDescription: '',
-              icon: '📋'
+              icon: '📋',
+              price: 0
             });
             setShowModal(true);
           }}
@@ -216,57 +265,76 @@ export default function DashServices() {
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500"></div>
         </div>
       ) : services.length > 0 ? (
-        <div className="overflow-x-auto">
-          <Table hoverable>
-            <Table.Head>
-              <Table.HeadCell>Icon</Table.HeadCell>
-              <Table.HeadCell>Title</Table.HeadCell>
-              <Table.HeadCell>Category</Table.HeadCell>
-              <Table.HeadCell>Actions</Table.HeadCell>
-            </Table.Head>
-            <Table.Body className="divide-y">
-              {services.map(service => (
-                <Table.Row key={service._id} className="bg-white dark:border-gray-700 dark:bg-gray-800">
-                  <Table.Cell className="text-2xl">
-                    {service.icon || '📋'}
-                  </Table.Cell>
-                  <Table.Cell className="whitespace-nowrap font-medium text-gray-900 dark:text-white">
-                    {service.title}
-                  </Table.Cell>
-                  <Table.Cell>
-                    <span className="bg-teal-100 text-teal-800 px-2 py-1 rounded text-xs">
-                      {service.category}
-                    </span>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <div className="flex gap-2">
-                      <Button 
-                        outline 
-                        gradientDuoTone="purpleToBlue" 
-                        size="xs"
-                        onClick={() => handleEdit(service)}
-                        disabled={loading.operation}
-                      >
-                        <HiOutlinePencilAlt className="mr-1" />
-                        Edit
-                      </Button>
-                      <Button 
-                        outline 
-                        gradientDuoTone="pinkToOrange" 
-                        size="xs"
-                        onClick={() => handleDelete(service._id)}
-                        disabled={loading.operation}
-                      >
-                        <HiOutlineTrash className="mr-1" />
-                        Delete
-                      </Button>
-                    </div>
-                  </Table.Cell>
-                </Table.Row>
+        <>
+          <div className="mb-8">
+            <h3 className="text-xl font-semibold mb-4">Services Preview</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              {services.slice(0, 3).map(service => (
+                <ServiceCard 
+                  key={service._id} 
+                  service={service} 
+                  onPurchaseClick={handlePurchaseClick}
+                />
               ))}
-            </Table.Body>
-          </Table>
-        </div>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <Table hoverable>
+              <Table.Head>
+                <Table.HeadCell>Icon</Table.HeadCell>
+                <Table.HeadCell>Title</Table.HeadCell>
+                <Table.HeadCell>Category</Table.HeadCell>
+                <Table.HeadCell>Price (KES)</Table.HeadCell>
+                <Table.HeadCell>Actions</Table.HeadCell>
+              </Table.Head>
+              <Table.Body className="divide-y">
+                {services.map(service => (
+                  <Table.Row key={service._id} className="bg-white dark:border-gray-700 dark:bg-gray-800">
+                    <Table.Cell className="text-2xl">
+                      {service.icon || '📋'}
+                    </Table.Cell>
+                    <Table.Cell className="whitespace-nowrap font-medium text-gray-900 dark:text-white">
+                      {service.title}
+                    </Table.Cell>
+                    <Table.Cell>
+                      <span className="bg-teal-100 text-teal-800 px-2 py-1 rounded text-xs">
+                        {service.category}
+                      </span>
+                    </Table.Cell>
+                    <Table.Cell>
+                      {service.price ? service.price.toLocaleString() : 'Free'}
+                    </Table.Cell>
+                    <Table.Cell>
+                      <div className="flex gap-2">
+                        <Button 
+                          outline 
+                          gradientDuoTone="purpleToBlue" 
+                          size="xs"
+                          onClick={() => handleEdit(service)}
+                          disabled={loading.operation}
+                        >
+                          <HiOutlinePencilAlt className="mr-1" />
+                          Edit
+                        </Button>
+                        <Button 
+                          outline 
+                          gradientDuoTone="pinkToOrange" 
+                          size="xs"
+                          onClick={() => handleDelete(service._id)}
+                          disabled={loading.operation}
+                        >
+                          <HiOutlineTrash className="mr-1" />
+                          Delete
+                        </Button>
+                      </div>
+                    </Table.Cell>
+                  </Table.Row>
+                ))}
+              </Table.Body>
+            </Table>
+          </div>
+        </>
       ) : (
         <div className="text-center py-12">
           <p className="text-gray-500">No services found. Create your first service.</p>
@@ -335,6 +403,17 @@ export default function DashServices() {
               <TextInput
                 id="icon"
                 value={formData.icon}
+                onChange={handleChange}
+                disabled={loading.operation}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="price" value="Price (KES)" />
+              <TextInput
+                id="price"
+                type="number"
+                value={formData.price}
                 onChange={handleChange}
                 disabled={loading.operation}
               />
@@ -422,6 +501,14 @@ export default function DashServices() {
           </div>
         </Modal.Body>
       </Modal>
+
+      {/* Payment Modal */}
+      <PaymentModal
+        showModal={showPaymentModal}
+        setShowModal={setShowPaymentModal}
+        service={selectedService}
+        onPaymentSuccess={handlePaymentSuccess}
+      />
     </div>
   );
 }
