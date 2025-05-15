@@ -10,15 +10,14 @@ export default function DashUsers() {
     const [users, setUsers] = useState([]);
     const [showMore, setShowMore] = useState(true);
     const [showModal, setShowModal] = useState(false);
-    const [userIdToDelete, setUserIdToDelete] = useState('');
-
+    const [userIdToDelete, setUserIdToDelete] = useState(''); 
     useEffect(() => {
         const fetchUsers = async () => {
             try {
                 console.log('Fetching users...'); // Debugging
                 const token = localStorage.getItem('token'); // Retrieve token from localStorage
                 console.log('Current user token:', token); // Debugging
-                const res = await fetch(`/api/user/getUsers`, {
+                const res = await fetch(`/api/users/getUsers`, {
                     headers: {
                         Authorization: `Bearer ${token}`, // Include the token
                     },
@@ -46,7 +45,7 @@ export default function DashUsers() {
         const startIndex = users.length;
         try {
             const token = localStorage.getItem('token'); // Retrieve token from localStorage
-            const res = await fetch(`/api/user/getUsers?startIndex=${startIndex}`, {
+            const res = await fetch(`/api/users/getUsers?startIndex=${startIndex}`, {
                 headers: {
                     Authorization: `Bearer ${token}`, // Include the token
                 },
@@ -66,7 +65,7 @@ export default function DashUsers() {
     const handleDeleteUsers = async () => {
         try {
             const token = localStorage.getItem('token'); // Retrieve token from localStorage
-            const res = await fetch(`/api/user/delete/${userIdToDelete}`, {
+            const res = await fetch(`/api/usersdelete/${userIdToDelete}`, {
                 method: 'DELETE',
                 headers: {
                     Authorization: `Bearer ${token}`, // Include the token

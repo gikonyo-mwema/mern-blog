@@ -15,7 +15,6 @@ import {
 const SidebarComponent = ({ tab, setTab }) => {
   return (
     <div className="flex flex-col p-3 border-r border-gray-200 h-full">
-      {/* ... existing tabs ... */}
       <button
         onClick={() => setTab('courses')}
         className={`p-3 text-left rounded-lg transition-colors ${
@@ -81,27 +80,48 @@ export default function DashboardComponent() {
   const { currentUser } = useSelector((state) => state.user);
 
   useEffect(() => {
+    const fetchData = async () => {
+      if (!currentUser?.isAdmin) return;
+
+      try {
+        await Promise.all([
+          fetchUsers(),
+          fetchPosts(),
+          fetchComments(),
+          fetchServices(),
+          fetchCourses(),
+          fetchPaymentMetrics()
+        ]);
+      } catch (error) {
+        console.error("Dashboard data fetch error:", error);
+      }
+    };
+
     const fetchUsers = async () => {
       try {
         setError(prev => ({...prev, users: null}));
+        setLoading(prev => ({...prev, users: true}));
+        
         const { limit, page } = pagination.users;
-        const res = await fetch(`/api/user/getUsers?limit=${limit}&page=${page}`, {
+        const res = await fetch(`/api/users?limit=${limit}&page=${page}`, {
           credentials: 'include',
           headers: {
             'Authorization': `Bearer ${currentUser.token}`
           }
         });
+        
         const data = await res.json();
-        if (res.ok) {
-          setUsers(data.users);
-          setTotalUsers(data.totalUsers);
-          setLastMonthUsers(data.lastMonthUsers);
-        } else {
+        
+        if (!res.ok) {
           throw new Error(data.message || 'Failed to fetch users');
         }
+
+        setUsers(data.users || []);
+        setTotalUsers(data.totalUsers || 0);
+        setLastMonthUsers(data.lastMonthUsers || 0);
       } catch (error) {
         setError(prev => ({...prev, users: error.message}));
-        console.error(error.message);
+        console.error("User fetch error:", error.message);
       } finally {
         setLoading(prev => ({...prev, users: false}));
       }
@@ -110,23 +130,28 @@ export default function DashboardComponent() {
     const fetchPosts = async () => {
       try {
         setError(prev => ({...prev, posts: null}));
+        setLoading(prev => ({...prev, posts: true}));
+        
         const { limit, page } = pagination.posts;
-        const res = await fetch(`/api/post/getPosts?limit=${limit}&page=${page}`, {
+        const res = await fetch(`/api/post?limit=${limit}&page=${page}`, {
           credentials: 'include',
           headers: {
             'Authorization': `Bearer ${currentUser.token}`
           }
         });
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        
         const data = await res.json();
-        if (res.ok) {
-          setPosts(data.posts);
-          setTotalPosts(data.totalPosts);
-          setLastMonthPosts(data.lastMonthPosts);
+        
+        if (!res.ok) {
+          throw new Error(data.message || 'Failed to fetch posts');
         }
+
+        setPosts(data.posts || []);
+        setTotalPosts(data.totalPosts || 0);
+        setLastMonthPosts(data.lastMonthPosts || 0);
       } catch (error) {
         setError(prev => ({...prev, posts: error.message}));
-        console.error("Error fetching posts:", error.message);
+        console.error("Post fetch error:", error.message);
       } finally {
         setLoading(prev => ({...prev, posts: false}));
       }
@@ -135,24 +160,28 @@ export default function DashboardComponent() {
     const fetchComments = async () => {
       try {
         setError(prev => ({...prev, comments: null}));
+        setLoading(prev => ({...prev, comments: true}));
+        
         const { limit, page } = pagination.comments;
-        const res = await fetch(`/api/comment/getComments?limit=${limit}&page=${page}`, {
+        const res = await fetch(`/api/comments?limit=${limit}&page=${page}`, {
           credentials: 'include',
           headers: {
             'Authorization': `Bearer ${currentUser.token}`
           }
         });
+        
         const data = await res.json();
-        if (res.ok) {
-          setComments(data.comments);
-          setTotalComments(data.totalComments);
-          setLastMonthComments(data.lastMonthComments);
-        } else {
+        
+        if (!res.ok) {
           throw new Error(data.message || 'Failed to fetch comments');
         }
+
+        setComments(data.comments || []);
+        setTotalComments(data.totalComments || 0);
+        setLastMonthComments(data.lastMonthComments || 0);
       } catch (error) {
         setError(prev => ({...prev, comments: error.message}));
-        console.error(error.message);
+        console.error("Comment fetch error:", error.message);
       } finally {
         setLoading(prev => ({...prev, comments: false}));
       }
@@ -161,6 +190,8 @@ export default function DashboardComponent() {
     const fetchServices = async () => {
       try {
         setError(prev => ({...prev, services: null}));
+        setLoading(prev => ({...prev, services: true}));
+        
         const { limit, page } = pagination.services;
         const res = await fetch(`/api/services?limit=${limit}&page=${page}`, {
           credentials: 'include',
@@ -168,17 +199,19 @@ export default function DashboardComponent() {
             'Authorization': `Bearer ${currentUser.token}`
           }
         });
+        
         const data = await res.json();
-        if (res.ok) {
-          setServices(data.services);
-          setTotalServices(data.totalServices);
-          setLastMonthServices(data.lastMonthServices);
-        } else {
+        
+        if (!res.ok) {
           throw new Error(data.message || 'Failed to fetch services');
         }
+
+        setServices(data.services || []);
+        setTotalServices(data.totalServices || 0);
+        setLastMonthServices(data.lastMonthServices || 0);
       } catch (error) {
         setError(prev => ({...prev, services: error.message}));
-        console.error("Error fetching services:", error.message);
+        console.error("Service fetch error:", error.message);
       } finally {
         setLoading(prev => ({...prev, services: false}));
       }
@@ -187,6 +220,8 @@ export default function DashboardComponent() {
     const fetchCourses = async () => {
       try {
         setError(prev => ({...prev, courses: null}));
+        setLoading(prev => ({...prev, courses: true}));
+        
         const { limit, page } = pagination.courses;
         const res = await fetch(`/api/courses?limit=${limit}&page=${page}`, {
           credentials: 'include',
@@ -194,17 +229,19 @@ export default function DashboardComponent() {
             'Authorization': `Bearer ${currentUser.token}`
           }
         });
+        
         const data = await res.json();
-        if (res.ok) {
-          setCourses(data.courses);
-          setTotalCourses(data.totalCourses);
-          setLastMonthCourses(data.lastMonthCourses);
-        } else {
+        
+        if (!res.ok) {
           throw new Error(data.message || 'Failed to fetch courses');
         }
+
+        setCourses(data.courses || []);
+        setTotalCourses(data.totalCourses || 0);
+        setLastMonthCourses(data.lastMonthCourses || 0);
       } catch (error) {
         setError(prev => ({...prev, courses: error.message}));
-        console.error("Error fetching courses:", error.message);
+        console.error("Course fetch error:", error.message);
       } finally {
         setLoading(prev => ({...prev, courses: false}));
       }
@@ -213,36 +250,33 @@ export default function DashboardComponent() {
     const fetchPaymentMetrics = async () => {
       try {
         setError(prev => ({...prev, metrics: null}));
-        const res = await fetch("/api/user/payments/metrics", {
+        setLoading(prev => ({...prev, metrics: true}));
+        
+        const res = await fetch("/api/users/payments/metrics", {
           credentials: 'include',
           headers: {
             'Authorization': `Bearer ${currentUser.token}`
           }
         });
+        
         const data = await res.json();
-        if (res.ok) {
-          setTotalRevenue(data.totalRevenue);
-          setLastMonthRevenue(data.lastMonthRevenue);
-          setPopularCourses(data.popularCourses);
-        } else {
+        
+        if (!res.ok) {
           throw new Error(data.message || 'Failed to fetch payment metrics');
         }
+
+        setTotalRevenue(data.totalRevenue || 0);
+        setLastMonthRevenue(data.lastMonthRevenue || 0);
+        setPopularCourses(data.popularCourses || []);
       } catch (error) {
         setError(prev => ({...prev, metrics: error.message}));
-        console.error("Error fetching payment metrics:", error.message);
+        console.error("Payment metrics fetch error:", error.message);
       } finally {
         setLoading(prev => ({...prev, metrics: false}));
       }
     };
 
-    if (currentUser?.isAdmin) {
-      fetchUsers();
-      fetchPosts();
-      fetchComments();
-      fetchServices();
-      fetchCourses();
-      fetchPaymentMetrics();
-    }
+    fetchData();
   }, [currentUser, pagination]);
 
   if (!currentUser?.isAdmin) {
