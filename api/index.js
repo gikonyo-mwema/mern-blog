@@ -1,143 +1,110 @@
 import express from 'express';
-import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import cookieParser from 'cookie-parser';
 import path from 'path';
-import { v2 as cloudinary } from 'cloudinary';
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
+import { fileURLToPath } from 'url';
 
+import connectDB from './config/db.js';
+import { configureCloudinary } from './config/cloudinary.js';
+import errorHandler from './middleware/errorHandler.js';
+import notFound from './middleware/notFound.js';
+
+// Route imports
 import userRoutes from './routes/user.route.js';
 import authRoutes from './routes/auth.route.js';
 import postRoutes from './routes/post.route.js';
 import commentRoutes from './routes/comment.route.js';
-import uploadRouter from './utils/upload.js';
+import courseRoutes from './routes/course.route.js';
 import serviceRoutes from './routes/service.route.js';
-
-import { fileURLToPath } from 'url';
+import uploadRouter from './utils/upload.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 dotenv.config({ path: path.resolve(__dirname, '.env') });
-console.log('✅ Loaded .env from:', path.resolve(__dirname, '.env'));
 
 const app = express();
 
-// === 1. Database Connection ===
-const connectDB = async () => {
-  try {
-    await mongoose.connect(process.env.MONGODB_URI, {
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000
-    });
-    console.log('✅ MongoDB connected');
-  } catch (err) {
-    console.error('❌ MongoDB error:', err);
-    process.exit(1);
-  }
+// Enhanced CORS configuration
+const corsOptions = {
+  origin: [
+    'http://localhost:5173', 
+    'https://ecodeed-blog.firebaseapp.com',
+    process.env.FRONTEND_URL
+  ].filter(Boolean),
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization',
+    'X-Requested-With',
+    'Accept'
+  ],
+  exposedHeaders: ['Authorization']
 };
 
-// === 2. Cloudinary Configuration ===
-const configureCloudinary = () => {
-  const required = ['CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'];
-  const missing = required.filter((key) => !process.env[key]);
+app.use(cors(corsOptions));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
-  if (missing.length) {
-    console.error('❌ Missing Cloudinary config:', missing.join(', '));
-    process.exit(1);
-  }
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);  // Changed from '/api/user' for REST consistency
+app.use('/api/post', postRoutes);
+app.use('/api/comments', commentRoutes);
+app.use('/api/courses', courseRoutes);  // Changed from '/api/course'
+app.use('/api/services', serviceRoutes); // Changed from '/api/service'
+app.use('/api/upload', uploadRouter);
 
-  cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
-    secure: true
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
   });
+});
 
-  console.log('✅ Cloudinary configured');
-};
-
-// === 3. Middleware Setup ===
-const setupMiddleware = () => {
-  app.use(cors({
-    origin: ['http://localhost:5173', 'https://ecodeed-blog.firebaseapp.com'], // Frontend URL
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-  }));
-
-  app.use(express.json({ limit: '10mb' }));
-  app.use(express.urlencoded({ extended: true }));
-  app.use(cookieParser());
-
-  // Static frontend files (for production)
-  app.use(express.static(path.join(__dirname, 'client', 'dist')));
-};
-
-// === 4. Route Setup ===
-const setupRoutes = () => {
-  app.use('/api/upload', uploadRouter);
-  app.use('/api/user', userRoutes);
-  app.use('/api/auth', authRoutes);
-  app.use('/api/post', postRoutes);
-  app.use('/api/comment', commentRoutes);
-  app.use('/api/services', serviceRoutes);
-
-  // Catch-all for SPA routing
+// Production setup
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../client/dist')));
+  
+  // Handle client-side routing
   app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client', 'dist', 'index.html'));
+    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
   });
-};
+}
 
-// === 5. Error Handling ===
-const setupErrorHandling = () => {
-  app.use((err, req, res, next) => {
-    console.error('[ERROR]', err.stack || err.message);
+// Error handling middleware
+app.use(notFound);
+app.use(errorHandler);
 
-    res.status(err.statusCode || 500).json({
-      success: false,
-      statusCode: err.statusCode || 500,
-      message: process.env.NODE_ENV === 'production'
-        ? 'Something went wrong'
-        : err.message,
-      ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
-    });
-  });
-};
-
-// === 6. Server Initialization ===
-const startServer = () => {
-  const PORT = process.env.PORT || 3000;
-  const server = app.listen(PORT, () => {
-    console.log(`🚀 Server running: http://localhost:${PORT}`);
-    console.log(`🛠️  Mode: ${process.env.NODE_ENV || 'development'}`);
-  });
-
-  const shutdown = (signal) => {
-    console.log(`⚠️  ${signal} received. Closing server...`);
-    server.close(async () => {
-      await mongoose.connection.close();
-      console.log('🛑 Server and DB closed');
-      process.exit(0);
-    });
-  };
-
-  process.on('SIGINT', shutdown);
-  process.on('SIGTERM', shutdown);
-};
-
-// === 7. Run Everything ===
-(async () => {
+const startServer = async () => {
   try {
     await connectDB();
     configureCloudinary();
-    setupMiddleware();
-    setupRoutes();
-    setupErrorHandling();
-    startServer();
-  } catch (err) {
-    console.error('❌ App startup failed:', err);
+    
+    const PORT = process.env.PORT || 3000;
+    const server = app.listen(PORT, () => {
+      console.log(`🚀 Server running in ${process.env.NODE_ENV || 'development'} mode`);
+      console.log(`📡 Listening on http://localhost:${PORT}`);
+    });
+
+    // Handle server shutdown gracefully
+    process.on('SIGTERM', () => {
+      console.log('🛑 SIGTERM received. Shutting down gracefully...');
+      server.close(() => {
+        console.log('💤 Server terminated');
+        process.exit(0);
+      });
+    });
+
+  } catch (error) {
+    console.error('❌ Server startup error:', error);
     process.exit(1);
   }
-})();
+};
 
+startServer();
