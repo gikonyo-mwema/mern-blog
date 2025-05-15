@@ -10,26 +10,40 @@ import { Button } from 'flowbite-react';
 
 export default function AboutUs() {
   const stats = [
-    { value: '15+', label: 'Years Experience', icon: <HiOutlineChartSquareBar className="w-6 h-6" /> },
-    { value: '200+', label: 'Projects Completed', icon: <HiOutlineGlobe className="w-6 h-6" /> },
-    { value: '50+', label: 'Clients Worldwide', icon: <HiOutlineUsers className="w-6 h-6" /> },
-    { value: '100%', label: 'Compliance Rate', icon: <HiOutlineHand className="w-6 h-6" /> },
+    { value: '5+', label: 'Years Experience', icon: <HiOutlineChartSquareBar className="w-6 h-6" /> },
+    { value: '40+', label: 'Projects Completed', icon: <HiOutlineGlobe className="w-6 h-6" /> },
+    { value: '20+', label: 'Clients Served', icon: <HiOutlineUsers className="w-6 h-6" /> },
+    { value: '100%', label: 'NEMA Compliance', icon: <HiOutlineHand className="w-6 h-6" /> },
   ];
 
   const team = [
     {
-      name: 'Dr. Sarah Johnson',
-      role: 'Founder & CEO',
-      expertise: 'Environmental Policy',
-      bio: 'PhD in Environmental Science with 20 years of industry experience.'
+      name: 'Miriam Mukami Mwema',
+      role: 'Lead Consultant',
+      expertise: 'Environmental Safeguards & Sustainability',
+      bio: 'NEMA-certified expert with 5+ years in ESIAs, audits, and occupational health & safety across mining, healthcare, and infrastructure sectors.',
+      qualifications: [
+        'BSc Environmental Science (Maseno University)',
+        'NEMA Registered Expert (Reg. No. 10568)',
+        'Member, Environment Institute of Kenya'
+      ],
+      notableProjects: [
+        'Nyeri County Government environmental audits',
+        'Mining EIAs (Valencia Mining, Zheng Wei Technical)',
+        'Infrastructure projects (Sino Hydro, STECOL)'
+      ]
     },
     {
-      name: 'Michael Chen',
-      role: 'Lead Consultant',
-      expertise: 'Sustainability Audits',
-      bio: 'Specialized in circular economy implementations across manufacturing sectors.'
-    },
-    // Add more team members...
+      name: 'Ecodeed Technical Team',
+      role: 'Environmental Specialists',
+      expertise: 'Impact Assessments & Compliance',
+      bio: 'Multidisciplinary team specializing in environmental planning, social safeguards, and natural resource management.',
+      qualifications: [
+        'NEMA-accredited professionals',
+        'Field experience across Kenya',
+        'Community engagement specialists'
+      ]
+    }
   ];
 
   return (
@@ -37,9 +51,9 @@ export default function AboutUs() {
       <div className="max-w-7xl mx-auto">
         {/* Hero Section */}
         <div className="text-center mb-16">
-          <h1 className="text-4xl font-bold text-teal-700 mb-4">About Our Environmental Consultancy</h1>
+          <h1 className="text-4xl font-bold text-teal-700 mb-4">About Ecodeed Consultancy</h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Pioneering sustainable solutions through science, innovation, and decades of expertise.
+            Kenyan-based experts in environmental safeguards, sustainability, and regulatory compliance.
           </p>
         </div>
 
@@ -47,24 +61,24 @@ export default function AboutUs() {
         <div className="bg-white rounded-xl shadow-md p-8 mb-12 border border-teal-100">
           <div className="flex flex-col md:flex-row gap-8">
             <div className="md:w-1/2">
-              <h2 className="text-3xl font-bold text-teal-800 mb-4">Our Story</h2>
+              <h2 className="text-3xl font-bold text-teal-800 mb-4">Our Foundation</h2>
               <p className="text-gray-600 mb-4">
-                Founded in 2008, our consultancy began as a small team of environmental scientists passionate about making a tangible difference. 
+                Ecodeed Consultancy Company Ltd. was established to deliver science-based environmental solutions that meet Kenya's regulatory standards while promoting sustainable development.
               </p>
               <p className="text-gray-600 mb-4">
-                Today, we've grown into a global leader in environmental solutions, helping organizations across industries navigate complex sustainability challenges while maintaining operational excellence.
+                With our NEMA-certified leadership, we've successfully guided 40+ projects through environmental compliance processes across diverse sectors including mining, healthcare, and infrastructure.
               </p>
               <Button 
                 gradientDuoTone="tealToLime"
                 className="w-full md:w-auto"
-                onClick={() => {/* Add history modal */}}
+                onClick={() => {/* Add portfolio modal */}}
               >
-                Our Journey Timeline
+                View Our Project Portfolio
               </Button>
             </div>
             <div className="md:w-1/2 bg-gray-100 rounded-lg flex items-center justify-center">
               <HiOutlineOfficeBuilding className="w-32 h-32 text-teal-600 opacity-30" />
-              {/* Replace with actual image */}
+              {/* Replace with actual company image */}
             </div>
           </div>
         </div>
@@ -84,27 +98,27 @@ export default function AboutUs() {
 
         {/* Mission & Values */}
         <div className="mb-12">
-          <h2 className="text-3xl font-bold text-teal-800 mb-8 text-center">Our Mission & Values</h2>
+          <h2 className="text-3xl font-bold text-teal-800 mb-8 text-center">Our Approach</h2>
           <div className="grid md:grid-cols-3 gap-6">
             <div className="bg-white p-6 rounded-xl shadow-sm border border-teal-100">
               <h3 className="text-xl font-semibold text-teal-700 mb-3">Mission</h3>
               <p className="text-gray-600">
-                To empower organizations with science-based environmental strategies that drive sustainable growth while protecting our planet.
+                To deliver precise environmental safeguards that align projects with Kenya's sustainability goals while ensuring regulatory compliance.
               </p>
             </div>
             <div className="bg-white p-6 rounded-xl shadow-sm border border-teal-100">
               <h3 className="text-xl font-semibold text-teal-700 mb-3">Vision</h3>
               <p className="text-gray-600">
-                A world where economic development and environmental stewardship work in harmony for future generations.
+                A Kenya where development progresses hand-in-hand with environmental protection and community well-being.
               </p>
             </div>
             <div className="bg-white p-6 rounded-xl shadow-sm border border-teal-100">
               <h3 className="text-xl font-semibold text-teal-700 mb-3">Core Values</h3>
               <ul className="list-disc pl-5 space-y-1 text-gray-600">
-                <li>Scientific Integrity</li>
-                <li>Sustainable Innovation</li>
-                <li>Client Partnership</li>
-                <li>Environmental Justice</li>
+                <li>Regulatory Excellence</li>
+                <li>Scientific Rigor</li>
+                <li>Community-Centric Solutions</li>
+                <li>Practical Sustainability</li>
               </ul>
             </div>
           </div>
@@ -112,19 +126,41 @@ export default function AboutUs() {
 
         {/* Team Section */}
         <div className="mb-12">
-          <h2 className="text-3xl font-bold text-teal-800 mb-8 text-center">Meet Our Leadership</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <h2 className="text-3xl font-bold text-teal-800 mb-8 text-center">Meet Our Experts</h2>
+          <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-6">
             {team.map((member, index) => (
               <div key={index} className="bg-white rounded-xl shadow-md overflow-hidden border border-teal-100">
                 <div className="p-6">
                   <div className="w-20 h-20 bg-teal-100 rounded-full flex items-center justify-center text-teal-600 mb-4 mx-auto">
                     <HiOutlineUsers className="w-10 h-10" />
-                    {/* Replace with actual avatar */}
+                    {/* Replace with team avatars */}
                   </div>
                   <h3 className="text-xl font-bold text-teal-800 text-center">{member.name}</h3>
                   <p className="text-teal-600 text-center mb-2">{member.role}</p>
                   <p className="text-sm font-semibold text-gray-500 text-center mb-3">{member.expertise}</p>
-                  <p className="text-gray-600 text-center">{member.bio}</p>
+                  <p className="text-gray-600 text-center mb-4">{member.bio}</p>
+                  
+                  {member.qualifications && (
+                    <div className="mb-3">
+                      <h4 className="font-medium text-teal-700 mb-1">Qualifications:</h4>
+                      <ul className="text-sm text-gray-600 space-y-1">
+                        {member.qualifications.map((item, i) => (
+                          <li key={i}>• {item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {member.notableProjects && (
+                    <div>
+                      <h4 className="font-medium text-teal-700 mb-1">Notable Projects:</h4>
+                      <ul className="text-sm text-gray-600 space-y-1">
+                        {member.notableProjects.map((project, i) => (
+                          <li key={i}>• {project}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -133,17 +169,17 @@ export default function AboutUs() {
 
         {/* CTA Section */}
         <div className="bg-teal-700 rounded-xl p-8 text-center text-white">
-          <h2 className="text-2xl font-bold mb-4">Want to Join Our Mission?</h2>
+          <h2 className="text-2xl font-bold mb-4">Need Environmental Compliance Support?</h2>
           <p className="mb-6 max-w-2xl mx-auto">
-            We're always looking for passionate environmental professionals to join our growing team.
+            Our team is ready to guide your project through NEMA requirements with precision and efficiency.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Button 
               gradientDuoTone="tealToLime"
               size="lg"
-              onClick={() => {/* Add careers link */}}
+              onClick={() => {/* Add services link */}}
             >
-              View Open Positions
+              Our Services
             </Button>
             <Button 
               outline
@@ -151,7 +187,7 @@ export default function AboutUs() {
               size="lg"
               onClick={() => {/* Add contact link */}}
             >
-              Contact Our Team
+              Contact Miriam Directly
             </Button>
           </div>
         </div>
