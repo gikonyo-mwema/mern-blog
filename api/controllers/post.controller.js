@@ -74,7 +74,7 @@ export const getPosts = async (req, res, next) => {
                 path: 'userId',
                 select: 'username profilePicture'
             })
-            .lean();
+            .lean(); 
 
         const formattedPosts = posts.map(post => ({
             ...post,

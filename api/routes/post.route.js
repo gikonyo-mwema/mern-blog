@@ -5,22 +5,46 @@ import {
     deletePost, 
     getPosts, 
     updatePost, 
-    getTrendingPosts
+    getTrendingPosts 
 } from '../controllers/post.controller.js';
+import Post from '../models/post.model.js'; // ✅ Import Post model
 
 const router = express.Router();
 
 // Post-related routes
-router.post('/create', verifyToken, create);  // Create new post (image URL in body)
+router.post('/create', verifyToken, create);  // Create new post
 router.get('/getPosts', getPosts);  // Fetch all posts
 router.get('/posts/trending', getTrendingPosts); // Get trending posts
 router.delete('/deletePost/:postId/:userId', verifyToken, deletePost);  // Delete post
 router.put('/updatePost/:postId/:userId', verifyToken, updatePost);  // Update post
 
-// Optional: If you want to keep separate image upload endpoint
-// router.post('/upload-image', verifyToken, upload.single('image'), (req, res) => {
-//   res.json({ url: req.file.path }); // This would be handled by your upload middleware
-// });
+// Pagination endpoint
+router.get('/', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 5;
+    const page = parseInt(req.query.page) || 1;
+    const skip = (page - 1) * limit;
+
+    const [posts, totalPosts] = await Promise.all([
+      Post.find().skip(skip).limit(limit),
+      Post.countDocuments()
+    ]);
+
+    const lastMonth = new Date();
+    lastMonth.setMonth(lastMonth.getMonth() - 1);
+    const lastMonthPosts = await Post.countDocuments({
+      createdAt: { $gte: lastMonth }
+    });
+
+    res.status(200).json({
+      posts,
+      totalPosts,
+      lastMonthPosts
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 
 export default router;
 

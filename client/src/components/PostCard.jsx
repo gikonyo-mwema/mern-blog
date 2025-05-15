@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FiEye } from 'react-icons/fi';
-import { getDefaultImageUrl } from '../utils/cloudinary';
+import { getDefaultImageUrl } from "../utils/cloudinary";
 
 const defaultProfilePic = 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png';
 
