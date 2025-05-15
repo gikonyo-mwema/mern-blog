@@ -36,23 +36,24 @@ export const signIn = createAsyncThunk(
     }
 );
 
-// ✅ Only one definition of googleSignIn (with proper headers)
 export const googleSignIn = createAsyncThunk(
     'user/googleSignin',
     async (userData, { rejectWithValue }) => {
-        try {
-            const res = await axios.post('/auth/google', userData, {
-                withCredentials: true,
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            });
-            return res.data;
-        } catch (error) {
-            return rejectWithValue(error.response?.data || error.message);
-        }
+      try {
+        const res = await axios.post(
+          'http://localhost:3000/api/auth/google', // Add full URL
+          userData,
+          {
+            withCredentials: true,
+            headers: { 'Content-Type': 'application/json' }
+          }
+        );
+        return res.data;
+      } catch (error) {
+        return rejectWithValue(error.response?.data || error.message);
+      }
     }
-);
+  );
 
 // Create slice
 const userSlice = createSlice({
