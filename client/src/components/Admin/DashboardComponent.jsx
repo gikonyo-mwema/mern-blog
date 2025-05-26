@@ -124,9 +124,9 @@ export default function DashboardComponent() {
 
   return (
     <div className="p-3 md:mx-auto">
-      <DashboardMetrics 
-        totals={metrics.totals} 
-        lastMonth={metrics.lastMonth} 
+    <DashboardMetrics 
+  //      totals={metrics.totals} 
+  //    lastMonth={metrics.lastMonth} 
       />
       <DashboardTables 
         data={metrics} 

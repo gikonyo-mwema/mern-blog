@@ -1,3 +1,58 @@
+2. Admin Dashboard Enhancements
+
+Files to Modify:
+
+    Admin/Courses/CourseForm.jsx:
+
+        Add file upload for course thumbnail
+
+        Add rich text editor for description
+
+        Add module management section
+
+    Admin/Courses/DashCourses.jsx:
+
+        Add enrollment statistics column
+
+        Add filter/sort functionality
+
+    New Components Needed:
+
+        ModuleForm.jsx - For adding videos/PDFs
+
+        EnrollmentTable.jsx - Shows user payments
+
+3. User Side Improvements
+
+Files to Modify:
+
+    pages/Courses.jsx:
+
+        Add locked/unlocked state based on enrollment
+
+        Add course progress tracking
+
+        Better course categorization
+
+    New Components Needed:
+
+        CoursePlayer.jsx - For video/content display
+
+        CourseProgress.jsx - Track completion
+
+4. Payment Flow
+
+Improve PaymentModal.jsx:
+
+    Add MPesa integration options
+
+    Handle payment verification
+
+    Success/failure states
+
+
+
+
 📚 COURSE MANAGEMENT
 
 
@@ -24,7 +79,7 @@ B. User Side
 
     On frontend (React):
 
-        Courses page lists all 3 courses
+        Courses page lists all  courses
 
         "Enroll" button triggers payment
 
