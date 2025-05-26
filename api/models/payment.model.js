@@ -7,10 +7,14 @@ const paymentSchema = new mongoose.Schema(
       ref: 'User',
       required: true
     },
-    course: {
+    itemId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Course',
       required: true
+    },
+    itemType: {
+      type: String,
+      required: true,
+      enum: ['course', 'service'] // Add other types as needed
     },
     amount: {
       type: Number,
@@ -18,67 +22,32 @@ const paymentSchema = new mongoose.Schema(
     },
     paymentMethod: {
       type: String,
-      enum: ['mpesa', 'card'],
-      required: true
+      required: true,
+      enum: ['pesapal', 'flutterwave']
     },
-    phoneNumber: {
+    reference: {
       type: String,
-      required: function() {
-        return this.paymentMethod === 'mpesa';
-      }
+      required: true,
+      unique: true
     },
-    cardDetails: {
-      number: String,
-      expiry: String,
-      cvv: String,
-      name: String
+    transactionId: {
+      type: String
     },
     status: {
       type: String,
+      required: true,
       enum: ['pending', 'completed', 'failed'],
       default: 'pending'
     },
-    transactionReference: {
-      type: String,
-      unique: true
-    },
-    mpesaCode: String // For M-Pesa transactions
+    paymentDetails: {
+      type: Object,
+      default: {}
+    }
   },
   { timestamps: true }
 );
 
-// Add indexes for better query performance
-paymentSchema.index({ user: 1 });
-paymentSchema.index({ course: 1 });
-paymentSchema.index({ status: 1 });
-paymentSchema.index({ createdAt: 1 });
+paymentSchema.index({ user: 1, itemId: 1 });
+paymentSchema.index({ reference: 1 }, { unique: true });
 
-// Static method for payment metrics
-paymentSchema.statics.getPaymentMetrics = async function() {
-  const totalRevenue = await this.aggregate([
-    { $match: { status: 'completed' } },
-    { $group: { _id: null, total: { $sum: '$amount' } } }
-  ]);
-
-  const lastMonth = new Date();
-  lastMonth.setMonth(lastMonth.getMonth() - 1);
-  
-  const lastMonthRevenue = await this.aggregate([
-    { 
-      $match: { 
-        status: 'completed',
-        createdAt: { $gte: lastMonth } 
-      } 
-    },
-    { $group: { _id: null, total: { $sum: '$amount' } } }
-  ]);
-
-  return {
-    totalRevenue: totalRevenue[0]?.total || 0,
-    lastMonthRevenue: lastMonthRevenue[0]?.total || 0
-  };
-};
-
-const Payment = mongoose.model('Payment', paymentSchema);
-
-export default Payment;
+export default mongoose.model('Payment', paymentSchema);
