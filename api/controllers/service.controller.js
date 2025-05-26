@@ -2,12 +2,52 @@ import Service from '../models/service.model.js';
 
 export const createService = async (req, res, next) => {
   try {
-    const { title, description, category, price, image } = req.body;
-    
-    if (!title || !description || !category || !price) {
-      return res.status(400).json({ 
+    const { 
+      title, 
+      description, 
+      category, 
+      price, 
+      fullDescription, 
+      features, 
+      icon 
+    } = req.body;
+
+    // Validate required fields
+    const requiredFields = {
+      title: 'Title',
+      description: 'Description',
+      category: 'Category',
+      price: 'Price',
+      fullDescription: 'Full description',
+      features: 'Features'
+    };
+
+    const missingFields = Object.entries(requiredFields)
+      .filter(([key]) => !req.body[key])
+      .map(([_, value]) => value);
+
+    if (missingFields.length > 0) {
+      return res.status(400).json({
         success: false,
-        message: 'Missing required fields' 
+        message: `Missing required fields: ${missingFields.join(', ')}`,
+        missingFields
+      });
+    }
+
+    // Validate price is a number
+    if (isNaN(price)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Price must be a valid number'
+      });
+    }
+
+    // Validate features is an array with at least one non-empty string
+    if (!Array.isArray(features) || features.length === 0 || 
+        features.some(f => typeof f !== 'string' || f.trim() === '')) {
+      return res.status(400).json({
+        success: false,
+        message: 'Features must be an array with at least one valid string'
       });
     }
 
@@ -15,8 +55,10 @@ export const createService = async (req, res, next) => {
       title,
       description,
       category,
-      price,
-      image: image || '',
+      price: Number(price),
+      fullDescription,
+      features: features.map(f => f.trim()).filter(f => f !== ''),
+      icon: icon || '📋',
       createdBy: req.user.id
     });
 
@@ -28,6 +70,13 @@ export const createService = async (req, res, next) => {
     });
 
   } catch (error) {
+    // Handle duplicate key error (unique title)
+    if (error.code === 11000 && error.keyPattern?.title) {
+      return res.status(400).json({
+        success: false,
+        message: 'Service with this title already exists'
+      });
+    }
     next(error);
   }
 };
@@ -43,7 +92,19 @@ export const getServices = async (req, res, next) => {
       search
     } = req.query;
 
-    const skip = (page - 1) * limit;
+    // Validate pagination parameters
+    const parsedLimit = parseInt(limit);
+    const parsedPage = parseInt(page);
+    
+    if (isNaN(parsedLimit) || parsedLimit < 1 || 
+        isNaN(parsedPage) || parsedPage < 1) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid pagination parameters'
+      });
+    }
+
+    const skip = (parsedPage - 1) * parsedLimit;
     const sortOption = { [sort]: order === 'desc' ? -1 : 1 };
 
     // Build query
@@ -56,7 +117,8 @@ export const getServices = async (req, res, next) => {
     if (search) {
       query.$or = [
         { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
+        { description: { $regex: search, $options: 'i' } },
+        { fullDescription: { $regex: search, $options: 'i' } }
       ];
     }
 
@@ -64,7 +126,7 @@ export const getServices = async (req, res, next) => {
       Service.find(query)
         .sort(sortOption)
         .skip(skip)
-        .limit(parseInt(limit))
+        .limit(parsedLimit)
         .lean(),
       Service.countDocuments(query)
     ]);
@@ -82,9 +144,9 @@ export const getServices = async (req, res, next) => {
       services,
       pagination: {
         total: totalServices,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        pages: Math.ceil(totalServices / limit),
+        page: parsedPage,
+        limit: parsedLimit,
+        pages: Math.ceil(totalServices / parsedLimit),
         lastMonth: lastMonthServices
       }
     });
@@ -111,6 +173,12 @@ export const getService = async (req, res, next) => {
     });
 
   } catch (error) {
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid service ID format'
+      });
+    }
     next(error);
   }
 };
@@ -120,7 +188,7 @@ export const updateService = async (req, res, next) => {
     const { id } = req.params;
     const updates = req.body;
 
-    // Verify service exists and user has permission
+    // Verify service exists
     const existingService = await Service.findById(id);
     if (!existingService) {
       return res.status(404).json({
@@ -129,7 +197,7 @@ export const updateService = async (req, res, next) => {
       });
     }
 
-    // Check if user is admin or the creator
+    // Check authorization
     if (!req.user.isAdmin && existingService.createdBy.toString() !== req.user.id) {
       return res.status(403).json({
         success: false,
@@ -137,9 +205,32 @@ export const updateService = async (req, res, next) => {
       });
     }
 
+    // Validate updates if they exist
+    if (updates.price && isNaN(updates.price)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Price must be a valid number'
+      });
+    }
+
+    if (updates.features && 
+        (!Array.isArray(updates.features) || updates.features.length === 0 ||
+        updates.features.some(f => typeof f !== 'string' || f.trim() === ''))) {
+      return res.status(400).json({
+        success: false,
+        message: 'Features must be an array with at least one valid string'
+      });
+    }
+
     const updatedService = await Service.findByIdAndUpdate(
       id,
-      updates,
+      {
+        ...updates,
+        ...(updates.price && { price: Number(updates.price) }),
+        ...(updates.features && { 
+          features: updates.features.map(f => f.trim()).filter(f => f !== '') 
+        })
+      },
       { 
         new: true,
         runValidators: true,
@@ -153,6 +244,12 @@ export const updateService = async (req, res, next) => {
     });
 
   } catch (error) {
+    if (error.code === 11000 && error.keyPattern?.title) {
+      return res.status(400).json({
+        success: false,
+        message: 'Service with this title already exists'
+      });
+    }
     next(error);
   }
 };
@@ -161,7 +258,7 @@ export const deleteService = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    // Verify service exists and user has permission
+    // Verify service exists
     const service = await Service.findById(id);
     if (!service) {
       return res.status(404).json({
@@ -170,7 +267,7 @@ export const deleteService = async (req, res, next) => {
       });
     }
 
-    // Check if user is admin or the creator
+    // Check authorization
     if (!req.user.isAdmin && service.createdBy.toString() !== req.user.id) {
       return res.status(403).json({
         success: false,
@@ -186,6 +283,12 @@ export const deleteService = async (req, res, next) => {
     });
 
   } catch (error) {
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid service ID format'
+      });
+    }
     next(error);
   }
 };
