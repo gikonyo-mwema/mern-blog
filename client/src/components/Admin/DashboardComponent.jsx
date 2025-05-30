@@ -1,27 +1,32 @@
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
-import DashboardMetrics from "./DashMetrics";
 import DashboardTables from "./DashTables";
+import { toast } from "react-toastify";
+import { useNavigate } from "react-router-dom";
 
 export default function DashboardComponent() {
-  const [metrics, setMetrics] = useState({
-    users: [], comments: [], posts: [], services: [], courses: [], popularCourses: [],
-    totals: {
-      users: 0, posts: 0, comments: 0, services: 0, courses: 0, revenue: 0
-    },
-    lastMonth: {
-      users: 0, posts: 0, comments: 0, services: 0, courses: 0, revenue: 0
-    }
+  const [data, setData] = useState({
+    users: [], 
+    comments: [], 
+    posts: [], 
+    services: [], 
+    courses: []
   });
   
   const [loading, setLoading] = useState({
-    users: true, posts: true, comments: true, 
-    services: true, courses: true, metrics: true
+    users: true, 
+    posts: true, 
+    comments: true, 
+    services: true, 
+    courses: true
   });
 
   const [error, setError] = useState({
-    users: null, posts: null, comments: null, 
-    services: null, courses: null, metrics: null
+    users: null, 
+    posts: null, 
+    comments: null, 
+    services: null, 
+    courses: null
   });
 
   const [pagination, setPagination] = useState({
@@ -33,6 +38,7 @@ export default function DashboardComponent() {
   });
 
   const { currentUser } = useSelector((state) => state.user);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!currentUser?.isAdmin) return;
@@ -42,12 +48,11 @@ export default function DashboardComponent() {
   const fetchDashboardData = async () => {
     try {
       await Promise.all([
-        fetchData('users', '/api/users'),
+        fetchData('users', '/api/user/getUsers'),
         fetchData('posts', '/api/post'),
-        fetchData('comments', '/api/comments'),
+        fetchData('comments', '/api/comment/getComments'), // Updated endpoint
         fetchData('services', '/api/services'),
-        fetchData('courses', '/api/courses'),
-        fetchMetrics()
+        fetchData('courses', '/api/courses')
       ]);
     } catch (error) {
       console.error("Dashboard data fetch error:", error);
@@ -61,54 +66,52 @@ export default function DashboardComponent() {
       
       const { limit, page } = pagination[type];
       const res = await fetch(`${endpoint}?limit=${limit}&page=${page}`, {
-        credentials: 'include',
-        headers: { 'Authorization': `Bearer ${currentUser.token}` }
+        method: 'GET',
+        credentials: 'include'
       });
       
-      const data = await res.json();
+      if (res.status === 401) {
+        handleSessionExpired();
+        return;
+      }
       
-      if (!res.ok) throw new Error(data.message || `Failed to fetch ${type}`);
+      const response = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(response.message || `Failed to fetch ${type}`);
+      }
 
-      setMetrics(prev => ({
+      const responseData = response[type] || response.users || response.posts || 
+                         response.comments || response.services || response.courses || 
+                         response.data || [];
+
+      setData(prev => ({
         ...prev,
-        [type]: data[type] || [],
-        totals: { ...prev.totals, [type]: data[`total${type.charAt(0).toUpperCase() + type.slice(1)}`] || 0 },
-        lastMonth: { ...prev.lastMonth, [type]: data[`lastMonth${type.charAt(0).toUpperCase() + type.slice(1)}`] || 0 }
+        [type]: Array.isArray(responseData) ? responseData : []
       }));
     } catch (error) {
-      setError(prev => ({...prev, [type]: error.message}));
+      setError(prev => ({
+        ...prev, 
+        [type]: error.message.includes('Session expired') 
+          ? error.message 
+          : `Failed to load ${type}. ${error.message}`
+      }));
       console.error(`${type} fetch error:`, error.message);
     } finally {
       setLoading(prev => ({...prev, [type]: false}));
     }
   };
 
-  const fetchMetrics = async () => {
-    try {
-      setError(prev => ({...prev, metrics: null}));
-      setLoading(prev => ({...prev, metrics: true}));
-      
-      const res = await fetch("/api/users/payments/metrics", {
-        credentials: 'include',
-        headers: { 'Authorization': `Bearer ${currentUser.token}` }
-      });
-      
-      const data = await res.json();
-      
-      if (!res.ok) throw new Error(data.message || 'Failed to fetch payment metrics');
-
-      setMetrics(prev => ({
-        ...prev,
-        popularCourses: data.popularCourses || [],
-        totals: { ...prev.totals, revenue: data.totalRevenue || 0 },
-        lastMonth: { ...prev.lastMonth, revenue: data.lastMonthRevenue || 0 }
-      }));
-    } catch (error) {
-      setError(prev => ({...prev, metrics: error.message}));
-      console.error("Payment metrics fetch error:", error.message);
-    } finally {
-      setLoading(prev => ({...prev, metrics: false}));
-    }
+  const handleSessionExpired = () => {
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    toast.error('Session expired. Please login again.', {
+      autoClose: 5000,
+      onClose: () => {
+        window.location.href = '/sign-in';
+      }
+    });
   };
 
   const handleLoadMore = (type) => {
@@ -119,21 +122,29 @@ export default function DashboardComponent() {
   };
 
   if (!currentUser?.isAdmin) {
-    return <p className="text-center p-4">You do not have permission to view this page.</p>;
+    return (
+      <div className="text-center p-4">
+        <p className="text-red-500 font-medium">
+          You do not have permission to view this page.
+        </p>
+      </div>
+    );
   }
 
   return (
     <div className="p-3 md:mx-auto">
-    <DashboardMetrics 
-  //      totals={metrics.totals} 
-  //    lastMonth={metrics.lastMonth} 
-      />
-      <DashboardTables 
-        data={metrics} 
-        loading={loading} 
-        error={error} 
-        onLoadMore={handleLoadMore} 
-      />
+      {error.users?.includes('Session expired') ? (
+        <div className="text-center py-8">
+          <p className="text-red-500 font-medium">{error.users}</p>
+        </div>
+      ) : (
+        <DashboardTables 
+          data={data} 
+          loading={loading} 
+          error={error} 
+          onLoadMore={handleLoadMore} 
+        />
+      )}
     </div>
   );
 }
