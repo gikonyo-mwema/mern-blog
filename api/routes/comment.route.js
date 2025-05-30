@@ -18,7 +18,8 @@ router.get('/getPostComments/:postId', getPostComments);  // Get comments for a 
 router.put('/likeComment/:commentId', verifyToken, likeComment);  // Like a comment
 router.put('/editComment/:commentId', verifyToken, editComment);  // Edit a comment
 router.delete('/deleteComment/:commentId', verifyToken, deleteComment);  // Delete a comment
-router.get('/getComments', verifyToken, getComments);  // Fetch all comments
+
+router.get('/getComments', verifyToken, getComments);
 
 // Add pagination endpoint
 router.get('/', async (req, res) => {
