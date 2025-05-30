@@ -2,11 +2,7 @@ import { Alert, Button, Label, Spinner, TextInput } from "flowbite-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  signInStart,
-  signInSuccess,
-  signInFailure,
-} from "../redux/user/userSlice";
+import { signIn } from "../redux/user/userSlice"; // Import the signIn async thunk
 import OAuth from "../components/OAuth";
 
 export default function SignIn() {
@@ -23,7 +19,7 @@ export default function SignIn() {
 
     // Clear previous error message when user edits input
     if (errorMessage) {
-      dispatch(signInFailure(null));
+      dispatch(signIn.rejected(null)); // Clear error state
     }
   };
 
@@ -35,43 +31,28 @@ export default function SignIn() {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!email || !password) {
-      return dispatch(signInFailure("Please fill in all fields."));
+      return dispatch(signIn.rejected("Please fill in all fields."));
     }
 
     if (!emailRegex.test(email)) {
-      return dispatch(signInFailure("Please enter a valid email address."));
+      return dispatch(signIn.rejected("Please enter a valid email address."));
     }
 
     if (password.length < 6) {
-      return dispatch(signInFailure("Password must be at least 6 characters."));
+      return dispatch(signIn.rejected("Password must be at least 6 characters."));
     }
 
     try {
-      dispatch(signInStart());
-
-      const res = await fetch("/api/auth/signin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        let errorText = "Something went wrong.";
-        if (res.status === 401) errorText = "Invalid credentials. Please try again.";
-        else if (res.status === 500) errorText = "Server error. Please try again later.";
-        else if (data?.message) errorText = data.message;
-
-        return dispatch(signInFailure(errorText));
+      const resultAction = await dispatch(signIn({ email, password }));
+      
+      if (signIn.fulfilled.match(resultAction)) {
+        navigate("/");
+      } else if (signIn.rejected.match(resultAction)) {
+        // The error message is already set in the reducer
       }
-
-      dispatch(signInSuccess(data));
-      navigate("/");
     } catch (err) {
       console.error("Sign-in error:", err);
-      dispatch(signInFailure("Network error. Please check your connection."));
+      // The error will be handled by the rejected case in the thunk
     }
   };
 

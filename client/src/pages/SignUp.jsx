@@ -1,6 +1,8 @@
 import { Alert, Button, Label, Spinner, TextInput } from "flowbite-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { signUp } from "../redux/user/userSlice"; // Async thunk
 import OAuth from "../components/OAuth";
 
 export default function SignUp() {
@@ -9,8 +11,9 @@ export default function SignUp() {
     email: "",
     password: "",
   });
-  const [errorMessage, setErrorMessage] = useState(null);
-  const [loading, setLoading] = useState(false);
+
+  const { loading, error: errorMessage } = useSelector((state) => state.user);
+  const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -25,32 +28,18 @@ export default function SignUp() {
     const { username, email, password } = formData;
 
     if (!username || !email || !password) {
-      return setErrorMessage("Please fill out all fields.");
+      // Optionally handle client-side validation error here
+      return;
     }
 
     try {
-      setLoading(true);
-      setErrorMessage(null);
+      const resultAction = await dispatch(signUp({ username, email, password }));
 
-      const res = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include", // Ensures cookie auth works
-        body: JSON.stringify({ username, email, password }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || data.success === false) {
-        return setErrorMessage(data.message || "Failed to sign up.");
+      if (signUp.fulfilled.match(resultAction)) {
+        navigate("/sign-in");
       }
-
-      setLoading(false);
-      navigate("/sign-in");
     } catch (err) {
       console.error("Signup error:", err);
-      setErrorMessage("Something went wrong. Please try again.");
-      setLoading(false);
     }
   };
 
@@ -66,10 +55,7 @@ export default function SignUp() {
             Blog
           </Link>
           <p className="text-sm mt-5">
-            Welcome back to Ecodeed Blog! Sign up to join our community and
-            share your thoughts on sustainable living and environmental
-            conservation. You can sign up with your email and password or with
-            Google.
+            Welcome to Ecodeed Blog! Sign up to join our community and share your thoughts on sustainable living and environmental conservation. You can sign up with your email and password or with Google.
           </p>
         </div>
 
