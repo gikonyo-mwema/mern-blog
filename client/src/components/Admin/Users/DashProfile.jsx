@@ -2,18 +2,13 @@ import { Alert, Button, Modal, TextInput } from 'flowbite-react';
 import { useEffect, useRef, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { CircularProgressbar } from 'react-circular-progressbar';
-import {
-  deleteUserFailure,
-  deleteUserStart,
-  deleteUserSuccess,
-  signoutSuccess,
-  updateStart,
-  updateSuccess,
-  updateFailure,
-} from '../../../redux/user/userSlice';
 import { HiOutlineExclamationCircle } from 'react-icons/hi';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import { 
+  deleteUser,
+  signOut,
+  updateUser
+} from '../../../redux/user/userSlice';
 import 'react-circular-progressbar/dist/styles.css';
 
 const DeleteAccountModal = ({ showModal, setShowModal, handleDeleteUser, isLoading }) => (
@@ -39,7 +34,7 @@ const DeleteAccountModal = ({ showModal, setShowModal, handleDeleteUser, isLoadi
 );
 
 export default function DashProfile() {
-  const { currentUser, error, loading } = useSelector((state) => state.user);
+  const { currentUser, loading, error } = useSelector((state) => state.user);
   const [imageFile, setImageFile] = useState(null);
   const [imageFileUrl, setImageFileUrl] = useState(null);
   const [imageFileUploadProgress, setImageFileUploadProgress] = useState(0);
@@ -47,13 +42,23 @@ export default function DashProfile() {
   const [updateUserSuccess, setUpdateUserSuccess] = useState(null);
   const [updateUserError, setUpdateUserError] = useState(null);
   const [formData, setFormData] = useState({
-    username: currentUser.username,
-    email: currentUser.email,
+    username: currentUser?.username || '',
+    email: currentUser?.email || '',
     password: '',
   });
   const dispatch = useDispatch();
   const filePickerRef = useRef();
   const [showModal, setShowModal] = useState(false);
+
+  useEffect(() => {
+    if (currentUser) {
+      setFormData({
+        username: currentUser.username,
+        email: currentUser.email,
+        password: '',
+      });
+    }
+  }, [currentUser]);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -81,34 +86,32 @@ export default function DashProfile() {
     setUpdateUserSuccess(null);
 
     try {
-      dispatch(updateStart());
-      
       const formDataToSend = new FormData();
       if (imageFile) formDataToSend.append('file', imageFile);
       formDataToSend.append('username', formData.username);
       formDataToSend.append('email', formData.email);
       if (formData.password) formDataToSend.append('password', formData.password);
 
-      const { data } = await axios.put('/api/user/update/' + currentUser._id, formDataToSend, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        withCredentials: true,
+      const resultAction = await dispatch(updateUser({
+        userId: currentUser._id,
+        formData: formDataToSend,
         onUploadProgress: (progressEvent) => {
           const progress = Math.round(
             (progressEvent.loaded * 100) / progressEvent.total
           );
           setImageFileUploadProgress(progress);
         }
-      });
+      }));
 
-      dispatch(updateSuccess(data));
-      setUpdateUserSuccess('Profile updated successfully');
-      setImageFileUploadProgress(0);
+      if (updateUser.fulfilled.match(resultAction)) {
+        setUpdateUserSuccess('Profile updated successfully');
+        setImageFileUploadProgress(0);
+      } else if (updateUser.rejected.match(resultAction)) {
+        setUpdateUserError(resultAction.payload);
+        setImageFileUploadProgress(0);
+      }
     } catch (error) {
-      const errorMessage = error.response?.data?.message || error.message;
-      setUpdateUserError(errorMessage);
-      dispatch(updateFailure(errorMessage));
+      setUpdateUserError(error.message);
       setImageFileUploadProgress(0);
     }
   };
@@ -116,22 +119,21 @@ export default function DashProfile() {
   const handleDeleteUser = async () => {
     setShowModal(false);
     try {
-      dispatch(deleteUserStart());
-      await axios.delete(`/api/user/delete/${currentUser._id}`, {
-        withCredentials: true
-      });
-      dispatch(deleteUserSuccess());
+      const resultAction = await dispatch(deleteUser(currentUser._id));
+      if (deleteUser.fulfilled.match(resultAction)) {
+        // Successfully deleted
+      }
     } catch (error) {
-      dispatch(deleteUserFailure(error.response?.data?.message || error.message));
+      console.error('Delete error:', error);
     }
   };
 
   const handleSignout = async () => {
     try {
-      await axios.post('/api/user/signout', {}, {
-        withCredentials: true
-      });
-      dispatch(signoutSuccess());
+      const resultAction = await dispatch(signOut());
+      if (signOut.fulfilled.match(resultAction)) {
+        // Successfully signed out
+      }
     } catch (error) {
       console.error('Signout error:', error);
     }
@@ -177,7 +179,7 @@ export default function DashProfile() {
             />
           )}
           <img
-            src={imageFileUrl || currentUser.profilePicture}
+            src={imageFileUrl || currentUser?.profilePicture}
             alt="user"
             className={`rounded-full w-full h-full object-cover border-8 border-[lightgray] ${
               imageFileUploadProgress > 0 && imageFileUploadProgress < 100 && 'opacity-60'
@@ -192,6 +194,7 @@ export default function DashProfile() {
           value={formData.username}
           onChange={handleChange}
         />
+       
         <TextInput
           type="email"
           id="email"
@@ -214,15 +217,15 @@ export default function DashProfile() {
         >
           {loading ? 'Loading...' : 'Update'}
         </Button>
-        {currentUser.isAdmin && (
+        {currentUser?.isAdmin && (
           <Link to={'/create-post'}>
-            <Button
+            {/*<Button
               type="button"
               gradientDuoTone="purpleToPink"
               className="w-full"
             >
               Create a post
-            </Button>
+            </Button>*/}
           </Link>
         )}
       </form>
