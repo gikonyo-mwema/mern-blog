@@ -18,7 +18,7 @@ import ThemeProvider from './components/ThemeProvider';
 import Services from './pages/Services';
 import Courses from './pages/Courses';
 //import ServiceDetails from './pages/ServiceDetails';
-import DashServices from './components/DashServices';
+import DashServices from './components/Admin/Services/DashServices';
 //import CreateService from './pages/CreateService';
 //import EditService from './pages/EditService';
 
