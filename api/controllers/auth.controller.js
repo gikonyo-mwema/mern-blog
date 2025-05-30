@@ -76,7 +76,7 @@ export const signin = async (req, res, next) => {
       .cookie('access_token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
         maxAge: 24 * 60 * 60 * 1000, // 1 day
       })
       .status(200)
@@ -94,7 +94,8 @@ export const google = async (req, res, next) => {
     let user = await User.findOne({ email });
 
     if (!user) {
-      const generatedUsername = name.toLowerCase().replace(/\s+/g, '') + Math.random().toString(36).slice(-4);
+      const generatedUsername = name.toLowerCase().replace(/\s+/g, '') + 
+                              Math.random().toString(36).slice(-4);
       const generatedPassword = Math.random().toString(36).slice(-8);
       const hashedPassword = bcryptjs.hashSync(generatedPassword, 10);
 
@@ -120,11 +121,30 @@ export const google = async (req, res, next) => {
       .cookie('access_token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
         maxAge: 24 * 60 * 60 * 1000, // 1 day
       })
       .status(200)
       .json(userData);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// SIGNOUT CONTROLLER
+export const signout = (req, res, next) => {
+  try {
+    res.clearCookie('access_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      path: '/',
+    })
+    .status(200)
+    .json({ 
+      success: true, 
+      message: 'User signed out successfully' 
+    });
   } catch (error) {
     next(error);
   }
