@@ -48,6 +48,6 @@ const paymentSchema = new mongoose.Schema(
 );
 
 paymentSchema.index({ user: 1, itemId: 1 });
-paymentSchema.index({ reference: 1 }, { unique: true });
+// paymentSchema.index({ reference: 1 }, { unique: true });
 
 export default mongoose.model('Payment', paymentSchema);
