@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
-import { fileURLToPath } from 'url';
+import { fileURLToPath } from 'url'; 
 
 // Import custom modules and middleware
 import connectDB from './config/db.js';
@@ -16,7 +16,7 @@ import notFound from './middleware/notFound.js';
 import userRoutes from './routes/user.route.js';
 import authRoutes from './routes/auth.route.js';
 import postRoutes from './routes/post.route.js';
-import commentRoutes from './routes/comment.route.js';
+import commentRoutes from './routes/comment.route.js'; 
 import courseRoutes from './routes/course.route.js';
 import serviceRoutes from './routes/service.route.js';
 import uploadRouter from './utils/upload.js';
@@ -59,7 +59,10 @@ app.use(cookieParser()); // Parse cookies
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);      // User management
 app.use('/api/post', postRoutes);       // Blog posts
-app.use('/api/comments', commentRoutes);// Comments
+
+
+app.use('/api/comment', commentRoutes); // Comments
+
 app.use('/api/courses', courseRoutes);  // Courses
 app.use('/api/services', serviceRoutes);// Services
 app.use('/api/upload', uploadRouter);   // File uploads
