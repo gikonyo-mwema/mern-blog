@@ -3,7 +3,7 @@ import { Button, Table, Modal } from 'flowbite-react';
 import { HiOutlinePlus, HiOutlinePencilAlt, HiOutlineExclamationCircle, HiOutlineCreditCard } from 'react-icons/hi';
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { Unauthorized } from './Unauthorized';
+import { Unauthorized } from './Unauthorized'; 
 
 export const DashCourses = () => {
   const { currentUser } = useSelector((state) => state.user);
