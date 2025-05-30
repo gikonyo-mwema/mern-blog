@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
 export default function OAuth() {
-    const auth = getAuth(app);
+    const auth = getAuth(app); 
     const dispatch = useDispatch();
     const navigate = useNavigate();
 
