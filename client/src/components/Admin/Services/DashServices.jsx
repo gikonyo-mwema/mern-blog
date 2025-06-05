@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { Button, Alert } from 'flowbite-react';
+import { Button, Alert, Table, Modal } from 'flowbite-react';
+import { HiOutlinePlus, HiOutlinePencilAlt, HiOutlineExclamationCircle, HiOutlineCreditCard } from 'react-icons/hi';
 import useServices from '../../../hooks/useServices';
 import ServiceCard from '../../ServiceCard';
-import ServiceTable from '../../ServiceTable';
 import ServiceForm from '../../ServiceForm';
-import ConfirmDelete from '../../ConfirmDelete';
 import PaymentModal from '../../PaymentModal';
 
 export default function DashServices({ currentUser }) {
@@ -13,10 +12,8 @@ export default function DashServices({ currentUser }) {
     loading,
     error,
     refresh,
-    createService,
-    updateService,
-    deleteService,
     createOrUpdateService,
+    deleteService,
   } = useServices(currentUser);
 
   const [showModal, setShowModal] = useState(false);
@@ -57,7 +54,7 @@ export default function DashServices({ currentUser }) {
 
   if (error) {
     return (
-      <div className="p-4 md:ml-64 mt-20">
+      <div className="table-auto overflow-x-scroll md:mx-auto p-3">
         <Alert color="failure">
           Failed to load services: {error.message}
           <Button color="gray" onClick={refresh} className="ml-2">
@@ -69,8 +66,21 @@ export default function DashServices({ currentUser }) {
   }
 
   return (
-    <div className="p-4 md:ml-64 mt-20">
-      <h1 className="text-3xl font-bold mb-4">Services</h1>
+    <div className="table-auto overflow-x-scroll md:mx-auto p-3">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-semibold">Manage Services</h2>
+        <Button 
+          gradientDuoTone="tealToLime"
+          onClick={() => {
+            setFormData(null);
+            setEditMode(false);
+            setShowModal(true);
+          }}
+        >
+          <HiOutlinePlus className="mr-2" />
+          Create a New Service
+        </Button>
+      </div>
 
       {formError && (
         <div className="fixed top-4 right-4 z-50 w-96">
@@ -80,26 +90,11 @@ export default function DashServices({ currentUser }) {
         </div>
       )}
 
-      {services.length === 0 ? (
-        <div className="mb-4">
-          <Alert color="info">
-            No services available yet.
-            <Button
-              color="gray"
-              onClick={() => {
-                setFormData(null);
-                setEditMode(false);
-                setShowModal(true);
-              }}
-              className="ml-2"
-            >
-              Create First Service
-            </Button>
-          </Alert>
-        </div>
-      ) : (
+      {loading && services.length === 0 ? (
+        <p>Loading services...</p>
+      ) : services.length > 0 ? (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             {services.map((service) => (
               <ServiceCard
                 key={service._id}
@@ -112,55 +107,109 @@ export default function DashServices({ currentUser }) {
             ))}
           </div>
 
-          <div className="mt-8">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-semibold">Manage Services</h2>
-              <Button
-                onClick={() => {
-                  setFormData(null);
-                  setEditMode(false);
-                  setShowModal(true);
-                }}
-              >
-                Add Service
-              </Button>
-            </div>
-
-            <ServiceTable
-              services={services}
-              loading={loading}
-              onEdit={(service) => {
-                setFormData(service);
-                setEditMode(true);
-                setShowModal(true);
-              }}
-              onDelete={(id) => {
-                setDeleteId(id);
-                setShowDeleteModal(true);
-              }}
-            />
-          </div>
+          <Table hoverable className="shadow-md">
+            <Table.Head>
+              <Table.HeadCell>Name</Table.HeadCell>
+              <Table.HeadCell>Price</Table.HeadCell>
+              <Table.HeadCell>Description</Table.HeadCell>
+              <Table.HeadCell>Actions</Table.HeadCell>
+            </Table.Head>
+            <Table.Body className="divide-y">
+              {services.map((service) => (
+                <Table.Row key={service._id}>
+                  <Table.Cell>{service.name}</Table.Cell>
+                  <Table.Cell>${service.price}</Table.Cell>
+                  <Table.Cell className="truncate max-w-xs">{service.description}</Table.Cell>
+                  <Table.Cell>
+                    <div className="flex space-x-2">
+                      <Button 
+                        outline 
+                        gradientDuoTone="tealToLime" 
+                        size="xs"
+                        onClick={() => {
+                          setFormData(service);
+                          setEditMode(true);
+                          setShowModal(true);
+                        }}
+                      >
+                        <HiOutlinePencilAlt className="mr-1" />
+                        Edit
+                      </Button>
+                      <Button
+                        outline
+                        gradientDuoTone="pinkToOrange"
+                        size="xs"
+                        onClick={() => {
+                          setShowDeleteModal(true);
+                          setDeleteId(service._id);
+                        }}
+                      >
+                        Delete
+                      </Button>
+                      <Button
+                        outline
+                        gradientDuoTone="purpleToBlue"
+                        size="xs"
+                        onClick={() => {
+                          setSelectedService(service);
+                          setShowPaymentModal(true);
+                        }}
+                      >
+                        <HiOutlineCreditCard className="mr-1" />
+                        Test Payment
+                      </Button>
+                    </div>
+                  </Table.Cell>
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </Table>
         </>
+      ) : (
+        <Alert color="info">
+          No services available yet.
+          <Button
+            color="gray"
+            onClick={() => {
+              setFormData(null);
+              setEditMode(false);
+              setShowModal(true);
+            }}
+            className="ml-2"
+          >
+            Create First Service
+          </Button>
+        </Alert>
       )}
 
       <ServiceForm
-  show={showModal}
-  onClose={() => {
-    setShowModal(false);
-    setFormError(null);
-  }}
-  onSubmit={handleFormSubmit}
-  formData={formData}
-  loading={loading}
-/>
-
-
-      <ConfirmDelete
-        show={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
-        onConfirm={() => handleDelete(deleteId)}
+        show={showModal}
+        onClose={() => {
+          setShowModal(false);
+          setFormError(null);
+        }}
+        onSubmit={handleFormSubmit}
+        formData={formData}
         loading={loading}
       />
+
+      <Modal show={showDeleteModal} onClose={() => setShowDeleteModal(false)}>
+        <Modal.Header />
+        <Modal.Body>
+          <div className="text-center">
+            <HiOutlineExclamationCircle className="h-14 w-14 text-gray-400 mx-auto mb-4" />
+            <h3 className="mb-5 text-lg text-gray-500">Are you sure you want to delete this service?</h3>
+            <div className="flex justify-center gap-4">
+              <Button color="gray" onClick={() => setShowDeleteModal(false)}>
+                Cancel
+              </Button>
+              <Button color="failure" onClick={() => handleDelete(deleteId)}>
+                Delete
+              </Button>
+            </div>
+          </div>
+        </Modal.Body>
+      </Modal>
 
       <PaymentModal
         showModal={showPaymentModal}
