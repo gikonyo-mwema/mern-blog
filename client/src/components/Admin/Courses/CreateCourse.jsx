@@ -20,12 +20,16 @@ export const CreateCourse = () => {
     setLoading
   } = useCourseForm({
     title: '',
+    slug: '',
     price: '',
+    shortDescription: '',
+    description: '',
+    externalUrl: '',
     isPopular: false,
-    paymentOption: '',
+    paymentOption: 'one-time',
     features: [''],
     cta: 'Enroll Now',
-    description: ''
+    iconName: 'HiOutlineAcademicCap'
   });
 
   const handleSubmit = async (e) => {
@@ -33,7 +37,21 @@ export const CreateCourse = () => {
     try {
       setLoading(true);
       setError(null);
-      if (!currentUser.isAdmin) throw new Error('Only admins can create courses');
+      
+      // Validate admin status
+      if (!currentUser?.isAdmin) {
+        throw new Error('Only admins can create courses');
+      }
+
+      // Validate required fields
+      if (!formData.slug || !formData.externalUrl) {
+        throw new Error('Slug and External URL are required');
+      }
+
+      // Validate slug format
+      if (!/^[a-z0-9-]+$/.test(formData.slug)) {
+        throw new Error('Slug can only contain lowercase letters, numbers, and hyphens');
+      }
 
       const res = await fetch('/api/courses', {
         method: 'POST',
@@ -41,11 +59,18 @@ export const CreateCourse = () => {
           'Content-Type': 'application/json', 
           'Authorization': `Bearer ${localStorage.getItem('token')}` 
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          // Ensure price is stored as number
+          price: Number(formData.price)
+        }),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to create course');
+      
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to create course');
+      }
 
       navigate('/dashboard?tab=courses');
     } catch (error) {
@@ -70,7 +95,7 @@ export const CreateCourse = () => {
       removeFeatureField={removeFeatureField}
       handleSubmit={handleSubmit}
       title="Create New Course"
-      submitButtonText="Create Course"
+      submitButtonText={loading ? 'Creating...' : 'Create Course'}
     />
   );
 };
