@@ -1,24 +1,31 @@
+import mongoose from 'mongoose';
 import Service from '../models/service.model.js';
 
 export const createService = async (req, res, next) => {
   try {
     const { 
-      title, 
-      description, 
-      category, 
-      price, 
-      fullDescription, 
-      features, 
-      icon 
+      title,
+      shortDescription,
+      fullDescription,
+      category,
+      price,
+      features,
+      icon,
+      calendlyLink,
+      contactEmail,
+      contactPhone,
+      socialLinks,
+      meta,
+      isFeatured
     } = req.body;
 
     // Validate required fields
     const requiredFields = {
       title: 'Title',
-      description: 'Description',
+      shortDescription: 'Short description',
+      fullDescription: 'Full description',
       category: 'Category',
       price: 'Price',
-      fullDescription: 'Full description',
       features: 'Features'
     };
 
@@ -51,14 +58,48 @@ export const createService = async (req, res, next) => {
       });
     }
 
+    // Validate email if provided
+    if (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format'
+      });
+    }
+
+    // Validate Calendly link if provided
+    if (calendlyLink && !/^https:\/\/calendly\.com\//.test(calendlyLink)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Calendly link must start with https://calendly.com/'
+      });
+    }
+
+    // Validate social links if provided
+    if (socialLinks && Array.isArray(socialLinks)) {
+      for (const link of socialLinks) {
+        if (!link.platform || !link.url) {
+          return res.status(400).json({
+            success: false,
+            message: 'Social links must have platform and url'
+          });
+        }
+      }
+    }
+
     const newService = new Service({
       title,
-      description,
+      shortDescription,
+      fullDescription,
       category,
       price: Number(price),
-      fullDescription,
       features: features.map(f => f.trim()).filter(f => f !== ''),
       icon: icon || '📋',
+      calendlyLink,
+      contactEmail,
+      contactPhone,
+      socialLinks,
+      meta,
+      isFeatured: Boolean(isFeatured),
       createdBy: req.user.id
     });
 
@@ -89,11 +130,14 @@ export const getServices = async (req, res, next) => {
       sort = 'createdAt', 
       order = 'desc',
       category,
-      search
+      search,
+      featured,
+      minPrice,
+      maxPrice
     } = req.query;
 
     // Validate pagination parameters
-    const parsedLimit = parseInt(limit);
+    const parsedLimit = Math.min(parseInt(limit), 50);
     const parsedPage = parseInt(page);
     
     if (isNaN(parsedLimit) || parsedLimit < 1 || 
@@ -117,9 +161,19 @@ export const getServices = async (req, res, next) => {
     if (search) {
       query.$or = [
         { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
+        { shortDescription: { $regex: search, $options: 'i' } },
         { fullDescription: { $regex: search, $options: 'i' } }
       ];
+    }
+
+    if (featured === 'true') {
+      query.isFeatured = true;
+    }
+
+    if (minPrice || maxPrice) {
+      query.price = {};
+      if (minPrice) query.price.$gte = Number(minPrice);
+      if (maxPrice) query.price.$lte = Number(maxPrice);
     }
 
     const [services, totalServices] = await Promise.all([
@@ -131,14 +185,6 @@ export const getServices = async (req, res, next) => {
       Service.countDocuments(query)
     ]);
 
-    // Calculate last month's services
-    const lastMonth = new Date();
-    lastMonth.setMonth(lastMonth.getMonth() - 1);
-    const lastMonthServices = await Service.countDocuments({
-      ...query,
-      createdAt: { $gte: lastMonth }
-    });
-
     res.status(200).json({
       success: true,
       services,
@@ -146,8 +192,7 @@ export const getServices = async (req, res, next) => {
         total: totalServices,
         page: parsedPage,
         limit: parsedLimit,
-        pages: Math.ceil(totalServices / parsedLimit),
-        lastMonth: lastMonthServices
+        pages: Math.ceil(totalServices / parsedLimit)
       }
     });
 
@@ -158,6 +203,9 @@ export const getServices = async (req, res, next) => {
 
 export const getService = async (req, res, next) => {
   try {
+    // Increment view count
+    await Service.findByIdAndUpdate(req.params.id, { $inc: { viewCount: 1 } });
+    
     const service = await Service.findById(req.params.id).lean();
     
     if (!service) {
@@ -179,6 +227,92 @@ export const getService = async (req, res, next) => {
         message: 'Invalid service ID format'
       });
     }
+    next(error);
+  }
+};
+
+export const getFeaturedServices = async (req, res, next) => {
+  try {
+    const services = await Service.find({ isFeatured: true })
+      .sort({ createdAt: -1 })
+      .limit(4)
+      .lean();
+
+    res.status(200).json({
+      success: true,
+      services
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getRelatedServices = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const service = await Service.findById(id);
+    
+    if (!service) {
+      return res.status(404).json({
+        success: false,
+        message: 'Service not found'
+      });
+    }
+
+    const relatedServices = await Service.find({
+      _id: { $ne: service._id },
+      category: service.category
+    })
+    .limit(3)
+    .lean();
+
+    res.status(200).json({
+      success: true,
+      services: relatedServices
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getServiceStats = async (req, res, next) => {
+  try {
+    const stats = await Service.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalServices: { $sum: 1 },
+          totalViews: { $sum: "$viewCount" },
+          avgPrice: { $avg: "$price" },
+          categories: { $addToSet: "$category" }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          totalServices: 1,
+          totalViews: 1,
+          avgPrice: { $round: ["$avgPrice", 2] },
+          categories: 1
+        }
+      }
+    ]);
+
+    const featuredCount = await Service.countDocuments({ isFeatured: true });
+    const popularServices = await Service.find()
+      .sort({ viewCount: -1 })
+      .limit(3)
+      .lean();
+
+    res.status(200).json({
+      success: true,
+      stats: {
+        ...stats[0],
+        featuredCount,
+        popularServices
+      }
+    });
+  } catch (error) {
     next(error);
   }
 };
@@ -219,6 +353,13 @@ export const updateService = async (req, res, next) => {
       return res.status(400).json({
         success: false,
         message: 'Features must be an array with at least one valid string'
+      });
+    }
+
+    if (updates.contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(updates.contactEmail)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format'
       });
     }
 
