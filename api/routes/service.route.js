@@ -4,25 +4,27 @@ import {
   getServices,
   getService,
   updateService,
-  deleteService
+  deleteService,
+  getFeaturedServices,
+  getServiceStats,
+  getRelatedServices
 } from '../controllers/service.controller.js';
-import { verifyToken } from '../utils/verifyUser.js';
+import { verifyToken, verifyAdmin } from '../utils/verifyUser.js';
 
 const router = express.Router();
 
-// Create a service
-router.post('/', verifyToken, createService);
-
-// Get all services
+// Public routes
 router.get('/', getServices);
-
-// Get single service
+router.get('/featured', getFeaturedServices);
 router.get('/:id', getService);
+router.get('/:id/related', getRelatedServices);
 
-// Update a service
+// Protected routes (require authentication)
+router.post('/', verifyToken, createService);
 router.put('/:id', verifyToken, updateService);
-
-// Delete a service
 router.delete('/:id', verifyToken, deleteService);
+
+// Admin-only routes (require admin privileges)
+router.get('/stats', verifyToken, verifyAdmin, getServiceStats);
 
 export default router;
