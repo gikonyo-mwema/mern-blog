@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Table, Modal } from 'flowbite-react';
-import { HiOutlinePlus, HiOutlinePencilAlt, HiOutlineExclamationCircle, HiOutlineCreditCard } from 'react-icons/hi';
+import { HiOutlinePlus, HiOutlinePencilAlt, HiOutlineExclamationCircle } from 'react-icons/hi';
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { Unauthorized } from './Unauthorized'; 
+import { Unauthorized } from './Unauthorized';
 
 export const DashCourses = () => {
   const { currentUser } = useSelector((state) => state.user);
@@ -12,8 +12,6 @@ export const DashCourses = () => {
   const [showModal, setShowModal] = useState(false);
   const [courseIdToDelete, setCourseIdToDelete] = useState('');
   const [loading, setLoading] = useState(false);
-  const [selectedCourse, setSelectedCourse] = useState(null);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   const fetchCourses = async (startIndex = 0) => {
     try {
@@ -52,23 +50,22 @@ export const DashCourses = () => {
     try {
       const res = await fetch(`/api/courses/${courseIdToDelete}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}` 
+        }
       });
       const data = await res.json();
+      
       if (res.ok) {
         setCourses(prev => prev.filter(course => course._id !== courseIdToDelete));
         setShowModal(false);
       } else {
-        console.error(data.message);
+        throw new Error(data.message || 'Failed to delete course');
       }
     } catch (error) {
       console.error('Error deleting course:', error.message);
     }
-  };
-
-  const handlePaymentClick = (course) => {
-    setSelectedCourse(course);
-    setShowPaymentModal(true);
   };
 
   if (!currentUser?.isAdmin) {
@@ -88,22 +85,45 @@ export const DashCourses = () => {
       </div>
 
       {loading && courses.length === 0 ? (
-        <p>Loading courses...</p>
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-pulse text-gray-500">Loading courses...</div>
+        </div>
       ) : courses.length > 0 ? (
         <>
           <Table hoverable className="shadow-md">
             <Table.Head>
               <Table.HeadCell>Title</Table.HeadCell>
+              <Table.HeadCell>Slug</Table.HeadCell>
               <Table.HeadCell>Price</Table.HeadCell>
               <Table.HeadCell>Popular</Table.HeadCell>
               <Table.HeadCell>Actions</Table.HeadCell>
             </Table.Head>
             <Table.Body className="divide-y">
               {courses.map((course) => (
-                <Table.Row key={course._id}>
-                  <Table.Cell>{course.title}</Table.Cell>
-                  <Table.Cell>${course.price}</Table.Cell>
-                  <Table.Cell>{course.isPopular ? 'Yes' : 'No'}</Table.Cell>
+                <Table.Row key={course._id} className="hover:bg-gray-50">
+                  <Table.Cell className="font-medium text-gray-900">
+                    {course.title}
+                  </Table.Cell>
+                  <Table.Cell className="font-mono text-sm text-gray-700">
+                    {course.slug}
+                  </Table.Cell>
+                  <Table.Cell>
+                    {course.price?.toLocaleString('en-US', {
+                      style: 'currency',
+                      currency: 'KES'
+                    })}
+                  </Table.Cell>
+                  <Table.Cell>
+                    {course.isPopular ? (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Popular
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        Standard
+                      </span>
+                    )}
+                  </Table.Cell>
                   <Table.Cell>
                     <div className="flex space-x-2">
                       <Link to={`/edit-course/${course._id}`}>
@@ -123,46 +143,58 @@ export const DashCourses = () => {
                       >
                         Delete
                       </Button>
-                      <Button
-                        outline
-                        gradientDuoTone="purpleToBlue"
-                        size="xs"
-                        onClick={() => handlePaymentClick(course)}
-                      >
-                        <HiOutlineCreditCard className="mr-1" />
-                        Test Payment
-                      </Button>
                     </div>
                   </Table.Cell>
                 </Table.Row>
               ))}
             </Table.Body>
           </Table>
+          
           {showMore && (
-            <button 
-              onClick={handleShowMore} 
-              className="w-full text-teal-500 py-7 text-sm"
+            <button
+              onClick={handleShowMore}
+              className="w-full text-teal-500 py-7 text-sm hover:text-teal-700 transition-colors"
+              disabled={loading}
             >
-              Show more
+              {loading ? 'Loading...' : 'Show more'}
             </button>
           )}
         </>
       ) : (
-        <p>No courses found. Create your first course!</p>
+        <div className="text-center py-12">
+          <p className="text-gray-500 mb-4">No courses found</p>
+          <Link to="/create-course">
+            <Button gradientDuoTone="tealToLime">
+              Create Your First Course
+            </Button>
+          </Link>
+        </div>
       )}
 
-      <Modal show={showModal} onClose={() => setShowModal(false)}>
-        <Modal.Header />
-        <Modal.Body>
+      <Modal show={showModal} onClose={() => setShowModal(false)} size="md">
+        <Modal.Header className="border-b-0 pb-0">
+          Confirm Deletion
+        </Modal.Header>
+        <Modal.Body className="pt-4">
           <div className="text-center">
-            <HiOutlineExclamationCircle className="h-14 w-14 text-gray-400 mx-auto mb-4" />
-            <h3 className="mb-5 text-lg text-gray-500">Are you sure you want to delete this course?</h3>
+            <HiOutlineExclamationCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h3 className="mb-5 text-lg font-normal text-gray-500">
+              Are you sure you want to delete this course?
+            </h3>
             <div className="flex justify-center gap-4">
-              <Button color="gray" onClick={() => setShowModal(false)}>
+              <Button 
+                color="gray" 
+                onClick={() => setShowModal(false)}
+                className="px-5"
+              >
                 Cancel
               </Button>
-              <Button color="failure" onClick={handleDeleteCourse}>
-                Delete
+              <Button 
+                color="failure" 
+                onClick={handleDeleteCourse}
+                className="px-5"
+              >
+                Yes, delete
               </Button>
             </div>
           </div>
@@ -171,5 +203,3 @@ export const DashCourses = () => {
     </div>
   );
 };
-
-
