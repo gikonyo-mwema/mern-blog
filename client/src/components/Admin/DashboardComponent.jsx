@@ -10,7 +10,7 @@ export default function DashboardComponent() {
     comments: [], 
     posts: [], 
     services: [], 
-    courses: []
+    courses: [] 
   });
   
   const [loading, setLoading] = useState({
@@ -48,7 +48,7 @@ export default function DashboardComponent() {
   const fetchDashboardData = async () => {
     try {
       await Promise.all([
-        fetchData('users', '/api/user/getUsers'),
+        fetchData('users', '/api/users/getUsers'),
         fetchData('posts', '/api/post'),
         fetchData('comments', '/api/comment/getComments'), // Updated endpoint
         fetchData('services', '/api/services'),
