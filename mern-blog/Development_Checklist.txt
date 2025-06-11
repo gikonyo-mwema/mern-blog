@@ -1,0 +1,421 @@
+API Directory
+api/index.js
+
+    Express server setup
+
+    MongoDB connection
+
+    Middlewares (cors, body-parser, cookie-parser)
+
+    Route mounting
+
+    Error handling middleware
+
+    Server listening port setup
+
+api/controllers/
+
+auth.controller.js
+
+    Google OAuth authentication
+
+    JWT token generation
+
+    User signup logic
+
+    User login logic
+
+    Logout functionality
+
+    Password reset flow
+
+post.controller.js
+
+    Create post
+
+    Get single post
+
+    Get all posts (with pagination)
+
+    Update post
+
+    Delete post
+
+    Get posts by category
+
+    Get trending posts
+
+    Search posts
+
+comment.controller.js
+
+    Create comment
+
+    Get comments for post
+
+    Like comment
+
+    Edit comment
+
+    Delete comment
+
+user.controller.js
+
+    Get user profile
+
+    Update user profile
+
+    Delete user account
+
+    Get all users (admin)
+
+    Update user role (admin)
+
+api/models/
+
+post.model.js
+
+    Title, content, category fields
+
+    Author reference
+
+    Slug generation
+
+    Timestamps
+
+    Comments array
+
+    View count
+
+    Featured image (Cloudinary)
+
+user.model.js
+
+    Username, email, password
+
+    Profile picture (Cloudinary)
+
+    Role (user/admin)
+
+    OAuth provider data
+
+    Refresh token
+
+comment.model.js
+
+    Content field
+
+    Post reference
+
+    User reference
+
+    Likes array
+
+    Timestamps
+
+api/routes/
+
+auth.route.js
+
+    POST /signup
+
+    POST /signin
+
+    POST /google
+
+    GET /logout
+
+    POST /forgot-password
+
+    PUT /reset-password/:token
+
+post.route.js
+
+    GET / (all posts)
+
+    POST /create
+
+    GET /:slug
+
+    PUT /update/:postId
+
+    DELETE /delete/:postId
+
+    GET /categories/:category
+
+    GET /search
+
+comment.route.js
+
+    POST /create/:postId
+
+    GET /get/:postId
+
+    PUT /like/:commentId
+
+    PUT /edit/:commentId
+
+    DELETE /delete/:commentId
+
+user.route.js
+
+    GET /:userId
+
+    PUT /update/:userId
+
+    DELETE /delete/:userId
+
+    GET / (admin only)
+
+    PUT /role/:userId (admin only)
+
+api/utils/
+
+cloudinaryConfig.js
+
+    Cloudinary configuration
+
+    Image upload middleware
+
+    Image deletion helper
+
+error.js
+
+    Custom error classes
+
+    Error handler middleware
+
+upload.js
+
+    Multer configuration
+
+    File type validation
+
+    File size limits
+
+verifyUser.js
+
+    JWT verification middleware
+
+    Admin check middleware
+
+CLIENT Directory
+client/src/
+
+App.jsx
+
+    Router setup
+
+    Theme provider
+
+    Global context providers
+
+    Layout components
+
+    Route definitions
+
+main.jsx
+
+    ReactDOM render
+
+    Redux provider
+
+    Strict mode
+
+index.css
+
+    CSS variables for theming
+
+    Base/reset styles
+
+    Utility classes
+
+    Font imports
+
+firebase.js
+
+    Firebase configuration
+
+    Auth provider setup
+
+    Firestore initialization (if used)
+
+client/src/components/
+
+Header.jsx
+
+    Logo
+
+    Main navigation
+
+    Search bar
+
+    User menu
+
+    Mobile menu toggle
+
+    Theme switcher
+
+Footer.jsx
+
+    Copyright info
+
+    Quick links
+
+    Social media icons
+
+    Newsletter signup
+
+PostCard.jsx
+
+    Featured image
+
+    Category badge
+
+    Title
+
+    Excerpt
+
+    Author info
+
+    Date/reading time
+
+    Hover effects
+
+CommentSection.jsx
+
+    Comment form
+
+    Comments list
+
+    Nested replies
+
+    Like functionality
+
+    Edit/delete options
+
+Dashboard Components (all Dash*.jsx)
+
+    Admin dashboard layout
+
+    User management
+
+    Post management
+
+    Comment management
+
+    Profile editing
+
+ThemeProvider.jsx
+
+    Dark/light theme toggle
+
+    Theme persistence
+
+    CSS variable management
+
+client/src/pages/
+
+Home.jsx
+
+    Featured posts section
+
+    Post grid with alternating layout
+
+    Sidebar components
+
+    Pagination
+
+PostPage.jsx
+
+    Full post content
+
+    Author bio
+
+    Related posts
+
+    Comment section
+
+SignIn/SignUp.jsx
+
+    Form validation
+
+    OAuth buttons
+
+    Error handling
+
+    Password reset link
+
+Dashboard.jsx
+
+    Admin overview stats
+
+    Recent activity
+
+    Quick actions
+
+CreatePost/UpdatePost.jsx
+
+    Rich text editor
+
+    Image upload
+
+    Category selection
+
+    SEO fields
+
+    Preview functionality
+
+client/src/redux/
+
+store.js
+
+    Redux store configuration
+
+    Redux-persist setup
+
+    Middleware (thunk/saga)
+
+user/ folder
+
+    Auth slice
+
+    User profile slice
+
+    Async actions
+
+theme/ folder
+
+    Theme slice
+
+    Toggle actions
+
+client/src/utils/
+
+cloudinary.js
+
+    Client-side upload helpers
+
+    Image transformation utilities
+
+General Checklist
+
+    All API endpoints tested with Postman
+
+    All React components properly connected to Redux
+
+    Responsive design verified on all breakpoints
+
+    Accessibility (ARIA) checks completed
+
+    Error boundaries implemented
+
+    Loading states for async operations
+
+    Form validations in place
+
+    Security headers configured
+
+    SEO meta tags in place
+
+    Performance optimizations (lazy loading, etc.)

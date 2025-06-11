@@ -70,16 +70,14 @@ export default function PostPage() {
     fetchPost();
   }, [postSlug]);
 
-  // Fetch recommended posts (always 3 posts, not filtered by category)
+  // Fetch recommended posts
   useEffect(() => {
     const fetchRecommendedPosts = async () => {
       try {
         const res = await fetch(`/api/post/getposts?limit=3`);
         const data = await res.json();
         if (res.ok) {
-          // Filter out the current post if it's in the results
           const filtered = data.posts.filter(p => p._id !== post?._id);
-          // If we filtered out the current post and have less than 3, fetch more
           if (filtered.length < 3) {
             const additionalRes = await fetch(`/api/post/getposts?limit=${3 - filtered.length + 1}`);
             const additionalData = await additionalRes.json();
@@ -99,7 +97,7 @@ export default function PostPage() {
     fetchRecommendedPosts();
   }, [post?._id]);
 
-  // Scroll progress indicator and back to top visibility
+  // Scroll progress indicator
   useEffect(() => {
     const handleScroll = () => {
       const scrollTop = document.documentElement.scrollTop;
@@ -174,30 +172,7 @@ export default function PostPage() {
         {post?.title}
       </h1>
 
-      {/* Author and metadata */}
-      <div className="flex items-center gap-4 self-center mt-5">
-        <img
-          src={post?.authorProfile || defaultProfilePic}
-          alt={post?.author}
-          className="w-10 h-10 rounded-full object-cover"
-          onError={(e) => {
-            e.target.src = defaultProfilePic;
-          }}
-        />
-        <div className="text-center">
-          <Link 
-            to={`/user/${post?.userId}`} 
-            className="font-medium hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
-          >
-            {post?.author}
-          </Link>
-          <div className="text-xs text-gray-500 dark:text-gray-400">
-            {post && new Date(post.createdAt).toLocaleDateString()} &bull; {readingTime} min read
-          </div>
-        </div>
-      </div>
-
-      {/* Category */}
+      {/* Category - moved up to top */}
       <Link
         to={`/search?category=${post?.category}`}
         className='self-center mt-3'
@@ -211,7 +186,7 @@ export default function PostPage() {
         </Button>
       </Link>
 
-      {/* Post image - now matches the wider content width */}
+      {/* Post image */}
       <div className="mt-10 w-full max-w-4xl mx-auto">
         {post?.image && (
           <img
@@ -253,21 +228,51 @@ export default function PostPage() {
         </div>
       </div>
 
-      {/* Post content - now wider to match image */}
+      {/* Post content */}
       <div
         className='p-3 max-w-4xl mx-auto w-full post-content dark:prose-invert prose'
         dangerouslySetInnerHTML={{ __html: post?.content }}
       ></div>
 
+      {/* Author section - moved below post content */}
+      <div className="max-w-4xl mx-auto w-full mt-10 p-5 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-4">
+          <img
+            src={post?.authorProfile || defaultProfilePic}
+            alt={post?.author}
+            className="w-16 h-16 rounded-full object-cover"
+            onError={(e) => {
+              e.target.src = defaultProfilePic;
+            }}
+          />
+          <div>
+            <Link 
+              to={`/user/${post?.userId}`} 
+              className="font-medium text-lg hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
+            >
+              {post?.author}
+            </Link>
+            <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              Published on {post && new Date(post.createdAt).toLocaleDateString()} &bull; {readingTime} min read
+            </div>
+            {post?.authorBio && (
+              <p className="mt-2 text-gray-600 dark:text-gray-300">
+                {post.authorBio}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Call to action */}
-      <div className='max-w-4xl mx-auto w-full'>
+      <div className='max-w-4xl mx-auto w-full mt-10'>
         <CallToAction />
       </div>
 
       {/* Comment section */}
       <CommentSection postId={post._id} />
 
-      {/* Recommended articles - always shows 3 posts */}
+      {/* Recommended articles */}
       <div className='flex flex-col justify-center items-center mb-5 mt-10'>
         <h1 className='text-xl mb-5'>Recommended articles</h1>
         <div className='flex flex-wrap gap-5 justify-center w-full max-w-6xl'>

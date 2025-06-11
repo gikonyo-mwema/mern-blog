@@ -5,22 +5,10 @@ const courseSchema = new mongoose.Schema(
     title: {
       type: String,
       required: [true, 'Course title is required'],
+      unique: true,
       trim: true,
       minlength: 5,
       maxlength: 100,
-    },
-    slug: {
-      type: String,
-      required: [true, 'Slug is required'],
-      unique: true,
-      trim: true,
-      lowercase: true,
-      match: [/^[a-z0-9-]+$/, 'Slug can only contain letters, numbers and hyphens']
-    },
-    shortDescription: {
-      type: String,
-      required: [true, 'Short description is required'],
-      maxlength: 150
     },
     description: {
       type: String,
@@ -32,48 +20,55 @@ const courseSchema = new mongoose.Schema(
       required: [true, 'Course price is required'],
       min: [0, 'Price must be a positive number'],
     },
-    externalUrl: {
-      type: String,
-      required: [true, 'External URL is required'],
-      match: [/https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/, 'Please enter a valid URL']
-    },
     isPopular: {
       type: Boolean,
       default: false,
     },
     paymentOption: {
       type: String,
-      enum: ['one-time', 'subscription'],
-      default: 'one-time'
+      trim: true,
+      maxlength: 100,
+      // e.g. "or 2 payments of KES 10,000"
     },
     features: {
       type: [String],
-      required: [true, 'At least one feature is required'],
+      default: [],
       validate: {
-        validator: features => features.length > 0,
-        message: 'At least one feature is required'
-      }
+        validator: function (arr) {
+          return arr.length > 0;
+        },
+        message: 'At least one feature is required',
+      },
     },
     cta: {
       type: String,
       default: 'Enroll Now',
       maxlength: 50,
     },
-    iconName: {
+    thumbnail: {
+      type: String, // URL to image
+      default: '',
+    },
+    slug: {
       type: String,
-      default: 'HiOutlineAcademicCap'
-    }
+      unique: true,
+      trim: true,
+      lowercase: true,
+    },
   },
-  { 
-    timestamps: true,
-    toJSON: { virtuals: true },
-    toObject: { virtuals: true }
-  }
+  { timestamps: true }
 );
 
-// Remove auto-slug generation since we'll validate it manually
-// Indexes for better query performance
-courseSchema.index({ title: 1, slug: 1, isPopular: 1 });
+// Auto-generate slug from title
+courseSchema.pre('save', function (next) {
+  if (!this.slug && this.title) {
+    this.slug = this.title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+  }
+  next();
+});
 
 const Course = mongoose.model('Course', courseSchema);
 
