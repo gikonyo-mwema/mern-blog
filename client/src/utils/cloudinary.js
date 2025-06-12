@@ -3,21 +3,19 @@
  * Handles all Cloudinary image operations including uploads, URL generation, and transformations
  */
 
-// Configuration with fallbacks and validation
+// Configuration using Vite environment variables
 const cloudinaryConfig = {
-  cloudName: import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 
-             process.env.REACT_APP_CLOUDINARY_CLOUD_NAME,
-  uploadPreset: import.meta.env.VITE_UPLOAD_PRESET || 
-               process.env.REACT_APP_UPLOAD_PRESET,
+  cloudName: import.meta.env.VITE_CLOUDINARY_CLOUD_NAME,
+  uploadPreset: import.meta.env.VITE_UPLOAD_PRESET,
   defaultImage: 'v1745060667/uploads/zsowafnaoebrvrivbca8', // Your default image ID
   defaultFolder: 'blog_uploads'
 };
 
 // Validate configuration on load
 if (!cloudinaryConfig.cloudName || !cloudinaryConfig.uploadPreset) {
-  console.error('Missing Cloudinary configuration. Please set environment variables:');
-  console.error('VITE_CLOUDINARY_CLOUD_NAME or REACT_APP_CLOUDINARY_CLOUD_NAME');
-  console.error('VITE_UPLOAD_PRESET or REACT_APP_UPLOAD_PRESET');
+  console.error('Missing Cloudinary configuration. Please set the following Vite environment variables:');
+  console.error('VITE_CLOUDINARY_CLOUD_NAME');
+  console.error('VITE_UPLOAD_PRESET');
 }
 
 /**
@@ -28,8 +26,7 @@ if (!cloudinaryConfig.cloudName || !cloudinaryConfig.uploadPreset) {
  */
 export const getCloudinaryUrl = (imageId, options = {}) => {
   const { cloudName, defaultImage } = cloudinaryConfig;
-  
-  // Default transformations
+
   const defaultTransformations = {
     quality: 'auto',
     fetchFormat: 'auto',
@@ -38,27 +35,23 @@ export const getCloudinaryUrl = (imageId, options = {}) => {
     crop: options.crop || 'limit'
   };
 
-  // Build transformation string
   const transformationString = Object.entries(defaultTransformations)
     .filter(([_, value]) => value !== null)
     .map(([key, value]) => `${key}_${value}`)
     .join(',');
 
-  // Handle default image case
   if (!imageId) {
     return `https://res.cloudinary.com/${cloudName}/image/upload/${transformationString}/${defaultImage}`;
   }
 
-  // If already a Cloudinary URL, just optimize it
   if (imageId.includes('res.cloudinary.com')) {
     return imageId.replace('/upload/', `/upload/${transformationString}/`);
   }
 
-  // Handle different ID formats
-  const publicId = imageId.startsWith('uploads/') ? 
-                 imageId : 
-                 `${cloudinaryConfig.defaultFolder}/${imageId}`;
-  
+  const publicId = imageId.startsWith('uploads/')
+    ? imageId
+    : `${cloudinaryConfig.defaultFolder}/${imageId}`;
+
   return `https://res.cloudinary.com/${cloudName}/image/upload/${transformationString}/${publicId}`;
 };
 
@@ -69,19 +62,17 @@ export const getCloudinaryUrl = (imageId, options = {}) => {
  * @returns {Promise<object>} Upload result with URL and metadata
  */
 export const uploadToCloudinary = async (imageFile, options = {}) => {
-  const { cloudName, uploadPreset } = cloudinaryConfig;
-  
+  const { cloudName, uploadPreset, defaultFolder } = cloudinaryConfig;
+
   if (!cloudName || !uploadPreset) {
     throw new Error('Cloudinary configuration is incomplete');
   }
 
-  // Validate file type
   const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
   if (!validTypes.includes(imageFile.type)) {
     throw new Error('Invalid file type. Only JPEG, PNG, WEBP, and GIF are allowed');
   }
 
-  // Validate file size (max 5MB)
   if (imageFile.size > 5 * 1024 * 1024) {
     throw new Error('File size exceeds 5MB limit');
   }
@@ -89,9 +80,8 @@ export const uploadToCloudinary = async (imageFile, options = {}) => {
   const formData = new FormData();
   formData.append('file', imageFile);
   formData.append('upload_preset', uploadPreset);
-  formData.append('folder', options.folder || cloudinaryConfig.defaultFolder);
-  
-  // Add any additional tags
+  formData.append('folder', options.folder || defaultFolder);
+
   if (options.tags) {
     formData.append('tags', options.tags.join(','));
   }
@@ -101,7 +91,7 @@ export const uploadToCloudinary = async (imageFile, options = {}) => {
       `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
       {
         method: 'POST',
-        body: formData,
+        body: formData
       }
     );
 
@@ -111,7 +101,7 @@ export const uploadToCloudinary = async (imageFile, options = {}) => {
     }
 
     const data = await response.json();
-    
+
     return {
       url: data.secure_url,
       publicId: data.public_id,
@@ -120,7 +110,6 @@ export const uploadToCloudinary = async (imageFile, options = {}) => {
       format: data.format,
       bytes: data.bytes
     };
-
   } catch (error) {
     console.error('Cloudinary upload failed:', error);
     throw new Error(`Upload failed: ${error.message}`);
@@ -129,24 +118,25 @@ export const uploadToCloudinary = async (imageFile, options = {}) => {
 
 /**
  * Deletes image from Cloudinary
+ * Note: This endpoint requires authentication, so it won't work from the browser unless proxied via a server.
  * @param {string} publicId - Cloudinary public ID
  * @returns {Promise<object>} Deletion result
  */
 export const deleteFromCloudinary = async (publicId) => {
   const { cloudName } = cloudinaryConfig;
-  
+
   try {
     const response = await fetch(
       `https://api.cloudinary.com/v1_1/${cloudName}/image/destroy`,
       {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           public_id: publicId,
           invalidate: true
-        }),
+        })
       }
     );
 
@@ -170,12 +160,10 @@ export const getDefaultImageUrl = (options = {}) => {
   return getCloudinaryUrl(cloudinaryConfig.defaultImage, options);
 };
 
-// Utility for React components
+// Utility for React components or other usage
 export const Cloudinary = {
   getUrl: getCloudinaryUrl,
   upload: uploadToCloudinary,
   delete: deleteFromCloudinary,
   getDefault: getDefaultImageUrl
 };
-
-  
