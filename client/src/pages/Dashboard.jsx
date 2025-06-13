@@ -1,22 +1,22 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import DashSidebar from '../components/DashSidebar';
-import DashProfile from '../components/DashProfile';
-import DashPosts from '../components/DashPosts';
-import DashUsers from '../components/DashUsers';
-import DashComments from '../components/DashComments';
-import DashboardComponent from '../components/DashboardComponent';
-import DashServices from '../components/DashServices';
-import { DashCourses } from '../components/DashCourses';
+import DashSidebar from '../components/Admin/DashSidebar';
+import DashProfile from '../components/Admin/Users/DashProfile';
+import DashPosts from '../components/Admin/Posts/DashPosts';
+import DashUsers from '../components/Admin/Users/DashUsers';
+import DashComments from '../components/Admin/Comments/DashComments';
+import DashboardComponent from '../components/Admin/DashboardComponent';
+import DashServices from '../components/Admin/Services/DashServices';
+import { DashCourses } from '../components/Admin/Courses/DashCourses';
 import { useSelector } from 'react-redux';
-import UserCourses from '../components/UserCourses';
+//import UserCourses from '../components/UserCourses';
 import axios from 'axios';
 
 export default function Dashboard() {
   const location = useLocation();
   const { currentUser } = useSelector((state) => state.user);
   const [tab, setTab] = useState('profile');
-  const [purchasedCourses, setPurchasedCourses] = useState([]);
+  //const [purchasedCourses, setPurchasedCourses] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -27,26 +27,25 @@ export default function Dashboard() {
     }
   }, [location.search]);
 
-  useEffect(() => {
-    if (currentUser) {
-      const fetchPurchasedCourses = async () => {
-        try {
-          const res = await axios.get(`/api/user/${currentUser._id}/courses`, {
-            withCredentials: true,
-            headers: {
-              Authorization: `Bearer ${currentUser.token}`
-            }
-          });
-          setPurchasedCourses(res.data);
-        } catch (err) {
-          console.error('Error fetching purchased courses:', err);
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchPurchasedCourses();
-    }
-  }, [currentUser]);
+  //useEffect(() => {
+   // if (currentUser) {
+      //const fetchPurchasedCourses = async () => {
+       // try {
+       //   const res = await axios.get(`/api/user/${currentUser._id}/courses`, {
+        //    withCredentials: true,
+        //    headers: {
+        //      Authorization: `Bearer ${currentUser.token}`
+        //    }
+        //  });
+        //  setPurchasedCourses(res.data);
+        //} catch (err) {
+        //  console.error('Error fetching purchased courses:', err);
+     //   } finally {
+//setLoading(false);
+    //    }
+    //  };
+     // fetchPurchasedCourses();
+   // }
 
   return (
     <div className='min-h-screen flex flex-col md:flex-row'>
@@ -61,7 +60,7 @@ export default function Dashboard() {
         {tab === 'dash' && <DashboardComponent />}
         {tab === 'services' && <DashServices />}
         {tab === 'courses' && <DashCourses />}
-        {tab === 'user-courses' && <UserCourses purchasedCourses={purchasedCourses} loading={loading} />}
+        {/*{tab === 'user-courses' && <UserCourses purchasedCourses={purchasedCourses} loading={loading} />} */}
       </div>
     </div>
   );
