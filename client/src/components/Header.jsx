@@ -4,7 +4,7 @@ import { AiOutlineSearch } from "react-icons/ai";
 import { FaMoon, FaSun } from "react-icons/fa";
 import { useSelector, useDispatch } from "react-redux";
 import { toggleTheme } from "../redux/theme/themeSlice";
-import { signoutSuccess } from "../redux/user/userSlice";
+import { signOut } from "../redux/user/userSlice"; // Changed from signoutSuccess to signOut
 import { useEffect, useState } from "react";
 
 export default function Header() {
@@ -26,13 +26,8 @@ export default function Header() {
 
   const handleSignout = async () => {
     try {
-      const res = await fetch("/api/user/signout", { method: "POST" });
-      const data = await res.json();
-      if (res.ok) {
-        dispatch(signoutSuccess());
-      } else {
-        console.error(data.message);
-      }
+      await dispatch(signOut()).unwrap(); // Using the signOut thunk directly
+      navigate("/sign-in");
     } catch (error) {
       console.error("Sign-out failed:", error.message);
     }
@@ -48,23 +43,21 @@ export default function Header() {
   return (
     <header className="bg-gray-50 dark:bg-gray-800 shadow-sm sticky top-0 z-50">
       {/* Top Quote Bar */}
-      {/* Top Quote Bar */}
-<div className="bg-indigo-50 dark:bg-gray-700 py-2 px-4 text-center">
-  <p className="text-sm italic text-indigo-600 dark:text-indigo-300 inline">
-    "Empowering a sustainable future through expert environmental consulting"{" "}
-    <Link 
-      to="/about" 
-      className="text-xs text-indigo-500 dark:text-indigo-400 hover:underline inline"
-    >
-      Learn more →
-    </Link>
-  </p>
-</div>
-    
+      <div className="bg-indigo-50 dark:bg-gray-700 py-2 px-4 text-center">
+        <p className="text-sm italic text-indigo-600 dark:text-indigo-300 inline">
+          "Empowering a sustainable future through expert environmental consulting"{" "}
+          <Link 
+            to="/about" 
+            className="text-xs text-indigo-500 dark:text-indigo-400 hover:underline inline"
+          >
+            Learn more →
+          </Link>
+        </p>
+      </div>
 
       {/* Main Navbar */}
       <Navbar fluid rounded className="border-b border-gray-200 dark:border-gray-700 max-w-7xl mx-auto px-4 py-3">
-        {/* Logo Section - Combined logo and name */}
+        {/* Logo Section */}
         <Navbar.Brand as={Link} to="/" className="flex items-center space-x-2">
           <img
             src="https://res.cloudinary.com/dcrubaesi/image/upload/v1737333837/ECODEED_COLORED_LOGO_wj2yy8.png"
