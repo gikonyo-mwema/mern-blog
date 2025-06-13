@@ -1,9 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { Sidebar, Tooltip } from "flowbite-react";
-
-
-DashboardComponent.jsx
-
 import { 
   HiUser, 
   HiArrowSmRight, 
@@ -19,11 +15,8 @@ import {
   HiOutlineTrendingUp
 } from "react-icons/hi";
 import { useLocation, useNavigate } from "react-router-dom";
-import { signoutSuccess } from "../../redux/user/userSlice.js";
-
-// import { signoutSuccess } from "../redux/user/userSlice.js";
 import { useDispatch, useSelector } from "react-redux";
-
+import { signOut } from "../../redux/user/userSlice"; // Import the signOut thunk
 
 export default function DashSidebar() {
   const location = useLocation();
@@ -44,17 +37,8 @@ export default function DashSidebar() {
 
   const handleSignOut = async () => {
     try {
-      const res = await fetch("/api/user/signout", {
-        method: "POST",
-      });
-      const data = res.ok ? await res.json() : await res.text();
-
-      if (!res.ok) {
-        console.error(data.message || "Sign out failed");
-      } else {
-        dispatch(signoutSuccess());
-        navigate("/sign-in");
-      }
+      await dispatch(signOut()).unwrap();
+      navigate("/sign-in");
     } catch (error) {
       console.error("Sign out error:", error.message);
     }
@@ -75,7 +59,6 @@ export default function DashSidebar() {
     }
   };
 
-  // Admin tabs configuration for better maintainability
   const adminTabs = [
     { id: "dash", name: "Dashboard", icon: HiChartPie },
     { id: "posts", name: "Posts", icon: HiDocumentText },
@@ -89,7 +72,6 @@ export default function DashSidebar() {
 
   return (
     <>
-      {/* Mobile menu button */}
       <button 
         onClick={toggleSidebar}
         className="md:hidden fixed top-4 left-4 z-50 p-2 rounded-md bg-gray-200 dark:bg-gray-700"
@@ -103,12 +85,11 @@ export default function DashSidebar() {
       >
         <Sidebar.Items>
           <Sidebar.ItemGroup className="flex flex-col gap-1">
-            {/* Profile always visible */}
             <Tooltip content="Profile" placement="right" trigger={collapsed ? "hover" : null}>
               <Sidebar.Item
                 active={tab === "profile"}
                 icon={HiUser}
-                label={currentUser.isAdmin ? "Admin" : "User"}
+                label={currentUser?.isAdmin ? "Admin" : "User"}
                 labelColor="dark"
                 onClick={() => handleTabClick("profile")}
                 as="div"
@@ -118,8 +99,7 @@ export default function DashSidebar() {
               </Sidebar.Item>
             </Tooltip>
 
-            {/* Admin-only tabs */}
-            {currentUser.isAdmin && adminTabs.map((item) => (
+            {currentUser?.isAdmin && adminTabs.map((item) => (
               <Tooltip key={item.id} content={item.name} placement="right" trigger={collapsed ? "hover" : null}>
                 <Sidebar.Item
                   active={tab === item.id || (!tab && item.id === "dash")}
@@ -133,7 +113,6 @@ export default function DashSidebar() {
               </Tooltip>
             ))}
 
-            {/* Sign out */}
             <Tooltip content="Sign Out" placement="right" trigger={collapsed ? "hover" : null}>
               <Sidebar.Item
                 icon={HiArrowSmRight}
@@ -147,7 +126,6 @@ export default function DashSidebar() {
           </Sidebar.ItemGroup>
         </Sidebar.Items>
 
-        {/* Collapse toggle button (desktop only) */}
         {!mobileOpen && (
           <button 
             onClick={toggleSidebar}
@@ -162,7 +140,6 @@ export default function DashSidebar() {
         )}
       </Sidebar>
 
-      {/* Overlay for mobile */}
       {mobileOpen && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
