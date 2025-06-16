@@ -1,38 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  HiOutlineClipboardCheck, HiOutlineChartBar, HiOutlineShieldCheck,
-  HiOutlineDocumentText, HiOutlineUsers, HiOutlineGlobe
-} from 'react-icons/hi';
-import { Button, Badge } from 'flowbite-react';
+import { Button, Badge, Spinner, Alert } from 'flowbite-react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import ServiceCard from '../components/ServiceCard';
 
-const ServiceCard = ({ service }) => {
-  return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-teal-100 dark:border-gray-700 transition-all hover:shadow-lg dark:hover:shadow-gray-700/50">
-      <div className="p-6">
-        <div className="flex justify-center text-4xl mb-3 text-teal-600 dark:text-teal-400">
-          {service.icon || '📋'}
-        </div>
-        <h3 className="text-xl font-bold text-teal-800 dark:text-teal-300 mb-3 text-center">
-          {service.title}
-        </h3>
-        <p className="text-gray-600 dark:text-gray-300 mb-4 text-center">
-          {service.description}
-        </p>
-        <div className="mt-6 flex justify-center">
-          <Link to={`/service/${service._id}`}>
-            <Button outline gradientDuoTone="tealToLime" size="sm">
-              Learn More
-            </Button>
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default function Services() {
+const Services = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,11 +13,10 @@ export default function Services() {
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const res = await axios.get('http://localhost:3000/api/services');
-        setServices(res.data);
+        const { data } = await axios.get('/api/services');
+        setServices(data);
       } catch (err) {
-        setError(err.message);
-        console.error('Error fetching services:', err);
+        setError(err.response?.data?.message || err.message);
       } finally {
         setLoading(false);
       }
@@ -58,18 +29,18 @@ export default function Services() {
     : services.filter(service => service.category === activeTab);
 
   const categories = [
-    { id: 'all', name: 'All Services' },
-    { id: 'assessments', name: 'Assessments' },
-    { id: 'compliance', name: 'Compliance' },
-    { id: 'safeguards', name: 'Safeguards' },
-    { id: 'planning', name: 'Planning' },
-    { id: 'sustainability', name: 'Sustainability' }
+    { id: 'all', name: 'All Services', icon: '🌐' },
+    { id: 'assessments', name: 'Assessments', icon: '📊' },
+    { id: 'compliance', name: 'Compliance', icon: '✅' },
+    { id: 'safeguards', name: 'Safeguards', icon: '🛡️' },
+    { id: 'planning', name: 'Planning', icon: '🗺️' },
+    { id: 'sustainability', name: 'Sustainability', icon: '♻️' }
   ];
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500 dark:border-teal-400"></div>
+        <Spinner size="xl" aria-label="Loading services..." />
       </div>
     );
   }
@@ -77,16 +48,16 @@ export default function Services() {
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-red-500 dark:text-red-400 text-center p-4">
-          Failed to load services. Please try again later.
+        <Alert color="failure" className="max-w-md mx-4">
+          <span className="font-medium">Error loading services:</span> {error}
           <Button 
             gradientDuoTone="tealToLime" 
-            className="mt-4"
             onClick={() => window.location.reload()}
+            className="mt-4"
           >
-            Retry
+            Try Again
           </Button>
-        </div>
+        </Alert>
       </div>
     );
   }
@@ -94,48 +65,106 @@ export default function Services() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-teal-700 dark:text-teal-400 mb-4">Our Services</h1>
+        {/* Enhanced Header Section */}
+        <div className="text-center mb-16">
+          <Badge color="success" className="mb-4 mx-auto text-sm font-semibold">
+            OUR SERVICES
+          </Badge>
+          <h1 className="text-4xl md:text-5xl font-bold text-teal-800 dark:text-teal-300 mb-4">
+            Environmental Impact Solutions
+          </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-            Expert environmental compliance and sustainability solutions.
+            Helping your project move forward—the right way. Comprehensive environmental services to ensure compliance and sustainability.
           </p>
         </div>
 
-        <div className="flex flex-wrap justify-center gap-2 mb-8">
+        {/* Category Filtering */}
+        <div className="flex flex-wrap justify-center gap-3 mb-12">
           {categories.map(category => (
-            <Badge
+            <Button
               key={category.id}
               color={activeTab === category.id ? 'success' : 'gray'}
               onClick={() => setActiveTab(category.id)}
-              className="cursor-pointer px-4 py-2 rounded-full"
+              pill
+              size="lg"
+              className="flex items-center gap-2"
             >
+              <span className="text-lg">{category.icon}</span>
               {category.name}
-            </Badge>
+            </Button>
           ))}
         </div>
 
+        {/* Services Grid */}
         {filteredServices.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
             {filteredServices.map(service => (
-              <ServiceCard key={service._id} service={service} />
+              <ServiceCard 
+                key={service._id} 
+                service={service}
+                onClick={() => window.location.href = `/services/${service._id}`}
+              />
             ))}
           </div>
         ) : (
           <div className="text-center py-12">
-            <p className="text-gray-500 dark:text-gray-400">No services found in this category</p>
+            <p className="text-gray-500 dark:text-gray-400 mb-6">
+              No services found in this category
+            </p>
+            <Button 
+              color="light" 
+              onClick={() => setActiveTab('all')}
+            >
+              View All Services
+            </Button>
           </div>
         )}
 
-        <div className="bg-teal-700 dark:bg-teal-900 rounded-xl p-8 text-center text-white">
-          <h2 className="text-2xl font-bold mb-4">Need Custom Solutions?</h2>
-          <p className="mb-6 max-w-2xl mx-auto">
-            Contact us for tailored environmental consulting services.
-          </p>
-          <Button gradientDuoTone="tealToLime" size="lg" className="mx-auto">
-            Contact Us
+        {/* Custom Solutions CTA */}
+        <div className="bg-gradient-to-r from-teal-600 to-emerald-600 rounded-xl p-8 md:p-12 text-center text-white shadow-lg">
+          <div className="max-w-2xl mx-auto">
+            <h2 className="text-2xl md:text-3xl font-bold mb-4">
+              Need Custom Environmental Solutions?
+            </h2>
+            <p className="text-lg mb-6 opacity-90">
+              We tailor our services to meet your project's specific requirements and regulatory needs.
+            </p>
+            <div className="flex flex-wrap justify-center gap-4">
+              <Button 
+                gradientDuoTone="tealToLime" 
+                size="lg"
+                as={Link}
+                to="/contact"
+                className="min-w-[200px]"
+              >
+                Get a Quote
+              </Button>
+              <Button 
+                outline 
+                color="light"
+                size="lg"
+                as={Link}
+                to="/projects"
+                className="min-w-[200px]"
+              >
+                View Case Studies
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Back to Top (for long pages) */}
+        <div className="text-center mt-12">
+          <Button 
+            color="light" 
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          >
+            Back to Top
           </Button>
         </div>
       </div>
     </div>
   );
-}
+};
+
+export default Services;
