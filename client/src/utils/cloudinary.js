@@ -18,7 +18,7 @@ if (!cloudinaryConfig.cloudName || !cloudinaryConfig.uploadPreset) {
   console.error('VITE_UPLOAD_PRESET');
 }
 
-/**
+/** 
  * Generates optimized Cloudinary URL with transformations
  * @param {string} imageId - Cloudinary public ID or full URL
  * @param {object} options - Transformation options
