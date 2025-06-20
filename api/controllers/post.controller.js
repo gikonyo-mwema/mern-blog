@@ -14,7 +14,6 @@ export const create = async (req, res, next) => {
         return next(errorHandler(400, 'Title, content, and image URL are required'));
     }
 
-    // Validate Cloudinary URL format
     if (!image.startsWith('https://res.cloudinary.com/')) {
         return next(errorHandler(400, 'Invalid image URL format'));
     }
@@ -42,11 +41,11 @@ export const create = async (req, res, next) => {
     }
 };
 
-// GET POSTS (UPDATED VERSION)
+// GET POSTS
 export const getPosts = async (req, res, next) => {
     try {
-        const page = parseInt(req.query.page) || 1; // Get page from query
-        const limit = parseInt(req.query.limit) || 9; // Posts per page
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 9;
         const sortDirection = req.query.order === 'asc' ? 1 : -1;
 
         const query = {
@@ -57,9 +56,9 @@ export const getPosts = async (req, res, next) => {
             ...(req.query.searchTerm && {
                 $or: [
                     { title: { $regex: req.query.searchTerm, $options: 'i' } },
-                    { content: { $regex: req.query.searchTerm, $options: 'i' } },
-                ],
-            }),
+                    { content: { $regex: req.query.searchTerm, $options: 'i' } }
+                ]
+            })
         };
 
         const totalPosts = await Post.countDocuments(query);
@@ -70,11 +69,8 @@ export const getPosts = async (req, res, next) => {
             .sort({ updatedAt: sortDirection })
             .skip(skip)
             .limit(limit)
-            .populate({
-                path: 'userId',
-                select: 'username profilePicture'
-            })
-            .lean(); 
+            .populate('userId', 'username profilePicture')
+            .lean();
 
         const formattedPosts = posts.map(post => ({
             ...post,
@@ -88,15 +84,19 @@ export const getPosts = async (req, res, next) => {
         });
 
         res.status(200).json({
-            posts: formattedPosts,
-            totalPosts,
-            totalPages,
+            posts: formattedPosts || [],
+            totalPosts: totalPosts || 0,
+            totalPages: totalPages || 0,
             currentPage: page,
-            lastMonthPosts
+            lastMonthPosts: lastMonthPosts || 0
         });
     } catch (error) {
         console.error("Backend error in getPosts:", error);
-        next(errorHandler(500, 'Failed to fetch posts'));
+        res.status(500).json({
+            error: 'Failed to fetch posts',
+            message: error.message,
+            success: false
+        });
     }
 };
 
@@ -106,14 +106,11 @@ export const getTrendingPosts = async (req, res, next) => {
         const trendingPosts = await Post.find({
             createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
         })
-        .sort({ views: -1 })
-        .limit(5)
-        .populate({
-            path: 'userId',
-            select: 'username'
-        })
-        .select('title image slug views createdAt')
-        .lean();
+            .sort({ views: -1 })
+            .limit(5)
+            .populate('userId', 'username')
+            .select('title image slug views createdAt')
+            .lean();
 
         const formattedPosts = trendingPosts.map(post => ({
             ...post,
@@ -138,7 +135,7 @@ export const deletePost = async (req, res, next) => {
             return next(errorHandler(404, 'Post not found'));
         }
 
-        // Optional: Delete image from Cloudinary
+        // Optional: Delete image from Cloudinary if applicable
         // await cloudinary.uploader.destroy(post.imagePublicId);
 
         await Post.findByIdAndDelete(req.params.postId);
@@ -155,7 +152,7 @@ export const updatePost = async (req, res, next) => {
     }
 
     try {
-        const updateData = { 
+        const updateData = {
             ...req.body,
             ...(req.body.title && {
                 slug: req.body.title
@@ -181,3 +178,4 @@ export const updatePost = async (req, res, next) => {
         next(errorHandler(500, 'Failed to update post'));
     }
 };
+
