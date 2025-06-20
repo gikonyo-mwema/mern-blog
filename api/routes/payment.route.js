@@ -1,24 +1,9 @@
 import express from 'express';
-import {
-  initiatePesaPalPayment,
-  initiateFlutterwavePayment,
-  handlePesaPalIPN,
-  handleFlutterwaveWebhook,
-  checkPaymentStatus
-} from '../controllers/payment.controller.js';
-import { verifyToken } from '../utils/verifyUser.js'; 
+import { verifyPayment } from '../controllers/payment.controller.js';
+import { verifyUser } from '../utils/verifyUser.js';
 
 const router = express.Router();
 
-// Initiate payments
-router.post('/pesapal/initiate', verifyToken , initiatePesaPalPayment);
-router.post('/flutterwave/initiate', verifyToken , initiateFlutterwavePayment);
-
-// Payment callbacks
-router.post('/pesapal/ipn', handlePesaPalIPN);
-router.post('/flutterwave/webhook', handleFlutterwaveWebhook);
-
-// Check payment status
-router.get('/status/:itemId', verifyToken, checkPaymentStatus);
+router.post('/verify', verifyUser, verifyPayment);
 
 export default router;
