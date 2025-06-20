@@ -10,6 +10,12 @@ import { configureCloudinary } from './config/cloudinary.js';
 import errorHandler from './middleware/errorHandler.js';
 import notFound from './middleware/notFound.js';
 
+
+import paymentRoutes from './routes/payment.route.js';
+
+
+
+
 // Route imports
 import userRoutes from './routes/user.route.js';
 import authRoutes from './routes/auth.route.js';
@@ -57,6 +63,8 @@ app.use('/api/comments', commentRoutes);
 app.use('/api/courses', courseRoutes);  // Changed from '/api/course'
 app.use('/api/services', serviceRoutes); // Changed from '/api/service'
 app.use('/api/upload', uploadRouter);
+
+app.use('/api/payments', paymentRoutes); // Payment routes
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
