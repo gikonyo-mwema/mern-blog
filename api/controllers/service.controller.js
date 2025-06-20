@@ -1,5 +1,5 @@
 import Service from '../models/service.model.js';
-import { validateServiceData } from '../utils/serviceValidation.js';
+import { validateServiceData } from '../utils/serviceValidation.js'; 
 
 export const createService = async (req, res, next) => {
   try {
@@ -13,7 +13,7 @@ export const createService = async (req, res, next) => {
       });
     }
 
-    const {
+    const { 
       title,
       shortDescription,
       description,
