@@ -1,5 +1,7 @@
 import Service from '../models/service.model.js';
-import { validateServiceData } from '../utils/serviceValidation.js'; 
+import { validateServiceData } from '../utils/serviceValidation.js';
+import APIFeatures from '../utils/apiFeatures.js';
+import { cloneDeep } from 'lodash';
 
 export const createService = async (req, res, next) => {
   try {
@@ -13,54 +15,25 @@ export const createService = async (req, res, next) => {
       });
     }
 
-    const { 
-      title,
-      shortDescription,
-      description,
-      fullDescription,
-      category,
-      price,
-      icon,
-      heroText,
-      processSteps,
-      projectTypes,
-      benefits,
-      contactInfo,
-      features,
-      isFeatured,
-      calendlyLink,
-      socialLinks,
-      priceNote
-    } = req.body;
-
-    const newService = new Service({
-      title,
-      shortDescription: shortDescription || description.substring(0, 100) + '...',
-      description,
-      fullDescription: fullDescription || description,
-      category,
-      price: parseFloat(price) || 0,
-      icon: icon || '📋',
-      heroText: heroText || `Professional ${title} services`,
-      processSteps: processSteps || [],
-      projectTypes: projectTypes || [],
-      benefits: benefits || [],
-      contactInfo: contactInfo || {},
-      features: features || [],
-      isFeatured: isFeatured || false,
-      calendlyLink,
-      socialLinks: socialLinks || [],
-      priceNote,
-      image: req.body.image || '',
+    const serviceData = {
+      ...req.body,
       createdBy: req.user.id,
       lastUpdatedBy: req.user.id
-    });
+    };
 
-    const savedService = await newService.save();
+    // Handle process steps ordering
+    if (serviceData.processSteps) {
+      serviceData.processSteps = serviceData.processSteps.map((step, index) => ({
+        ...step,
+        order: index + 1
+      }));
+    }
+
+    const newService = await Service.create(serviceData);
     
     res.status(201).json({
       success: true,
-      service: savedService
+      service: newService
     });
 
   } catch (error) {
@@ -70,83 +43,60 @@ export const createService = async (req, res, next) => {
 
 export const getServices = async (req, res, next) => {
   try {
-    const { 
-      limit = 9, 
-      page = 1, 
-      sort = 'createdAt', 
-      order = 'desc',
-      category,
-      search,
-      minPrice,
-      maxPrice,
-      featured
-    } = req.query;
+    // 1. Filtering
+    const queryObj = { ...req.query };
+    const excludedFields = ['page', 'sort', 'limit', 'fields', 'search'];
+    excludedFields.forEach(el => delete queryObj[el]);
 
+    // 2. Advanced filtering
+    let queryStr = JSON.stringify(queryObj);
+    queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, match => `$${match}`);
+    
+    let query = Service.find(JSON.parse(queryStr));
+
+    // 3. Search
+    if (req.query.search) {
+      query = query.find({
+        $text: { $search: req.query.search },
+        score: { $meta: "textScore" }
+      }).sort({ score: { $meta: "textScore" } });
+    }
+
+    // 4. Sorting
+    if (req.query.sort) {
+      const sortBy = req.query.sort.split(',').join(' ');
+      query = query.sort(sortBy);
+    } else {
+      query = query.sort('-createdAt');
+    }
+
+    // 5. Field limiting
+    if (req.query.fields) {
+      const fields = req.query.fields.split(',').join(' ');
+      query = query.select(fields);
+    } else {
+      query = query.select('-__v');
+    }
+
+    // 6. Pagination
+    const page = req.query.page * 1 || 1;
+    const limit = req.query.limit * 1 || 10;
     const skip = (page - 1) * limit;
-    const sortOption = { [sort]: order === 'desc' ? -1 : 1 };
 
-    // Build query
-    const query = {};
-    
-    if (category) {
-      query.category = category;
-    }
-    
-    if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-        { shortDescription: { $regex: search, $options: 'i' } }
-      ];
-    }
+    query = query.skip(skip).limit(limit);
 
-    if (minPrice || maxPrice) {
-      query.price = {};
-      if (minPrice) query.price.$gte = parseFloat(minPrice);
-      if (maxPrice) query.price.$lte = parseFloat(maxPrice);
-    }
-
-    if (featured === 'true') {
-      query.isFeatured = true;
-    }
-
-    const [services, totalServices] = await Promise.all([
-      Service.find(query)
-        .sort(sortOption)
-        .skip(skip)
-        .limit(parseInt(limit))
-        .lean(),
-      Service.countDocuments(query)
-    ]);
-
-    // Calculate statistics
-    const lastMonth = new Date();
-    lastMonth.setMonth(lastMonth.getMonth() - 1);
-    const stats = await Promise.all([
-      Service.countDocuments({
-        ...query,
-        createdAt: { $gte: lastMonth }
-      }),
-      Service.aggregate([
-        { $match: query },
-        { $group: { _id: null, avgPrice: { $avg: "$price" } } }
-      ]),
-      Service.distinct('category', query)
-    ]);
+    // Execute query
+    const services = await query;
+    const total = await Service.countDocuments(JSON.parse(queryStr));
 
     res.status(200).json({
       success: true,
-      services,
-      stats: {
-        lastMonth: stats[0],
-        avgPrice: stats[1][0]?.avgPrice || 0,
-        categories: stats[2]
-      },
-      pagination: {
-        total: totalServices,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        pages: Math.ceil(totalServices / limit)
+      results: services.length,
+      data: {
+        services,
+        total,
+        pages: Math.ceil(total / limit),
+        currentPage: page
       }
     });
 
@@ -159,9 +109,8 @@ export const getService = async (req, res, next) => {
   try {
     const service = await Service.findById(req.params.id)
       .populate('createdBy', 'name email')
-      .populate('lastUpdatedBy', 'name email')
-      .lean();
-    
+      .populate('lastUpdatedBy', 'name email');
+
     if (!service) {
       return res.status(404).json({ 
         success: false,
@@ -169,18 +118,11 @@ export const getService = async (req, res, next) => {
       });
     }
 
-    // Get related services
-    const relatedServices = await Service.find({
-      category: service.category,
-      _id: { $ne: service._id }
-    })
-    .limit(3)
-    .lean();
-
     res.status(200).json({
       success: true,
-      service,
-      relatedServices
+      data: {
+        service
+      }
     });
 
   } catch (error) {
@@ -229,21 +171,12 @@ export const updateService = async (req, res, next) => {
       updatedAt: new Date()
     };
 
-    // Handle array fields properly
+    // Handle process steps reordering
     if (updates.processSteps) {
-      serviceUpdates.processSteps = updates.processSteps;
-    }
-    if (updates.projectTypes) {
-      serviceUpdates.projectTypes = updates.projectTypes;
-    }
-    if (updates.benefits) {
-      serviceUpdates.benefits = updates.benefits;
-    }
-    if (updates.features) {
-      serviceUpdates.features = updates.features;
-    }
-    if (updates.socialLinks) {
-      serviceUpdates.socialLinks = updates.socialLinks;
+      serviceUpdates.processSteps = updates.processSteps.map((step, index) => ({
+        ...step,
+        order: index + 1
+      }));
     }
 
     const updatedService = await Service.findByIdAndUpdate(
@@ -251,14 +184,15 @@ export const updateService = async (req, res, next) => {
       serviceUpdates,
       { 
         new: true,
-        runValidators: true,
-        lean: true
+        runValidators: true
       }
     ).populate('lastUpdatedBy', 'name email');
 
     res.status(200).json({
       success: true,
-      service: updatedService
+      data: {
+        service: updatedService
+      }
     });
 
   } catch (error) {
@@ -287,52 +221,200 @@ export const deleteService = async (req, res, next) => {
       });
     }
 
-    // Soft delete option
-    if (process.env.SOFT_DELETE === 'true') {
-      await Service.findByIdAndUpdate(id, {
-        isDeleted: true,
-        deletedAt: new Date(),
-        deletedBy: req.user.id
+    await Service.findByIdAndUpdate(id, {
+      isDeleted: true,
+      deletedAt: new Date(),
+      deletedBy: req.user.id
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Service marked as deleted'
+    });
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+// New controller methods for dashboard
+export const getServiceStats = async (req, res, next) => {
+  try {
+    const stats = await Service.aggregate([
+      {
+        $facet: {
+          totalServices: [{ $count: "count" }],
+          publishedServices: [{ $match: { isPublished: true } }, { $count: "count" }],
+          draftServices: [{ $match: { isPublished: false } }, { $count: "count" }],
+          featuredServices: [{ $match: { isFeatured: true } }, { $count: "count" }],
+          byCategory: [
+            { $group: { _id: "$category", count: { $sum: 1 } } }
+          ],
+          recentServices: [
+            { $sort: { createdAt: -1 } },
+            { $limit: 5 },
+            { $project: { title: 1, createdAt: 1, isPublished: 1 } }
+          ]
+        }
+      }
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: stats[0]
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const publishService = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const service = await Service.findByIdAndUpdate(
+      id,
+      { isPublished: true, lastUpdatedBy: req.user.id },
+      { new: true }
+    );
+
+    if (!service) {
+      return res.status(404).json({
+        success: false,
+        message: 'Service not found'
       });
-    } else {
-      await Service.findByIdAndDelete(id);
     }
 
     res.status(200).json({
       success: true,
-      message: process.env.SOFT_DELETE === 'true' 
-        ? 'Service marked as deleted' 
-        : 'Service deleted successfully'
-    });
-
-  } catch (error) {
-    next(error);
-  }
-};
-
-// Additional controller methods
-export const getFeaturedServices = async (req, res, next) => {
-  try {
-    const services = await Service.find({ isFeatured: true })
-      .limit(6)
-      .lean();
-
-    res.status(200).json({
-      success: true,
-      services
+      data: {
+        service
+      }
     });
   } catch (error) {
     next(error);
   }
 };
 
-export const getServiceCategories = async (req, res, next) => {
+export const duplicateService = async (req, res, next) => {
   try {
-    const categories = await Service.distinct('category');
+    const { id } = req.params;
     
+    const originalService = await Service.findById(id);
+    if (!originalService) {
+      return res.status(404).json({
+        success: false,
+        message: 'Service not found'
+      });
+    }
+
+    // Create a deep copy of the service
+    const serviceData = cloneDeep(originalService.toObject());
+    delete serviceData._id;
+    delete serviceData.slug;
+    delete serviceData.createdAt;
+    delete serviceData.updatedAt;
+    
+    // Modify the title to indicate it's a copy
+    serviceData.title = `Copy of ${serviceData.title}`;
+    serviceData.createdBy = req.user.id;
+    serviceData.lastUpdatedBy = req.user.id;
+    serviceData.isPublished = false;
+
+    const newService = await Service.create(serviceData);
+
+    res.status(201).json({
+      success: true,
+      data: {
+        service: newService
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getServiceHistory = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    
+    const service = await Service.findById(id)
+      .select('versionHistory title')
+      .populate('versionHistory.changedBy', 'name email');
+
+    if (!service) {
+      return res.status(404).json({
+        success: false,
+        message: 'Service not found'
+      });
+    }
+
     res.status(200).json({
       success: true,
-      categories
+      data: {
+        service: service.title,
+        history: service.versionHistory
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const bulkUpdateServices = async (req, res, next) => {
+  try {
+    const { ids, action } = req.body;
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide service IDs to update'
+      });
+    }
+
+    let update;
+    let message;
+
+    switch (action) {
+      case 'publish':
+        update = { isPublished: true, lastUpdatedBy: req.user.id };
+        message = 'Services published successfully';
+        break;
+      case 'unpublish':
+        update = { isPublished: false, lastUpdatedBy: req.user.id };
+        message = 'Services unpublished successfully';
+        break;
+      case 'feature':
+        update = { isFeatured: true, lastUpdatedBy: req.user.id };
+        message = 'Services featured successfully';
+        break;
+      case 'unfeature':
+        update = { isFeatured: false, lastUpdatedBy: req.user.id };
+        message = 'Services unfeatured successfully';
+        break;
+      case 'delete':
+        update = { isDeleted: true, deletedAt: new Date(), deletedBy: req.user.id };
+        message = 'Services marked as deleted successfully';
+        break;
+      default:
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid action specified'
+        });
+    }
+
+    const result = await Service.updateMany(
+      { _id: { $in: ids } },
+      update
+    );
+
+    res.status(200).json({
+      success: true,
+      message,
+      data: {
+        matchedCount: result.n,
+        modifiedCount: result.nModified
+      }
     });
   } catch (error) {
     next(error);
