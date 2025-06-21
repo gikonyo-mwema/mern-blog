@@ -1,182 +1,233 @@
-import React, { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { 
-  HiOutlineAcademicCap,
-  HiOutlineCalendar,
+  HiOutlineTrendingUp,
+  HiOutlineUserCircle,
+  HiOutlineDocumentText,
+  HiOutlineShieldCheck,
+  HiOutlineOfficeBuilding,
+  HiOutlineTruck,
+  HiOutlineShoppingBag,
+  HiOutlineBadgeCheck,
+  HiOutlineGlobe,
+  HiOutlineLightningBolt,
+  HiOutlineScale,
+  HiOutlineClock,
   HiOutlineChartBar,
   HiOutlineClipboardCheck,
-  HiOutlineClock,
-  HiOutlineCurrencyDollar,
-  HiOutlineMail,
-  HiOutlineUserCircle
+  HiOutlineVideoCamera
 } from 'react-icons/hi';
 import { Button, Badge } from 'flowbite-react';
-import PaymentModal from '../components/PaymentModal';
+import { Link } from 'react-router-dom';
+import LoadingSpinner from '../components/LoadingSpinner';
+
+// Course categories with their respective icons
+const categoryIcons = {
+  specialized: HiOutlineTrendingUp,
+  masterclass: HiOutlineGlobe,
+  webinar: HiOutlineVideoCamera,
+  coaching: HiOutlineUserCircle,
+  compliance: HiOutlineShieldCheck,
+  licensing: HiOutlineDocumentText
+};
 
 export default function Courses() {
-  const [selectedCourse, setSelectedCourse] = useState(null);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [courses, setCourses] = useState({
+    specialized: [],
+    masterclass: [],
+    webinar: null,
+    coaching: []
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const courseTiers = [
-    {
-      id: 1,
-      title: "Private Mentorship",
-      price: "Ksh 20,000",
-      paymentOption: "or 2 payments of Ksh 10,000",
-      badge: "Most Popular",
-      features: [
-        "Private onboarding call + custom mentorship plan",
-        "Unlimited Email/WhatsApp access during working hours",
-        "Full access to the online course + bonuses",
-        "Priority scheduling for 1:1 calls (up to 8 sessions)",
-        "Custom resources and templates"
-      ],
-      cta: "Book a discovery call with Mukami",
-      icon: <HiOutlineUserCircle className="w-8 h-8 mb-3 text-teal-600 dark:text-teal-400" />
-    },
-    {
-      id: 2,
-      title: "90-Day Mentorship + Course",
-      price: "Ksh 10,000",
-      features: [
-        "Full access to the complete online course",
-        "Bi-weekly group or 1:1 mentorship calls (6 sessions)",
-        "Accountability check-ins",
-        "Bonus templates and guides"
-      ],
-      cta: "Enroll Now",
-      icon: <HiOutlineCalendar className="w-8 h-8 mb-3 text-teal-600 dark:text-teal-400" />
-    },
-    {
-      id: 3,
-      title: "Self-Paced Course Only",
-      price: "Ksh 5,000",
-      features: [
-        "Full access to pre-recorded course",
-        "Downloadable worksheets and tools",
-        "Lifetime access + all bonuses",
-        "Option to book paid support sessions"
-      ],
-      cta: "Get Instant Access",
-      icon: <HiOutlineClock className="w-8 h-8 mb-3 text-teal-600 dark:text-teal-400" />
-    }
-  ];
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const res = await fetch('/api/courses/by-category');
+        const data = await res.json();
+        
+        if (res.ok) {
+          // Transform backend data to match frontend structure
+          const transformedData = {
+            specialized: data.filter(c => c.category === 'specialized'),
+            masterclass: data.filter(c => c.category === 'masterclass'),
+            webinar: data.find(c => c.category === 'webinar') || null,
+            coaching: data.filter(c => c.category === 'coaching')
+          };
+          setCourses(transformedData);
+        } else {
+          throw new Error(data.message || 'Failed to fetch courses');
+        }
+      } catch (err) {
+        console.error('Fetch error:', err);
+        setError(err.message);
+        // Fallback to local data if API fails
+        setCourses(getLocalCourses());
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const consultation = {
-    title: "90-Minute 'Pick My Brain' Session",
-    price: "Ksh 1,000",
-    description: "Got questions? Need clarity on a specific challenge? This 90-minute 1:1 session gives you direct insight and action steps.",
-    features: [
-      "Tailored strategy for your specific needs",
-      "Session recording (optional)",
-      "Immediate clarity and next steps"
-    ],
-    icon: <HiOutlineClipboardCheck className="w-8 h-8 mb-3 text-teal-600 dark:text-teal-400" />
+    fetchCourses();
+  }, []);
+
+  // Local data fallback
+  const getLocalCourses = () => {
+    return {
+      specialized: [
+        {
+          _id: '2.1',
+          title: "How to Start and Grow Your Environmental Consulting Business",
+          shortDescription: "Step-by-step guide to launching your consulting business",
+          features: ["Business setup guide", "Overcoming zero-experience", "Essential tools", "Scaling strategies"],
+          slug: "start-environmental-business",
+          price: 15000,
+          category: "specialized",
+          isPopular: true
+        },
+        // Add other courses from your original data...
+      ],
+      masterclass: [
+        // Add masterclass courses...
+      ],
+      webinar: {
+        _id: '4.1',
+        title: "Weekly Live Webinar: Environmental Approvals",
+        shortDescription: "Learn how to get approvals faster and avoid delays",
+        features: ["Process optimization", "Avoiding delays", "Case studies"],
+        slug: "approvals-webinar",
+        price: 0,
+        category: "webinar",
+        isLive: true
+      },
+      coaching: [
+        // Add coaching sessions...
+      ]
+    };
   };
 
-  const faqs = [
-    {
-      question: "Who is this mentorship program for?",
-      answer: "This program is designed for new, aspiring, and practicing environmental consultants who want to build a profitable and purpose-driven consultancy business."
-    },
-    {
-      question: "Can I join from outside Kenya?",
-      answer: "Yes! The entire program is online and accessible globally. All live calls are held via Zoom or Google Meet."
-    }
-  ];
+  if (loading) return <LoadingSpinner fullScreen />;
+  if (error) return <div className="text-red-500 text-center py-12">{error}</div>;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        {/* ... HERO, OVERVIEW, LEARNING SECTIONS ... */}
-
-        {/* Course Tiers */}
-        <div className="mb-16">
-          <h2 className="text-3xl font-bold text-teal-800 dark:text-teal-300 mb-8 text-center">Program Options</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {courseTiers.map((tier) => (
-              <div 
-                key={tier.id} 
-                className={`bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border ${
-                  tier.badge ? 'border-teal-300 dark:border-teal-500' : 'border-teal-100 dark:border-gray-700'
-                }`}
-              >
-                <div className="p-6">
-                  <div className="flex justify-between items-start">
-                    <div className="flex justify-center w-full">
-                      {tier.icon}
-                    </div>
-                    {tier.badge && (
-                      <Badge color="success" className="ml-2">
-                        {tier.badge}
-                      </Badge>
-                    )}
-                  </div>
-                  <h3 className="text-xl font-bold text-teal-800 dark:text-teal-300 mb-2 text-center">{tier.title}</h3>
-                  <p className="text-2xl font-bold text-center mb-2 dark:text-white">{tier.price}</p>
-                  {tier.paymentOption && (
-                    <p className="text-gray-500 dark:text-gray-400 text-center mb-4 text-sm">{tier.paymentOption}</p>
-                  )}
-                  <ul className="list-disc pl-5 space-y-2 text-gray-600 dark:text-gray-300 mb-6">
-                    {tier.features.map((feature, index) => (
-                      <li key={index}>{feature}</li>
-                    ))}
-                  </ul>
-                  <Button 
-                    gradientDuoTone={tier.badge ? "tealToLime" : "grayToGray"}
-                    className="w-full"
-                    onClick={() => {
-                      setSelectedCourse(tier);
-                      setShowPaymentModal(true);
-                    }}
-                  >
-                    {tier.cta}
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Consultation Option */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-8 mb-12 border border-teal-100 dark:border-gray-700">
-          <div className="flex flex-col md:flex-row gap-8 items-center">
-            <div className="md:w-1/3 flex justify-center">
-              {consultation.icon}
+        {/* Specialized Courses */}
+        {courses.specialized.length > 0 && (
+          <section className="mb-16">
+            <h2 className="text-3xl font-bold text-teal-800 dark:text-teal-300 mb-8 text-center">
+              Specialized Courses
+            </h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {courses.specialized.map((course) => (
+                <CourseCard key={course._id} course={course} />
+              ))}
             </div>
-            <div className="md:w-2/3">
-              <h2 className="text-2xl font-bold text-teal-800 dark:text-teal-300 mb-2">{consultation.title}</h2>
-              <p className="text-xl text-teal-600 dark:text-teal-400 mb-4">{consultation.price}</p>
-              <p className="text-gray-600 dark:text-gray-300 mb-4">{consultation.description}</p>
-              <ul className="list-disc pl-5 space-y-1 text-gray-600 dark:text-gray-300 mb-6">
-                {consultation.features.map((feature, index) => (
-                  <li key={index}>{feature}</li>
-                ))}
-              </ul>
-              <Button 
-                gradientDuoTone="tealToLime"
-                onClick={() => {
-                  setSelectedCourse(consultation);
-                  setShowPaymentModal(true);
-                }}
-              >
-                Book Your Session Now
-              </Button>
+          </section>
+        )}
+
+        {/* Free Masterclasses */}
+        {courses.masterclass.length > 0 && (
+          <section className="mb-16">
+            <h2 className="text-3xl font-bold text-teal-800 dark:text-teal-300 mb-8 text-center">
+              Free Masterclasses
+            </h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {courses.masterclass.map((course) => (
+                <CourseCard key={course._id} course={{ ...course, isFree: true }} />
+              ))}
             </div>
-          </div>
+          </section>
+        )}
+
+        {/* Weekly Webinar */}
+        {courses.webinar && (
+          <section className="mb-16">
+            <h2 className="text-3xl font-bold text-teal-800 dark:text-teal-300 mb-8 text-center">
+              Weekly Live Webinar
+            </h2>
+            <div className="max-w-3xl mx-auto">
+              <CourseCard course={{ ...courses.webinar, isLive: true }} />
+            </div>
+          </section>
+        )}
+
+        {/* Coaching Sessions */}
+        {courses.coaching.length > 0 && (
+          <section className="mb-16">
+            <h2 className="text-3xl font-bold text-teal-800 dark:text-teal-300 mb-8 text-center">
+              Coaching Sessions
+            </h2>
+            <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+              {courses.coaching.map((course) => (
+                <CourseCard key={course._id} course={course} />
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CourseCard({ course }) {
+  const IconComponent = categoryIcons[course.category] || HiOutlineDocumentText;
+  
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-teal-100 dark:border-gray-700 hover:shadow-lg transition-shadow duration-300 h-full flex flex-col">
+      <div className="p-6 flex flex-col h-full">
+        <div className="flex justify-center mb-4">
+          <IconComponent className="w-8 h-8 text-teal-600 dark:text-teal-400" />
         </div>
-
-        {/* ... ABOUT, FAQS, CTA SECTIONS ... */}
-
-        {/* Payment Modal */}
-        <PaymentModal
-          showModal={showPaymentModal}
-          setShowModal={setShowPaymentModal}
-          item={selectedCourse}
-          itemType="course"
-          onPaymentSuccess={() => {
-            console.log('Payment successful for:', selectedCourse?.title);
-          }}
-        />
+        
+        <h3 className="text-xl font-bold text-teal-800 dark:text-teal-300 mb-4 text-center flex-grow">
+          {course.title}
+        </h3>
+        
+        <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-3">
+          {course.shortDescription}
+        </p>
+        
+        <ul className="list-disc pl-5 space-y-2 text-gray-600 dark:text-gray-300 mb-6">
+          {course.features.slice(0, 3).map((feature, index) => (
+            <li key={index}>{feature}</li>
+          ))}
+        </ul>
+        
+        <div className="mt-auto">
+          <div className="flex flex-wrap gap-2 mb-3">
+            {course.isFree && (
+              <Badge color="success" className="inline-flex">
+                Free Masterclass
+              </Badge>
+            )}
+            {course.isLive && (
+              <Badge color="red" className="inline-flex">
+                Live Event
+              </Badge>
+            )}
+            {course.isPopular && (
+              <Badge color="info" className="inline-flex">
+                Popular
+              </Badge>
+            )}
+            {course.price > 0 && (
+              <Badge color="gray" className="inline-flex">
+                Ksh {course.price.toLocaleString()}
+              </Badge>
+            )}
+          </div>
+          
+          <Link to={`/courses/${course.slug}`}>
+            <Button 
+              color="light"
+              className="w-full border border-teal-600 text-teal-600 hover:bg-teal-50 dark:text-teal-300 dark:border-teal-300 dark:hover:bg-gray-700"
+            >
+              Learn More
+            </Button>
+          </Link>
+        </div>
       </div>
     </div>
   );
