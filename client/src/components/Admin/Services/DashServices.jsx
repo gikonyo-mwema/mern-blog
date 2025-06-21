@@ -1,422 +1,180 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useSelector } from 'react-redux';
 import { 
-  Table, Modal, Button, TextInput, Textarea, Select, Label, Alert, 
-  Badge, Tabs, Tab, Spinner
+  Button, Alert, Spinner, Modal, Dropdown, 
+  Badge, Tooltip, Checkbox 
 } from 'flowbite-react';
 import { 
-  HiOutlineExclamationCircle, HiOutlinePencilAlt, HiOutlinePlus, 
-  HiOutlineTrash, HiOutlineCheckCircle, HiOutlineXCircle,
-  HiOutlineCreditCard, HiOutlineCheck
+  HiOutlinePlus, HiOutlineTrash, HiOutlineDuplicate,
+  HiOutlineEye, HiOutlineSave, HiOutlineTemplate,
+  HiOutlineRefresh, HiOutlineCloudUpload, HiOutlineClock,
+  HiOutlineCheckCircle, HiOutlineXCircle, HiDotsVertical
 } from 'react-icons/hi';
-import { useSelector } from 'react-redux';
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import axios from 'axios';
-import PaymentModal from '../components/PaymentModal';
+import ServiceCard from './ServiceCard';
+import ServiceTable from './ServiceTable';
+import ServiceForm from './ServiceForm/ServiceFormTabs';
+import PaymentModal from '../../Modal/PaymentModal';
+import ImageOptimizer from '../../utils/ImageOptimizer';
+import HistoryModal from '../../Modal/HistoryModal';
+import TemplateModal from '../../Modal/TemplateModal';
+import useAutoSave from './hooks/useAutoSave';
+import { useServices } from './hooks/useServices';
 
-const ServiceCard = ({ service, onPurchaseClick }) => {
-  return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-teal-100 dark:border-gray-700 transition-all hover:shadow-lg dark:hover:shadow-gray-700/50 h-full flex flex-col">
-      <div className="p-6 flex-grow">
-        <div className="flex justify-center text-4xl mb-3 text-teal-600 dark:text-teal-400">
-          {service.icon || '📋'}
-        </div>
-        <h3 className="text-xl font-bold text-teal-800 dark:text-teal-300 mb-3 text-center">
-          {service.title}
-        </h3>
-        <p className="text-gray-600 dark:text-gray-300 mb-4 text-center line-clamp-3">
-          {service.shortDescription || service.description}
-        </p>
-        {service.price > 0 && (
-          <div className="text-center font-bold text-lg mb-4 text-green-700 dark:text-green-400">
-            KES {service.price.toLocaleString()}
-          </div>
-        )}
-      </div>
-      <div className="p-4 border-t border-gray-100 dark:border-gray-700">
-        <Button 
-          outline 
-          gradientDuoTone="tealToLime" 
-          size="sm" 
-          className="w-full"
-          onClick={() => onPurchaseClick(service)}
-        >
-          Learn More
-        </Button>
-      </div>
-    </div>
-  );
-};
-
-export default function DashServices() {
+const DashServices = () => {
   const { currentUser } = useSelector((state) => state.user);
-  const [services, setServices] = useState([]);
-  const [loading, setLoading] = useState({
-    table: true,
-    operation: false
-  });
+  const {
+    services,
+    loading,
+    alert,
+    fetchServices,
+    deleteService,
+    deleteMultipleServices,
+    publishMultipleServices,
+    duplicateService,
+    showAlert
+  } = useServices();
+
+  // State management
+  const [selectedServices, setSelectedServices] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [serviceToDelete, setServiceToDelete] = useState(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [currentService, setCurrentService] = useState(null);
-  const [alert, setAlert] = useState({
-    show: false,
-    message: '',
-    type: 'success'
-  });
-  const [selectedService, setSelectedService] = useState(null);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [activeTab, setActiveTab] = useState('basic');
+  const [draft, setDraft] = useState(null);
+  const [versionHistory, setVersionHistory] = useState([]);
 
+  // Auto-save hook
+  const { autoSave } = useAutoSave();
+
+  // Form state
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    shortDescription: '',
-    category: 'assessments',
-    features: [''],
     fullDescription: '',
-    heroText: '',
-    introduction: '',
-    icon: '📋',
+    category: '',
     price: 0,
-    processSteps: [{ title: '', description: '' }],
-    projectTypes: [''],
-    benefits: [{ title: '', description: '' }],
-    contactInfo: {
-      email: '',
-      phone: '',
-      website: ''
-    },
-    socialLinks: [{ platform: '', url: '' }],
-    calendlyLink: '',
-    isFeatured: false,
-    image: ''
+    // ... other initial fields
   });
 
-  const categories = [
-    { value: 'assessments', label: 'Assessments' },
-    { value: 'compliance', label: 'Compliance' },
-    { value: 'safeguards', label: 'Safeguards' },
-    { value: 'planning', label: 'Planning' },
-    { value: 'sustainability', label: 'Sustainability' }
-  ];
-
-  const socialPlatforms = [
-    { value: 'twitter', label: 'Twitter' },
-    { value: 'facebook', label: 'Facebook' },
-    { value: 'linkedin', label: 'LinkedIn' },
-    { value: 'instagram', label: 'Instagram' },
-    { value: 'youtube', label: 'YouTube' }
-  ];
-
-  useEffect(() => {
-    if (currentUser?.isAdmin) {
-      fetchServices();
-    }
-  }, [currentUser]);
-
-  const showAlert = (message, type = 'success', duration = 5000) => {
-    setAlert({ show: true, message, type });
-    setTimeout(() => setAlert({ ...alert, show: false }), duration);
-  };
-
-  const fetchServices = async () => {
+  // Fetch version history
+  const fetchVersionHistory = useCallback(async (serviceId) => {
     try {
-      setLoading(prev => ({ ...prev, table: true }));
-      const { data } = await axios.get('/api/services', {
-        withCredentials: true
-      });
-      setServices(data);
-    } catch (err) {
-      console.error('Error fetching services:', err);
-      showAlert(`Failed to load services: ${err.response?.data?.message || err.message}`, 'failure');
-    } finally {
-      setLoading(prev => ({ ...prev, table: false }));
-    }
-  };
-
-  const handlePurchaseClick = (service) => {
-    setSelectedService(service);
-    setShowPaymentModal(true);
-  };
-
-  const handlePaymentSuccess = () => {
-    showAlert(`Payment successful for: ${selectedService.title}`);
-  };
-
-  const handleEdit = (service) => {
-    setCurrentService(service);
-    setFormData({
-      title: service.title,
-      description: service.description,
-      shortDescription: service.shortDescription,
-      category: service.category,
-      features: service.features || [''],
-      fullDescription: service.fullDescription,
-      heroText: service.heroText,
-      introduction: service.introduction,
-      icon: service.icon || '📋',
-      price: service.price || 0,
-      processSteps: service.processSteps || [{ title: '', description: '' }],
-      projectTypes: service.projectTypes || [''],
-      benefits: service.benefits || [{ title: '', description: '' }],
-      contactInfo: service.contactInfo || {
-        email: '',
-        phone: '',
-        website: ''
-      },
-      socialLinks: service.socialLinks || [{ platform: '', url: '' }],
-      calendlyLink: service.calendlyLink,
-      isFeatured: service.isFeatured || false,
-      image: service.image || ''
-    });
-    setEditMode(true);
-    setShowModal(true);
-  };
-
-  const handleDelete = (id) => {
-    setServiceToDelete(id);
-    setShowDeleteModal(true);
-  };
-
-  const confirmDelete = async () => {
-    try {
-      setLoading(prev => ({ ...prev, operation: true }));
-      await axios.delete(`/api/services/${serviceToDelete}`, {
-        withCredentials: true
-      });
-      
-      setServices(services.filter(s => s._id !== serviceToDelete));
-      setShowDeleteModal(false);
-      showAlert('Service deleted successfully');
+      const { data } = await axios.get(`/api/services/${serviceId}/history`);
+      setVersionHistory(data);
     } catch (error) {
-      console.error('Delete failed:', error);
-      showAlert(`Delete failed: ${error.response?.data?.message || error.message}`, 'failure');
-    } finally {
-      setLoading(prev => ({ ...prev, operation: false }));
+      showAlert('Failed to load version history', 'failure');
     }
+  }, [showAlert]);
+
+  // Handle service selection
+  const toggleServiceSelection = (serviceId) => {
+    setSelectedServices(prev => 
+      prev.includes(serviceId) 
+        ? prev.filter(id => id !== serviceId)
+        : [...prev, serviceId]
+    );
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleContactInfoChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      contactInfo: {
-        ...prev.contactInfo,
-        [name]: value
-      }
-    }));
-  };
-
-  const handleProcessStepChange = (index, field, value) => {
-    const newSteps = [...formData.processSteps];
-    newSteps[index][field] = value;
-    setFormData(prev => ({ ...prev, processSteps: newSteps }));
-  };
-
-  const addProcessStep = () => {
-    setFormData(prev => ({
-      ...prev,
-      processSteps: [...prev.processSteps, { title: '', description: '' }]
-    }));
-  };
-
-  const removeProcessStep = (index) => {
-    if (formData.processSteps.length > 1) {
-      setFormData(prev => ({
-        ...prev,
-        processSteps: prev.processSteps.filter((_, i) => i !== index)
-      }));
-    }
-  };
-
-  const handleProjectTypeChange = (index, value) => {
-    const newTypes = [...formData.projectTypes];
-    newTypes[index] = value;
-    setFormData(prev => ({ ...prev, projectTypes: newTypes }));
-  };
-
-  const addProjectType = () => {
-    setFormData(prev => ({
-      ...prev,
-      projectTypes: [...prev.projectTypes, '']
-    }));
-  };
-
-  const removeProjectType = (index) => {
-    if (formData.projectTypes.length > 1) {
-      setFormData(prev => ({
-        ...prev,
-        projectTypes: prev.projectTypes.filter((_, i) => i !== index)
-      }));
-    }
-  };
-
-  const handleBenefitChange = (index, field, value) => {
-    const newBenefits = [...formData.benefits];
-    newBenefits[index][field] = value;
-    setFormData(prev => ({ ...prev, benefits: newBenefits }));
-  };
-
-  const addBenefit = () => {
-    setFormData(prev => ({
-      ...prev,
-      benefits: [...prev.benefits, { title: '', description: '' }]
-    }));
-  };
-
-  const removeBenefit = (index) => {
-    if (formData.benefits.length > 1) {
-      setFormData(prev => ({
-        ...prev,
-        benefits: prev.benefits.filter((_, i) => i !== index)
-      }));
-    }
-  };
-
-  const handleFeatureChange = (index, value) => {
-    const newFeatures = [...formData.features];
-    newFeatures[index] = value;
-    setFormData(prev => ({ ...prev, features: newFeatures }));
-  };
-
-  const addFeature = () => {
-    setFormData(prev => ({
-      ...prev,
-      features: [...prev.features, '']
-    }));
-  };
-
-  const removeFeature = (index) => {
-    if (formData.features.length > 1) {
-      setFormData(prev => ({
-        ...prev,
-        features: prev.features.filter((_, i) => i !== index)
-      }));
-    }
-  };
-
-  const handleSocialLinkChange = (index, field, value) => {
-    const newLinks = [...formData.socialLinks];
-    newLinks[index][field] = value;
-    setFormData(prev => ({ ...prev, socialLinks: newLinks }));
-  };
-
-  const addSocialLink = () => {
-    setFormData(prev => ({
-      ...prev,
-      socialLinks: [...prev.socialLinks, { platform: '', url: '' }]
-    }));
-  };
-
-  const removeSocialLink = (index) => {
-    if (formData.socialLinks.length > 1) {
-      setFormData(prev => ({
-        ...prev,
-        socialLinks: prev.socialLinks.filter((_, i) => i !== index)
-      }));
-    }
-  };
-
-  const validateForm = () => {
-    const errors = {};
-    
-    if (!formData.title.trim()) errors.title = 'Title is required';
-    if (!formData.description.trim()) errors.description = 'Description is required';
-    if (!formData.category) errors.category = 'Category is required';
-    if (isNaN(formData.price)) errors.price = 'Price must be a number';
-    if (formData.price < 0) errors.price = 'Price cannot be negative';
-    
-    formData.processSteps.forEach((step, index) => {
-      if (!step.title.trim()) errors[`processStepTitle${index}`] = 'Step title is required';
-      if (!step.description.trim()) errors[`processStepDesc${index}`] = 'Step description is required';
-    });
-    
-    formData.projectTypes.forEach((type, index) => {
-      if (!type.trim()) errors[`projectType${index}`] = 'Project type is required';
-    });
-    
-    formData.benefits.forEach((benefit, index) => {
-      if (!benefit.title.trim()) errors[`benefitTitle${index}`] = 'Benefit title is required';
-      if (!benefit.description.trim()) errors[`benefitDesc${index}`] = 'Benefit description is required';
-    });
-    
-    if (formData.features.length === 0 || formData.features.some(f => !f.trim())) {
-      errors.features = 'At least one feature is required';
-    }
-    
-    if (formData.contactInfo.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contactInfo.email)) {
-      errors.email = 'Invalid email format';
-    }
-    
-    if (formData.contactInfo.phone && !/^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/.test(formData.contactInfo.phone)) {
-      errors.phone = 'Invalid phone number';
-    }
-    
-    formData.socialLinks.forEach((link, index) => {
-      if (link.platform && !link.url) {
-        errors[`socialUrl${index}`] = 'URL is required when platform is selected';
-      }
-    });
-    
-    return errors;
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const errors = validateForm();
-    
-    if (Object.keys(errors).length > 0) {
-      showAlert('Please fix the form errors', 'failure');
+  // Handle bulk actions
+  const handleBulkAction = async (action) => {
+    if (selectedServices.length === 0) {
+      showAlert('Please select at least one service', 'warning');
       return;
     }
 
     try {
-      setLoading(prev => ({ ...prev, operation: true }));
-      
-      const config = {
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        withCredentials: true
-      };
-
-      const url = editMode 
-        ? `/api/services/${currentService._id}`
-        : '/api/services';
-      
-      const { data } = editMode 
-        ? await axios.put(url, formData, config)
-        : await axios.post(url, formData, config);
-
-      if (editMode) {
-        setServices(services.map(s => s._id === currentService._id ? data : s));
-        showAlert('Service updated successfully');
-      } else {
-        setServices([...services, data]);
-        showAlert('Service created successfully');
+      if (action === 'delete') {
+        await deleteMultipleServices(selectedServices);
+      } else if (action === 'publish') {
+        await publishMultipleServices(selectedServices);
       }
-
-      setShowModal(false);
+      setSelectedServices([]);
     } catch (error) {
-      console.error('Operation failed:', error);
-      showAlert(`Error: ${error.response?.data?.message || error.message}`, 'failure');
-    } finally {
-      setLoading(prev => ({ ...prev, operation: false }));
+      showAlert(`Bulk ${action} failed`, 'failure');
     }
   };
 
-  if (!currentUser?.isAdmin) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-red-500">You are not authorized to view this content.</p>
-      </div>
-    );
-  }
+  // Handle duplicate service
+  const handleDuplicate = async (serviceId) => {
+    try {
+      const duplicated = await duplicateService(serviceId);
+      showAlert(`Service duplicated as "${duplicated.title}"`, 'success');
+    } catch (error) {
+      showAlert('Failed to duplicate service', 'failure');
+    }
+  };
+
+  // Handle process steps reordering
+  const handleDragEnd = (result) => {
+    if (!result.destination) return;
+    
+    const steps = [...formData.processSteps];
+    const [reorderedStep] = steps.splice(result.source.index, 1);
+    steps.splice(result.destination.index, 0, reorderedStep);
+    
+    setFormData(prev => ({
+      ...prev,
+      processSteps: steps.map((step, index) => ({ ...step, order: index + 1 }))
+    }));
+  };
+
+  // Handle image optimization before upload
+  const handleImageUpload = async (file) => {
+    try {
+      const optimizedImage = await ImageOptimizer.optimize(file, {
+        quality: 80,
+        width: 1200,
+        height: 800
+      });
+      return optimizedImage;
+    } catch (error) {
+      showAlert('Image optimization failed', 'failure');
+      throw error;
+    }
+  };
+
+  // Save as draft
+  const saveDraft = () => {
+    autoSave(formData);
+    showAlert('Draft saved successfully', 'success');
+  };
+
+  // Save as template
+  const saveAsTemplate = async () => {
+    try {
+      await axios.post('/api/service-templates', formData);
+      showAlert('Template saved successfully', 'success');
+      setShowTemplateModal(false);
+    } catch (error) {
+      showAlert('Failed to save template', 'failure');
+    }
+  };
+
+  // Load service for editing
+  const handleEdit = (service) => {
+    setCurrentService(service);
+    setFormData(service);
+    setEditMode(true);
+    setShowModal(true);
+    fetchVersionHistory(service._id);
+  };
+
+  // Preview service
+  const handlePreview = (service) => {
+    setCurrentService(service);
+    setShowPreviewModal(true);
+  };
+
+  // Initialize
+  useEffect(() => {
+    fetchServices();
+  }, [fetchServices]);
 
   return (
     <div className="p-4 md:p-6 relative">
@@ -426,151 +184,126 @@ export default function DashServices() {
           <Alert 
             color={alert.type}
             icon={alert.type === 'success' ? HiOutlineCheckCircle : HiOutlineXCircle}
-            onDismiss={() => setAlert({ ...alert, show: false })}
+            onDismiss={() => showAlert('', alert.type, false)}
           >
             {alert.message}
           </Alert>
         </div>
       )}
 
-      <div className="flex justify-between items-center mb-6">
+      {/* Header and Action Buttons */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <h2 className="text-2xl font-semibold">Manage Services</h2>
-        <Button 
-          gradientDuoTone="tealToLime" 
-          onClick={() => {
-            setEditMode(false);
-            setFormData({
-              title: '',
-              description: '',
-              shortDescription: '',
-              category: 'assessments',
-              features: [''],
-              fullDescription: '',
-              heroText: '',
-              introduction: '',
-              icon: '📋',
-              price: 0,
-              processSteps: [{ title: '', description: '' }],
-              projectTypes: [''],
-              benefits: [{ title: '', description: '' }],
-              contactInfo: {
-                email: '',
-                phone: '',
-                website: ''
-              },
-              socialLinks: [{ platform: '', url: '' }],
-              calendlyLink: '',
-              isFeatured: false,
-              image: ''
-            });
-            setShowModal(true);
-          }}
-          disabled={loading.operation}
-        >
-          <HiOutlinePlus className="mr-2" />
-          Add Service
-        </Button>
+        
+        <div className="flex flex-wrap gap-2 w-full md:w-auto">
+          <Dropdown
+            label="Bulk Actions"
+            placement="bottom-end"
+            disabled={selectedServices.length === 0 || loading.operation}
+          >
+            <Dropdown.Item 
+              icon={HiOutlineCloudUpload}
+              onClick={() => handleBulkAction('publish')}
+            >
+              Publish Selected
+            </Dropdown.Item>
+            <Dropdown.Item 
+              icon={HiOutlineTrash}
+              onClick={() => handleBulkAction('delete')}
+              className="text-red-600"
+            >
+              Delete Selected
+            </Dropdown.Item>
+          </Dropdown>
+
+          <Button 
+            gradientDuoTone="tealToLime"
+            onClick={() => {
+              setEditMode(false);
+              setCurrentService(null);
+              setFormData({
+                title: '',
+                description: '',
+                // ... reset other fields
+              });
+              setShowModal(true);
+            }}
+            disabled={loading.operation}
+          >
+            <HiOutlinePlus className="mr-2" />
+            Add Service
+          </Button>
+        </div>
       </div>
 
+      {/* Selected Services Counter */}
+      {selectedServices.length > 0 && (
+        <div className="mb-4 flex items-center gap-2">
+          <Badge color="info" className="px-3 py-1">
+            {selectedServices.length} selected
+          </Badge>
+          <Button 
+            size="xs" 
+            color="light" 
+            onClick={() => setSelectedServices([])}
+          >
+            Clear selection
+          </Button>
+        </div>
+      )}
+
+      {/* Content */}
       {loading.table ? (
         <div className="flex justify-center py-12">
           <Spinner size="xl" aria-label="Loading services..." />
         </div>
       ) : services.length > 0 ? (
         <>
+          {/* Service Preview */}
           <div className="mb-8">
-            <h3 className="text-xl font-semibold mb-4">Services Preview</h3>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold">Services Preview</h3>
+              <Button 
+                color="light" 
+                size="xs" 
+                onClick={fetchServices}
+                disabled={loading.table}
+              >
+                <HiOutlineRefresh className="mr-2" />
+                Refresh
+              </Button>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
               {services.slice(0, 3).map(service => (
                 <ServiceCard 
                   key={service._id} 
                   service={service} 
-                  onPurchaseClick={handlePurchaseClick}
+                  onPurchaseClick={() => {
+                    setSelectedService(service);
+                    setShowPaymentModal(true);
+                  }}
+                  onPreviewClick={() => handlePreview(service)}
+                  selected={selectedServices.includes(service._id)}
+                  onSelectChange={() => toggleServiceSelection(service._id)}
                 />
               ))}
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <Table hoverable>
-              <Table.Head>
-                <Table.HeadCell>Icon</Table.HeadCell>
-                <Table.HeadCell>Title</Table.HeadCell>
-                <Table.HeadCell>Category</Table.HeadCell>
-                <Table.HeadCell>Price</Table.HeadCell>
-                <Table.HeadCell>Featured</Table.HeadCell>
-                <Table.HeadCell>Process Steps</Table.HeadCell>
-                <Table.HeadCell>Actions</Table.HeadCell>
-              </Table.Head>
-              <Table.Body className="divide-y">
-                {services.map(service => (
-                  <Table.Row key={service._id} className="bg-white dark:border-gray-700 dark:bg-gray-800">
-                    <Table.Cell className="text-2xl">
-                      {service.icon || '📋'}
-                    </Table.Cell>
-                    <Table.Cell className="whitespace-nowrap font-medium text-gray-900 dark:text-white">
-                      {service.title}
-                    </Table.Cell>
-                    <Table.Cell>
-                      <Badge color="info" className="w-fit">
-                        {service.category}
-                      </Badge>
-                    </Table.Cell>
-                    <Table.Cell>
-                      {service.price ? `KES ${service.price.toLocaleString()}` : 'Free'}
-                    </Table.Cell>
-                    <Table.Cell>
-                      {service.isFeatured ? (
-                        <Badge color="success" icon={HiOutlineCheck}>
-                          Featured
-                        </Badge>
-                      ) : (
-                        <Badge color="gray">Regular</Badge>
-                      )}
-                    </Table.Cell>
-                    <Table.Cell>
-                      {service.processSteps?.length || 0} steps
-                    </Table.Cell>
-                    <Table.Cell>
-                      <div className="flex gap-2">
-                        <Button 
-                          outline 
-                          gradientDuoTone="purpleToBlue" 
-                          size="xs"
-                          onClick={() => handleEdit(service)}
-                          disabled={loading.operation}
-                        >
-                          <HiOutlinePencilAlt className="mr-1" />
-                          Edit
-                        </Button>
-                        <Button 
-                          outline 
-                          gradientDuoTone="pinkToOrange" 
-                          size="xs"
-                          onClick={() => handleDelete(service._id)}
-                          disabled={loading.operation}
-                        >
-                          <HiOutlineTrash className="mr-1" />
-                          Delete
-                        </Button>
-                        {service.price > 0 && (
-                          <Button
-                            outline
-                            gradientDuoTone="tealToLime"
-                            size="xs"
-                            onClick={() => handlePurchaseClick(service)}
-                          >
-                            <HiOutlineCreditCard className="mr-1" />
-                            Test
-                          </Button>
-                        )}
-                      </div>
-                    </Table.Cell>
-                  </Table.Row>
-                ))}
-              </Table.Body>
-            </Table>
-          </div>
+          {/* Service Table */}
+          <ServiceTable 
+            services={services}
+            onEdit={handleEdit}
+            onDelete={(id) => {
+              setSelectedService(services.find(s => s._id === id));
+              setShowDeleteModal(true);
+            }}
+            onDuplicate={handleDuplicate}
+            onPreview={handlePreview}
+            selectedServices={selectedServices}
+            onSelectChange={toggleServiceSelection}
+            loading={loading}
+          />
         </>
       ) : (
         <div className="text-center py-12">
@@ -580,500 +313,157 @@ export default function DashServices() {
         </div>
       )}
 
-      {/* Create/Edit Modal */}
-      <Modal show={showModal} onClose={() => !loading.operation && setShowModal(false)} size="6xl">
+      {/* Service Form Modal */}
+      <Modal show={showModal} onClose={() => setShowModal(false)} size="7xl">
         <Modal.Header>
-          {editMode ? 'Edit Service' : 'Create Service'}
+          {editMode ? `Edit ${currentService?.title}` : 'Create New Service'}
+          {editMode && (
+            <Badge color="gray" className="ml-2">
+              {currentService?.isPublished ? 'Published' : 'Draft'}
+            </Badge>
+          )}
         </Modal.Header>
         <Modal.Body>
-          <Tabs.Group
-            aria-label="Service form tabs"
-            style="underline"
-            onActiveTabChange={setActiveTab}
-          >
-            {/* Basic Info Tab */}
-            <Tabs.Item active={activeTab === 'basic'} title="Basic Info">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                <div>
-                  <Label htmlFor="title" value="Title*" />
-                  <TextInput
-                    id="title"
-                    name="title"
-                    value={formData.title}
-                    onChange={handleChange}
-                    required
-                    disabled={loading.operation}
-                  />
-                </div>
+          <div className="flex justify-end gap-2 mb-4">
+            <Button
+              color="light"
+              onClick={saveDraft}
+              disabled={loading.operation}
+            >
+              <HiOutlineSave className="mr-2" />
+              Save Draft
+            </Button>
+            <Button
+              gradientMonochrome="info"
+              onClick={() => setShowTemplateModal(true)}
+              disabled={loading.operation}
+            >
+              <HiOutlineTemplate className="mr-2" />
+              Save as Template
+            </Button>
+            {editMode && (
+              <Button
+                color="light"
+                onClick={() => setShowHistoryModal(true)}
+              >
+                <HiOutlineClock className="mr-2" />
+                Version History
+              </Button>
+            )}
+          </div>
 
-                <div>
-                  <Label htmlFor="category" value="Category*" />
-                  <Select
-                    id="category"
-                    name="category"
-                    value={formData.category}
-                    onChange={handleChange}
-                    required
-                    disabled={loading.operation}
-                  >
-                    {categories.map(cat => (
-                      <option key={cat.value} value={cat.value}>{cat.label}</option>
-                    ))}
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="price" value="Price (KES)*" />
-                  <TextInput
-                    id="price"
-                    name="price"
-                    type="number"
-                    value={formData.price}
-                    onChange={handleChange}
-                    required
-                    disabled={loading.operation}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="icon" value="Icon (Emoji)" />
-                  <TextInput
-                    id="icon"
-                    name="icon"
-                    value={formData.icon}
-                    onChange={handleChange}
-                    placeholder="e.g. 📋"
-                    disabled={loading.operation}
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <Label htmlFor="description" value="Short Description*" />
-                  <TextInput
-                    id="description"
-                    name="description"
-                    value={formData.description}
-                    onChange={handleChange}
-                    required
-                    disabled={loading.operation}
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <Label htmlFor="shortDescription" value="Summary Description" />
-                  <Textarea
-                    id="shortDescription"
-                    name="shortDescription"
-                    value={formData.shortDescription}
-                    onChange={handleChange}
-                    rows={2}
-                    disabled={loading.operation}
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <Label htmlFor="fullDescription" value="Full Description*" />
-                  <Textarea
-                    id="fullDescription"
-                    name="fullDescription"
-                    value={formData.fullDescription}
-                    onChange={handleChange}
-                    rows={4}
-                    required
-                    disabled={loading.operation}
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <Label htmlFor="heroText" value="Hero Text" />
-                  <TextInput
-                    id="heroText"
-                    name="heroText"
-                    value={formData.heroText}
-                    onChange={handleChange}
-                    placeholder="Catchy headline for the service page"
-                    disabled={loading.operation}
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <Label htmlFor="introduction" value="Introduction Paragraph" />
-                  <Textarea
-                    id="introduction"
-                    name="introduction"
-                    value={formData.introduction}
-                    onChange={handleChange}
-                    rows={3}
-                    placeholder="Introductory text for the service page"
-                    disabled={loading.operation}
-                  />
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <input
-                    id="isFeatured"
-                    name="isFeatured"
-                    type="checkbox"
-                    checked={formData.isFeatured}
-                    onChange={(e) => setFormData({...formData, isFeatured: e.target.checked})}
-                    className="w-4 h-4 text-teal-600 bg-gray-100 border-gray-300 rounded focus:ring-teal-500"
-                    disabled={loading.operation}
-                  />
-                  <Label htmlFor="isFeatured" value="Featured Service" />
-                </div>
-
-                <div>
-                  <Label htmlFor="image" value="Image URL" />
-                  <TextInput
-                    id="image"
-                    name="image"
-                    value={formData.image}
-                    onChange={handleChange}
-                    placeholder="https://example.com/image.jpg"
-                    disabled={loading.operation}
-                  />
-                </div>
-              </div>
-            </Tabs.Item>
-
-            {/* Process Steps Tab */}
-            <Tabs.Item active={activeTab === 'process'} title="Process Steps">
-              <div className="mt-4 space-y-4">
-                <Label value="Our Process Steps*" />
-                {formData.processSteps.map((step, index) => (
-                  <div key={index} className="border border-gray-200 rounded-lg p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                      <div>
-                        <Label value={`Step ${index + 1} Title*`} />
-                        <TextInput
-                          value={step.title}
-                          onChange={(e) => handleProcessStepChange(index, 'title', e.target.value)}
-                          required
-                          disabled={loading.operation}
-                        />
-                      </div>
-                      <div className="flex items-end justify-end">
-                        <Button
-                          color="failure"
-                          size="xs"
-                          onClick={() => removeProcessStep(index)}
-                          disabled={loading.operation || formData.processSteps.length <= 1}
-                        >
-                          <HiOutlineTrash className="mr-1" /> Remove Step
-                        </Button>
-                      </div>
-                    </div>
-                    <div>
-                      <Label value={`Step ${index + 1} Description*`} />
-                      <Textarea
-                        value={step.description}
-                        onChange={(e) => handleProcessStepChange(index, 'description', e.target.value)}
-                        rows={3}
-                        required
-                        disabled={loading.operation}
-                      />
-                    </div>
-                  </div>
-                ))}
-                <Button
-                  gradientMonochrome="info"
-                  onClick={addProcessStep}
-                  className="mt-2"
-                  disabled={loading.operation}
-                >
-                  <HiOutlinePlus className="mr-2" /> Add Process Step
-                </Button>
-              </div>
-            </Tabs.Item>
-
-            {/* Project Types Tab */}
-            <Tabs.Item active={activeTab === 'projects'} title="Project Types">
-              <div className="mt-4 space-y-4">
-                <Label value="Supported Project Types*" />
-                {formData.projectTypes.map((type, index) => (
-                  <div key={index} className="flex gap-2 items-center">
-                    <div className="flex-1">
-                      <TextInput
-                        value={type}
-                        onChange={(e) => handleProjectTypeChange(index, e.target.value)}
-                        required
-                        disabled={loading.operation}
-                      />
-                    </div>
-                    <Button
-                      color="failure"
-                      size="xs"
-                      onClick={() => removeProjectType(index)}
-                      disabled={loading.operation || formData.projectTypes.length <= 1}
-                    >
-                      <HiOutlineTrash />
-                    </Button>
-                  </div>
-                ))}
-                <Button
-                  gradientMonochrome="info"
-                  onClick={addProjectType}
-                  className="mt-2"
-                  disabled={loading.operation}
-                >
-                  <HiOutlinePlus className="mr-2" /> Add Project Type
-                </Button>
-              </div>
-            </Tabs.Item>
-
-            {/* Benefits Tab */}
-            <Tabs.Item active={activeTab === 'benefits'} title="Benefits">
-              <div className="mt-4 space-y-4">
-                <Label value="Service Benefits*" />
-                {formData.benefits.map((benefit, index) => (
-                  <div key={index} className="border border-gray-200 rounded-lg p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                      <div>
-                        <Label value={`Benefit ${index + 1} Title*`} />
-                        <TextInput
-                          value={benefit.title}
-                          onChange={(e) => handleBenefitChange(index, 'title', e.target.value)}
-                          required
-                          disabled={loading.operation}
-                        />
-                      </div>
-                      <div className="flex items-end justify-end">
-                        <Button
-                          color="failure"
-                          size="xs"
-                          onClick={() => removeBenefit(index)}
-                          disabled={loading.operation || formData.benefits.length <= 1}
-                        >
-                          <HiOutlineTrash className="mr-1" /> Remove Benefit
-                        </Button>
-                      </div>
-                    </div>
-                    <div>
-                      <Label value={`Benefit ${index + 1} Description*`} />
-                      <Textarea
-                        value={benefit.description}
-                        onChange={(e) => handleBenefitChange(index, 'description', e.target.value)}
-                        rows={3}
-                        required
-                        disabled={loading.operation}
-                      />
-                    </div>
-                  </div>
-                ))}
-                <Button
-                  gradientMonochrome="info"
-                  onClick={addBenefit}
-                  className="mt-2"
-                  disabled={loading.operation}
-                >
-                  <HiOutlinePlus className="mr-2" /> Add Benefit
-                </Button>
-              </div>
-            </Tabs.Item>
-
-            {/* Features Tab */}
-            <Tabs.Item active={activeTab === 'features'} title="Features">
-              <div className="mt-4 space-y-4">
-                <Label value="Key Features*" />
-                {formData.features.map((feature, index) => (
-                  <div key={index} className="flex gap-2 items-center">
-                    <div className="flex-1">
-                      <TextInput
-                        value={feature}
-                        onChange={(e) => handleFeatureChange(index, e.target.value)}
-                        required
-                        disabled={loading.operation}
-                      />
-                    </div>
-                    <Button
-                      color="failure"
-                      size="xs"
-                      onClick={() => removeFeature(index)}
-                      disabled={loading.operation || formData.features.length <= 1}
-                    >
-                      <HiOutlineTrash />
-                    </Button>
-                  </div>
-                ))}
-                <Button
-                  gradientMonochrome="info"
-                  onClick={addFeature}
-                  className="mt-2"
-                  disabled={loading.operation}
-                >
-                  <HiOutlinePlus className="mr-2" /> Add Feature
-                </Button>
-              </div>
-            </Tabs.Item>
-
-            {/* Contact & Social Tab */}
-            <Tabs.Item active={activeTab === 'contact'} title="Contact & Social">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                <div className="md:col-span-2">
-                  <h3 className="text-lg font-semibold mb-3">Contact Information</h3>
-                </div>
-
-                <div>
-                  <Label htmlFor="contactEmail" value="Email" />
-                  <TextInput
-                    id="contactEmail"
-                    name="email"
-                    type="email"
-                    value={formData.contactInfo.email}
-                    onChange={handleContactInfoChange}
-                    placeholder="contact@example.com"
-                    disabled={loading.operation}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="contactPhone" value="Phone" />
-                  <TextInput
-                    id="contactPhone"
-                    name="phone"
-                    value={formData.contactInfo.phone}
-                    onChange={handleContactInfoChange}
-                    placeholder="+254700000000"
-                    disabled={loading.operation}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="website" value="Website" />
-                  <TextInput
-                    id="website"
-                    name="website"
-                    value={formData.contactInfo.website}
-                    onChange={handleContactInfoChange}
-                    placeholder="https://example.com"
-                    disabled={loading.operation}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="calendlyLink" value="Calendly Link" />
-                  <TextInput
-                    id="calendlyLink"
-                    name="calendlyLink"
-                    value={formData.calendlyLink}
-                    onChange={handleChange}
-                    placeholder="https://calendly.com/your-link"
-                    disabled={loading.operation}
-                  />
-                </div>
-
-                <div className="md:col-span-2 mt-4">
-                  <h3 className="text-lg font-semibold mb-3">Social Links</h3>
-                  {formData.socialLinks.map((link, index) => (
-                    <div key={index} className="grid grid-cols-1 md:grid-cols-5 gap-2 mb-3">
-                      <div className="md:col-span-2">
-                        <Label value="Platform" />
-                        <Select
-                          value={link.platform}
-                          onChange={(e) => handleSocialLinkChange(index, 'platform', e.target.value)}
-                          disabled={loading.operation}
-                        >
-                          <option value="">Select platform</option>
-                          {socialPlatforms.map(platform => (
-                            <option key={platform.value} value={platform.value}>
-                              {platform.label}
-                            </option>
-                          ))}
-                        </Select>
-                      </div>
-                      <div className="md:col-span-2">
-                        <Label value="URL" />
-                        <TextInput
-                          value={link.url}
-                          onChange={(e) => handleSocialLinkChange(index, 'url', e.target.value)}
-                          placeholder="https://"
-                          disabled={loading.operation}
-                        />
-                      </div>
-                      <div className="flex items-end">
-                        <Button
-                          color="failure"
-                          size="xs"
-                          onClick={() => removeSocialLink(index)}
-                          disabled={loading.operation || formData.socialLinks.length <= 1}
-                        >
-                          <HiOutlineTrash />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                  <Button
-                    gradientMonochrome="info"
-                    onClick={addSocialLink}
-                    className="mt-2"
-                    disabled={loading.operation}
-                  >
-                    <HiOutlinePlus className="mr-2" /> Add Social Link
-                  </Button>
-                </div>
-              </div>
-            </Tabs.Item>
-          </Tabs.Group>
+          <DragDropContext onDragEnd={handleDragEnd}>
+            <ServiceForm
+              formData={formData}
+              setFormData={setFormData}
+              handleImageUpload={handleImageUpload}
+              loading={loading}
+              editMode={editMode}
+            />
+          </DragDropContext>
         </Modal.Body>
         <Modal.Footer>
           <div className="flex justify-between w-full">
-            <Button 
-              color="gray" 
-              onClick={() => setShowModal(false)}
-              disabled={loading.operation}
-            >
+            <Button color="gray" onClick={() => setShowModal(false)}>
               Cancel
             </Button>
-            <Button 
-              gradientDuoTone="tealToLime" 
-              onClick={handleSubmit}
-              disabled={loading.operation}
-              isProcessing={loading.operation}
-            >
-              <HiOutlineCheck className="mr-2" />
-              {editMode ? 'Update Service' : 'Create Service'}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                gradientDuoTone="tealToLime"
+                onClick={() => {
+                  // Handle form submission
+                  onSubmit({ ...formData, isPublished: false });
+                }}
+                disabled={loading.operation}
+              >
+                Save as Draft
+              </Button>
+              <Button
+                gradientDuoTone="purpleToBlue"
+                onClick={() => {
+                  // Handle form submission with publish
+                  onSubmit({ ...formData, isPublished: true });
+                }}
+                disabled={loading.operation}
+              >
+                {editMode ? 'Update and Publish' : 'Publish Service'}
+              </Button>
+            </div>
           </div>
         </Modal.Footer>
       </Modal>
 
       {/* Delete Confirmation Modal */}
-      <Modal show={showDeleteModal} onClose={() => !loading.operation && setShowDeleteModal(false)} size="md">
-        <Modal.Header>Confirm Delete</Modal.Header>
+      <Modal show={showDeleteModal} onClose={() => setShowDeleteModal(false)} size="md">
+        <Modal.Header>Confirm Deletion</Modal.Header>
         <Modal.Body>
           <div className="text-center">
-            <HiOutlineExclamationCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-            <h3 className="mb-5 text-lg text-gray-500">
-              Are you sure you want to delete this service?
-            </h3>
-            <div className="flex justify-center gap-3">
-              <Button 
-                color="gray" 
-                onClick={() => setShowDeleteModal(false)}
-                disabled={loading.operation}
-              >
-                Cancel
-              </Button>
-              <Button 
-                color="failure" 
-                onClick={confirmDelete}
-                disabled={loading.operation}
-                isProcessing={loading.operation}
-              >
-                Delete
-              </Button>
-            </div>
+            <p className="mb-4">Are you sure you want to delete this service?</p>
+            <p className="font-semibold">{selectedService?.title}</p>
           </div>
         </Modal.Body>
+        <Modal.Footer>
+          <div className="flex justify-end gap-2 w-full">
+            <Button color="gray" onClick={() => setShowDeleteModal(false)}>
+              Cancel
+            </Button>
+            <Button
+              color="failure"
+              onClick={async () => {
+                await deleteService(selectedService._id);
+                setShowDeleteModal(false);
+              }}
+              disabled={loading.operation}
+            >
+              Delete Service
+            </Button>
+          </div>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Preview Modal */}
+      <Modal show={showPreviewModal} onClose={() => setShowPreviewModal(false)} size="7xl">
+        <Modal.Header>Service Preview: {currentService?.title}</Modal.Header>
+        <Modal.Body>
+          {/* Render the service preview using the actual ServiceDetail component */}
+          <div className="prose max-w-none">
+            <h1>{currentService?.title}</h1>
+            <div dangerouslySetInnerHTML={{ __html: currentService?.fullDescription }} />
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button onClick={() => setShowPreviewModal(false)}>Close Preview</Button>
+        </Modal.Footer>
       </Modal>
 
       {/* Payment Modal */}
       <PaymentModal
-        showModal={showPaymentModal}
-        setShowModal={setShowPaymentModal}
+        show={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
         service={selectedService}
-        onPaymentSuccess={handlePaymentSuccess}
+      />
+
+      {/* Version History Modal */}
+      <HistoryModal
+        show={showHistoryModal}
+        onClose={() => setShowHistoryModal(false)}
+        history={versionHistory}
+        onRestore={(version) => {
+          setFormData(version.data);
+          setShowHistoryModal(false);
+          showAlert('Version restored', 'success');
+        }}
+      />
+
+      {/* Template Modal */}
+      <TemplateModal
+        show={showTemplateModal}
+        onClose={() => setShowTemplateModal(false)}
+        onSave={saveAsTemplate}
+        formData={formData}
       />
     </div>
   );
-}
+};
+
+export default DashServices;
