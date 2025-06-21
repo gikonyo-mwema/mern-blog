@@ -17,10 +17,11 @@ import Search from './pages/Search';
 import ThemeProvider from './components/ThemeProvider';
 import Services from './pages/Services';
 import Courses from './pages/Courses';
-//import ServiceDetails from './pages/ServiceDetails';
-import DashServices from './components/DashServices';
-//import CreateService from './pages/CreateService';
-//import EditService from './pages/EditService';
+import CourseDetails from './pages/CourseDetails';
+import UserCourses from './components/UserCourses';
+import { CreateCourse } from './components/Admin/Courses/CreateCourse';
+import { EditCourse } from './components/Admin/Courses/EditCourse';
+import DashServices from './components/Admin/Services/DashServices';
 
 export default function App() {
   return (
@@ -29,25 +30,32 @@ export default function App() {
         <ScrollToTop />
         <Header />
         <Routes>
+          {/* Public Routes */}
           <Route path='/' element={<Home />} />
           <Route path='/about' element={<About />} />
           <Route path='/services' element={<Services />} />
           <Route path='/courses' element={<Courses />} />
+          <Route path='/courses/:slug' element={<CourseDetails />} />
           <Route path='/sign-in' element={<SignIn />} />
           <Route path='/sign-up' element={<SignUp />} />
           <Route path='/search' element={<Search />} />
+          <Route path='/projects' element={<Projects />} />
+          <Route path='/post/:postSlug' element={<PostPage />} />
+
+          {/* Authenticated User Routes */}
           <Route element={<PrivateRoute />}>
             <Route path='/dashboard' element={<Dashboard />} />
+            <Route path='/my-courses' element={<UserCourses />} />
           </Route>
+
+          {/* Admin-only Routes */}
           <Route element={<OnlyAdminPrivateRoute />}>
             <Route path='/create-post' element={<CreatePost />} />
             <Route path='/update-post/:postId' element={<UpdatePost />} />
             <Route path='/dashboard/services' element={<DashServices />} />
-           
-                      </Route>
-          <Route path='/projects' element={<Projects />} />
-          <Route path='/post/:postSlug' element={<PostPage />} />
-          
+            <Route path='/create-course' element={<CreateCourse />} />
+            <Route path='/edit-course/:courseId' element={<EditCourse />} />
+          </Route>
         </Routes>
         <Footer />
       </ThemeProvider>
