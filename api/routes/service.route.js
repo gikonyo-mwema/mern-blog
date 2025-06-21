@@ -4,25 +4,41 @@ import {
   getServices,
   getService,
   updateService,
-  deleteService
+  deleteService,
+  getServiceStats,
+  publishService,
+  duplicateService,
+  getServiceHistory,
+  bulkUpdateServices
 } from '../controllers/service.controller.js';
-import { verifyToken } from '../utils/verifyUser.js';
+import { verifyToken, verifyAdmin } from '../utils/verifyUser.js';
+import { uploadServiceImages } from '../utils/upload.js';
 
 const router = express.Router();
 
-// Create a service
-router.post('/', verifyToken, createService);
+// Admin dashboard routes
+router.get('/stats', verifyToken, verifyAdmin, getServiceStats);
+router.post('/bulk-update', verifyToken, verifyAdmin, bulkUpdateServices);
+router.put('/publish/:id', verifyToken, verifyAdmin, publishService);
+router.post('/duplicate/:id', verifyToken, verifyAdmin, duplicateService);
+router.get('/history/:id', verifyToken, getServiceHistory);
 
-// Get all services
+// Regular CRUD routes
+router.post('/', 
+  verifyToken, 
+  uploadServiceImages.array('images', 5),
+  createService
+);
+
 router.get('/', getServices);
-
-// Get single service
 router.get('/:id', getService);
 
-// Update a service
-router.put('/:id', verifyToken, updateService);
+router.put('/:id', 
+  verifyToken,
+  uploadServiceImages.array('images', 5),
+  updateService
+);
 
-// Delete a service
 router.delete('/:id', verifyToken, deleteService);
 
 export default router;
