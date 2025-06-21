@@ -3,16 +3,26 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { HiOutlineExclamationCircle } from 'react-icons/hi';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
 import { FiUpload } from 'react-icons/fi';
 import { uploadToCloudinary } from '../../../utils/cloudinary.js';
+import dynamic from 'next/dynamic';
+
+const ReactQuill = dynamic(
+  () => import('react-quill'),
+  { 
+    ssr: false,
+    loading: () => <div className="h-72 flex items-center justify-center bg-gray-50 dark:bg-gray-700 rounded-lg">
+      <p>Loading editor...</p>
+    </div>
+  }
+);
+import 'react-quill/dist/quill.snow.css';
 
 export default function DashPosts() {
   const { currentUser } = useSelector((state) => state.user);
   const [userPosts, setUserPosts] = useState([]);
   const [showModal, setShowModal] = useState(false);
-  const [showMore, setShowMore] = useState(true);
+  const [showMore, setShowMore] = useState(false);
   const [postIdToDelete, setPostIdToDelete] = useState('');
   const [loading, setLoading] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -52,19 +62,35 @@ export default function DashPosts() {
           'Authorization': `Bearer ${currentUser.token}`
         }
       });
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-      const data = await res.json();
+      
+      const data = await res.json().catch(() => {
+        throw new Error('Invalid JSON response from server');
+      });
+
+      if (!res.ok) {
+        throw new Error(data.message || `HTTP error! status: ${res.status}`);
+      }
+
+      // Validate response structure
+      if (!data.posts || !Array.isArray(data.posts)) {
+        console.warn('Unexpected posts data structure:', data);
+        setUserPosts([]);
+        return;
+      }
+
       setUserPosts(data.posts);
-      setShowMore(false);
+      setShowMore(data.posts.length >= 9);
     } catch (error) {
-      console.error('Error fetching posts:', error.message);
+      console.error('Error fetching posts:', error);
+      setPublishError(error.message);
+      setUserPosts([]);
     } finally {
       setLoading(false);
     }
   }, [currentUser.token]);
 
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser?.isAdmin) {
       fetchPosts();
     }
   }, [fetchPosts, currentUser]);
@@ -78,15 +104,19 @@ export default function DashPosts() {
           'Authorization': `Bearer ${currentUser.token}`
         }
       });
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-      const data = await res.json();
-      if (data.success) {
-        setUserPosts((prev) => prev.filter((post) => post._id !== postIdToDelete));
-      } else {
-        console.error('Error deleting post:', data.message);
+
+      const data = await res.json().catch(() => {
+        throw new Error('Failed to parse server response');
+      });
+
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to delete post');
       }
+
+      setUserPosts((prev) => prev.filter((post) => post._id !== postIdToDelete));
     } catch (error) {
-      console.error('Error deleting post:', error.message);
+      console.error('Error deleting post:', error);
+      setPublishError(error.message);
     }
   };
 
@@ -102,16 +132,19 @@ export default function DashPosts() {
       
       const result = await uploadToCloudinary(file, {
         onProgress: (progress) => {
-          setImageUploadProgress(progress);
+          setImageUploadProgress(Math.round(progress));
         },
         headers: {
           'Authorization': `Bearer ${currentUser.token}`
         }
       });
       
+      if (!result?.url) {
+        throw new Error('Image upload failed - no URL returned');
+      }
+
       setFormData(prev => ({ ...prev, image: result.url }));
       setImageUploadProgress(null);
-
     } catch (error) {
       console.error('Image upload error:', error);
       setImageUploadError(error.message || 'Image upload failed');
@@ -128,7 +161,7 @@ export default function DashPosts() {
       if (!formData.title.trim()) {
         throw new Error('Title is required');
       }
-      if (!formData.content.trim()) {
+      if (!formData.content.trim() || formData.content === '<p><br></p>') {
         throw new Error('Content is required');
       }
       if (!formData.image) {
@@ -141,16 +174,21 @@ export default function DashPosts() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${currentUser.token}`
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          userId: currentUser._id
+        }),
       });
 
-      const data = await res.json();
-      
+      const data = await res.json().catch(() => {
+        throw new Error('Failed to parse server response');
+      });
+
       if (!res.ok) {
         throw new Error(data.message || 'Failed to create post');
       }
 
-      // Reset form and fetch updated posts
+      // Reset form
       setFormData({
         title: '',
         content: '',
@@ -159,18 +197,25 @@ export default function DashPosts() {
       });
       setFile(null);
       setShowCreateForm(false);
-      fetchPosts();
       
+      // Refresh posts
+      await fetchPosts();
     } catch (error) {
       console.error('Post creation error:', error);
-      setPublishError(error.message || 'Something went wrong');
+      setPublishError(error.message);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   if (!currentUser || !currentUser.isAdmin) {
-    return <p>You are not authorized to view this content.</p>;
+    return (
+      <div className="flex justify-center items-center h-64">
+        <p className="text-lg text-gray-600 dark:text-gray-300">
+          You are not authorized to view this content.
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -180,10 +225,17 @@ export default function DashPosts() {
         <Button
           gradientDuoTone="purpleToPink"
           onClick={() => setShowCreateForm(!showCreateForm)}
+          disabled={loading}
         >
           {showCreateForm ? 'Hide Form' : 'Create New Post'}
         </Button>
       </div>
+
+      {publishError && (
+        <Alert color="failure" className="mb-4" onDismiss={() => setPublishError(null)}>
+          {publishError}
+        </Alert>
+      )}
 
       {showCreateForm && (
         <div className='mb-8 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg'>
@@ -224,6 +276,7 @@ export default function DashPosts() {
                   file:text-sm file:font-semibold
                   file:bg-blue-50 file:text-blue-700
                   hover:file:bg-blue-100"
+                disabled={!!imageUploadProgress}
               />
               <Button
                 type='button'
@@ -231,7 +284,7 @@ export default function DashPosts() {
                 size='sm'
                 outline
                 onClick={handleUploadImage}
-                disabled={!!imageUploadProgress}
+                disabled={!!imageUploadProgress || !file}
               >
                 {imageUploadProgress ? `Uploading ${imageUploadProgress}%` : 'Upload Image'}
               </Button>
@@ -264,7 +317,7 @@ export default function DashPosts() {
             <ReactQuill
               theme='snow'
               placeholder='Write your post content here...'
-              className='h-72 mb-12'
+              className='h-72 mb-12 bg-white dark:bg-gray-700 rounded-lg'
               value={formData.content}
               onChange={(content) => setFormData({ ...formData, content })}
               modules={{
@@ -276,28 +329,30 @@ export default function DashPosts() {
                   ['clean']
                 ]
               }}
+              formats={[
+                'header',
+                'bold', 'italic', 'underline', 'strike', 'blockquote',
+                'list', 'bullet',
+                'link', 'image'
+              ]}
             />
             
             <Button
               type='submit'
               gradientDuoTone='purpleToPink'
-              disabled={isSubmitting || !formData.image}
+              disabled={isSubmitting || !formData.image || !formData.content.trim()}
               isProcessing={isSubmitting}
             >
               {isSubmitting ? 'Publishing...' : 'Publish'}
             </Button>
-            
-            {publishError && (
-              <Alert color='failure' className='mt-5' onDismiss={() => setPublishError(null)}>
-                {publishError}
-              </Alert>
-            )}
           </form>
         </div>
       )}
 
       {loading ? (
-        <p>Loading posts...</p>
+        <div className="flex justify-center items-center h-64">
+          <p>Loading posts...</p>
+        </div>
       ) : userPosts.length > 0 ? (
         <>
           <Table hoverable className="shadow-md">
@@ -312,7 +367,13 @@ export default function DashPosts() {
             <Table.Body className="divide-y">
               {userPosts.map((post) => (
                 <Table.Row key={post._id} className="bg-white dark:border-gray-700 dark:bg-gray-800">
-                  <Table.Cell>{new Date(post.updatedAt).toLocaleDateString()}</Table.Cell>
+                  <Table.Cell>
+                    {new Date(post.updatedAt).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric'
+                    })}
+                  </Table.Cell>
 
                   <Table.Cell>
                     <Link to={`/post/${post.slug}`}>
@@ -332,19 +393,19 @@ export default function DashPosts() {
                   </Table.Cell>
 
                   <Table.Cell>
-                    <Link className="font-medium text-gray-500 dark:text-white" to={`/post/${post.slug}`}>
+                    <Link className="font-medium text-gray-500 dark:text-white hover:underline" to={`/post/${post.slug}`}>
                       {post.title}
                     </Link>
                   </Table.Cell>
 
-                  <Table.Cell>
-                    <Link to={`/category/${post.category}`}>
-                      {post.category}
+                  <Table.Cell className="capitalize">
+                    <Link to={`/category/${post.category}`} className="hover:underline">
+                      {post.category.replace('-', ' ')}
                     </Link>
                   </Table.Cell>
 
                   <Table.Cell>
-                    <span
+                    <button
                       onClick={() => {
                         setShowModal(true);
                         setPostIdToDelete(post._id);
@@ -352,7 +413,7 @@ export default function DashPosts() {
                       className="font-medium text-red-500 hover:underline cursor-pointer"
                     >
                       Delete
-                    </span>
+                    </button>
                   </Table.Cell>
 
                   <Table.Cell>
@@ -366,12 +427,29 @@ export default function DashPosts() {
               ))}
             </Table.Body>
           </Table>
+
+          {showMore && (
+            <div className="flex justify-center mt-4">
+              <Button
+                outline
+                gradientDuoTone="purpleToBlue"
+                onClick={() => {
+                  // Implement pagination logic here
+                }}
+              >
+                Show More
+              </Button>
+            </div>
+          )}
         </>
       ) : (
-        <p>You have no posts yet!</p>
+        <div className="flex justify-center items-center h-64">
+          <p className="text-lg text-gray-500 dark:text-gray-400">
+            You have no posts yet!
+          </p>
+        </div>
       )}
 
-      {/* Delete Confirmation Modal */}
       <Modal show={showModal} onClose={() => setShowModal(false)} popup size="md">
         <Modal.Header />
         <Modal.Body>
