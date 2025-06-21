@@ -1,6 +1,8 @@
 
 import { useState } from 'react';
 
+
+
 export const useCourseForm = (initialState) => {
   const [formData, setFormData] = useState(initialState);
   const [error, setError] = useState(null);
@@ -8,9 +10,9 @@ export const useCourseForm = (initialState) => {
 
   const handleChange = (e) => {
     const { id, value, type, checked } = e.target;
-    setFormData({
-      ...formData,
-      [id]: type === 'checkbox' ? checked : value,
+    setFormData({ 
+      ...formData, 
+      [id]: type === 'checkbox' ? checked : value 
     });
   };
 
@@ -39,6 +41,6 @@ export const useCourseForm = (initialState) => {
     handleChange,
     handleFeatureChange,
     addFeatureField,
-    removeFeatureField,
+    removeFeatureField
   };
 };
