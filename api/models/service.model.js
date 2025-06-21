@@ -1,4 +1,6 @@
 import mongoose from 'mongoose';
+import mongoosePaginate from 'mongoose-paginate-v2';
+import slugify from 'slugify';
 
 const serviceSchema = new mongoose.Schema(
   {
@@ -8,6 +10,10 @@ const serviceSchema = new mongoose.Schema(
       unique: true,
       trim: true,
       maxlength: [100, 'Title cannot exceed 100 characters']
+    },
+    slug: {
+      type: String,
+      unique: true
     },
     shortDescription: {
       type: String,
@@ -29,20 +35,35 @@ const serviceSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Category is required'],
       enum: {
-        values: ['assessments', 'compliance', 'safeguards', 'planning', 'sustainability'],
+        values: [
+          'assessments', 
+          'compliance', 
+          'safeguards', 
+          'planning', 
+          'sustainability',
+          'consulting',
+          'training'
+        ],
         message: 'Invalid service category'
       }
     },
-    features: {
-      type: [String],
-      required: [true, 'At least one feature is required'],
-      validate: {
-        validator: function(features) {
-          return features.length > 0;
-        },
-        message: 'At least one feature is required'
+    features: [{
+      title: {
+        type: String,
+        required: true,
+        trim: true,
+        maxlength: 100
+      },
+      description: {
+        type: String,
+        required: true,
+        trim: true
+      },
+      icon: {
+        type: String,
+        default: '✓'
       }
-    },
+    }],
     icon: {
       type: String,
       default: '📋',
@@ -67,13 +88,6 @@ const serviceSchema = new mongoose.Schema(
         return `Professional ${this.title} services`;
       }
     },
-    introduction: {
-      type: String,
-      trim: true,
-      default: function() {
-        return this.description;
-      }
-    },
     processSteps: [{
       title: {
         type: String,
@@ -92,9 +106,16 @@ const serviceSchema = new mongoose.Schema(
       }
     }],
     projectTypes: [{
-      type: String,
-      trim: true,
-      maxlength: [100, 'Project type cannot exceed 100 characters']
+      name: {
+        type: String,
+        required: true,
+        trim: true,
+        maxlength: 100
+      },
+      description: {
+        type: String,
+        trim: true
+      }
     }],
     benefits: [{
       title: {
@@ -151,6 +172,10 @@ const serviceSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
+    isPublished: {
+      type: Boolean,
+      default: false
+    },
     isActive: {
       type: Boolean,
       default: true
@@ -183,10 +208,11 @@ const serviceSchema = new mongoose.Schema(
         }
       }
     }],
-    image: {
-      type: String,
-      trim: true
-    },
+    images: [{
+      url: String,
+      altText: String,
+      isPrimary: Boolean
+    }],
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -196,6 +222,19 @@ const serviceSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User'
     },
+    versionHistory: [{
+      versionNumber: Number,
+      data: Object,
+      changedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+      },
+      changedAt: {
+        type: Date,
+        default: Date.now
+      },
+      changeReason: String
+    }],
     isDeleted: {
       type: Boolean,
       default: false
@@ -215,26 +254,62 @@ const serviceSchema = new mongoose.Schema(
   }
 );
 
+// Middleware to generate slug before saving
+serviceSchema.pre('save', function(next) {
+  if (this.isModified('title')) {
+    this.slug = slugify(this.title, { lower: true, strict: true });
+  }
+  next();
+});
+
+// Middleware to track version history before update
+serviceSchema.pre('findOneAndUpdate', async function(next) {
+  const service = await this.model.findOne(this.getQuery());
+  if (service) {
+    const update = this.getUpdate();
+    const versionNumber = service.versionHistory.length + 1;
+    
+    const versionEntry = {
+      versionNumber,
+      data: { ...service.toObject() },
+      changedBy: update.$set.lastUpdatedBy || service.lastUpdatedBy,
+      changeReason: update.$set.changeReason || 'General update'
+    };
+    
+    await this.model.findByIdAndUpdate(service._id, {
+      $push: { versionHistory: versionEntry }
+    });
+  }
+  next();
+});
+
 // Indexes for better performance
-serviceSchema.index({ title: 'text', description: 'text', shortDescription: 'text' });
+serviceSchema.index({ title: 'text', description: 'text', shortDescription: 'text' }, { weights: { title: 10, shortDescription: 5, description: 1 } });
+serviceSchema.index({ slug: 1 });
 serviceSchema.index({ category: 1 });
 serviceSchema.index({ price: 1 });
 serviceSchema.index({ isFeatured: 1 });
+serviceSchema.index({ isPublished: 1 });
 serviceSchema.index({ isActive: 1 });
 serviceSchema.index({ isDeleted: 1 });
 
-// Virtual for formatted price
+// Virtuals
 serviceSchema.virtual('formattedPrice').get(function() {
   return `KES ${this.price.toLocaleString()}`;
 });
 
-// Query middleware for soft delete
-serviceSchema.pre(/^find/, function(next) {
-  if (this._conditions.isDeleted !== true) {
-    this.where({ isDeleted: { $ne: true } });
-  }
-  next();
-});
+// Query helper for active services
+serviceSchema.query.active = function() {
+  return this.where({ isActive: true, isDeleted: false });
+};
+
+// Query helper for published services
+serviceSchema.query.published = function() {
+  return this.where({ isPublished: true, isActive: true, isDeleted: false });
+};
+
+// Plugin for pagination
+serviceSchema.plugin(mongoosePaginate);
 
 const Service = mongoose.model('Service', serviceSchema);
 
