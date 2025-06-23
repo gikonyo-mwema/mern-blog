@@ -9,10 +9,10 @@ import {
 } from 'react-icons/hi';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import ServiceCard from '../components/ServiceCard';
-import ErrorBoundary from '../components/ErrorBoundary';
-import EmptyState from '../components/EmptyState';
-import useDebounce from '../hooks/useDebounce';
+import ServiceCard from '../components/Admin/Services/serviceCard';
+//import ErrorBoundary from '../components/ErrorBoundary';
+//import EmptyState from '../components/EmptyState';
+//import useDebounce from '../hooks/useDebounce';
 
 const Services = () => {
   // State management
