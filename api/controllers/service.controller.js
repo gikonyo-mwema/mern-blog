@@ -1,7 +1,8 @@
 import Service from '../models/service.model.js';
 import { validateServiceData } from '../utils/serviceValidation.js';
-import APIFeatures from '../utils/apiFeatures.js';
-import { cloneDeep } from 'lodash';
+//import APIFeatures from '../utils/apiFeatures.js';
+//import { cloneDeep } from 'lodash';
+import cloneDeep from 'lodash/cloneDeep.js';
 
 export const createService = async (req, res, next) => {
   try {

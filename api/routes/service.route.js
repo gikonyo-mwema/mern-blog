@@ -12,9 +12,12 @@ import {
   bulkUpdateServices
 } from '../controllers/service.controller.js';
 import { verifyToken, verifyAdmin } from '../utils/verifyUser.js';
-import { uploadServiceImages } from '../utils/upload.js';
+import uploadRouter from '../utils/upload.js'; // Import the upload router
 
 const router = express.Router();
+
+// Use the upload router for image uploads
+router.use('/upload', uploadRouter);
 
 // Admin dashboard routes
 router.get('/stats', verifyToken, verifyAdmin, getServiceStats);
@@ -26,7 +29,8 @@ router.get('/history/:id', verifyToken, getServiceHistory);
 // Regular CRUD routes
 router.post('/', 
   verifyToken, 
-  uploadServiceImages.array('images', 5),
+  // Client should first upload images via /upload endpoint
+  // and then include the image URLs in the request body
   createService
 );
 
@@ -35,7 +39,8 @@ router.get('/:id', getService);
 
 router.put('/:id', 
   verifyToken,
-  uploadServiceImages.array('images', 5),
+  // Client should first upload new images via /upload endpoint
+  // and then include the updated image URLs in the request body
   updateService
 );
 

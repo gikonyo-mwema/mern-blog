@@ -285,7 +285,7 @@ serviceSchema.pre('findOneAndUpdate', async function(next) {
 
 // Indexes for better performance
 serviceSchema.index({ title: 'text', description: 'text', shortDescription: 'text' }, { weights: { title: 10, shortDescription: 5, description: 1 } });
-serviceSchema.index({ slug: 1 });
+{/*serviceSchema.index({ slug: 1 });*/}
 serviceSchema.index({ category: 1 });
 serviceSchema.index({ price: 1 });
 serviceSchema.index({ isFeatured: 1 });
