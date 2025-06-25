@@ -3,63 +3,74 @@ import { Navigate, useLocation, Outlet } from 'react-router-dom';
 import PropTypes from 'prop-types';
 
 /**
- * PrivateRoute component that handles authenticated routes and optional course access control
+ * PrivateRoute component that handles authenticated routes with optional access controls
  * @param {Object} props - Component props
- * @param {ReactNode} [props.children] - Child components to render (for explicit route wrapping)
- * @param {string|boolean} [props.requireCourseAccess] - Course ID or flag to check course access
- * @param {boolean} [props.adminOnly] - Restrict route to admin users only
+ * @param {ReactNode} [props.children=null] - Child components to render
+ * @param {string|boolean} [props.requireCourseAccess=false] - Course ID or flag to check course access
+ * @param {boolean} [props.adminOnly=false] - Restrict route to admin users only
  * @returns {ReactNode} - Rendered component or redirect
  */
-export default function PrivateRoute({ children, requireCourseAccess, adminOnly }) {
-  const { currentUser } = useSelector((state) => state.user);
+export default function PrivateRoute({
+  children = null,
+  requireCourseAccess = false,
+  adminOnly = false
+}) {
+  const { currentUser, isLoading } = useSelector((state) => state.user);
   const location = useLocation();
 
-  // User not authenticated - redirect to sign-in with return location
+  // Show loading state while auth status is being determined
+  if (isLoading) {
+    return <div className="flex justify-center items-center h-screen">
+             <span className="loading loading-spinner loading-lg"></span>
+           </div>;
+  }
+
+  // Redirect unauthenticated users to sign-in page
   if (!currentUser) {
     return <Navigate to="/sign-in" state={{ from: location }} replace />;
   }
 
-  // Admin-only route check
+  // Block non-admin users from admin-only routes
   if (adminOnly && !currentUser.isAdmin) {
     return <Navigate to="/" state={{ from: location }} replace />;
   }
 
-  // Course access check (if required)
-  if (requireCourseAccess) {
-    const hasAccess = checkCourseAccess(currentUser, requireCourseAccess);
-    if (!hasAccess) {
-      return <Navigate to="/courses" state={{ from: location }} replace />;
-    }
+  // Check course access if required
+  if (requireCourseAccess && !checkCourseAccess(currentUser, requireCourseAccess)) {
+    return <Navigate to="/courses" state={{ 
+      from: location,
+      message: 'You do not have access to this course'
+    }} replace />;
   }
 
-  // Render children if provided (explicit route wrapping) or Outlet for nested routes
-  return children ? children : <Outlet />;
+  // Render children if provided, otherwise render nested routes via Outlet
+  return children || <Outlet />;
 }
 
 /**
- * Helper function to check course access
+ * Checks if user has access to a specific course
  * @param {Object} user - Current user object
  * @param {string|boolean} courseAccess - Course ID or access requirement
- * @returns {boolean} - Whether user has access
+ * @returns {boolean} - Access verification result
  */
 function checkCourseAccess(user, courseAccess) {
-  // Implement your actual course access logic here
-  // Example:
-  // return user.enrolledCourses?.includes(courseAccess) || user.isAdmin;
-  return true; // Temporarily returning true until implementation
+  // Return true if no specific course access required
+  if (!courseAccess || courseAccess === true) return true;
+  
+  // Check if user is admin or enrolled in the course
+  return user.enrolledCourses?.includes(courseAccess) || user.isAdmin;
 }
 
 PrivateRoute.propTypes = {
+  /** React children nodes */
   children: PropTypes.node,
+  
+  /** Course ID string or boolean flag */
   requireCourseAccess: PropTypes.oneOfType([
     PropTypes.string,
     PropTypes.bool
   ]),
+  
+  /** Admin-only restriction flag */
   adminOnly: PropTypes.bool
-};
-
-PrivateRoute.defaultProps = {
-  children: null,
-  requireCourseAccess: false,
-  adminOnly: false
 };
