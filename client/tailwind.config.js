@@ -1,15 +1,19 @@
-import tailwindScrollbar from "tailwind-scrollbar";
-import flowbite from "flowbite/plugin";
-
-export default {
-  darkMode: "class",
+/** @type {import('tailwindcss').Config} */
+module.exports = {
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
-    "./node_modules/flowbite/**/*.js", // Include core Flowbite content
+    "./node_modules/flowbite/**/*.js",
+    "./node_modules/flowbite-react/**/*.{js,jsx,ts,tsx}"
   ],
   theme: {
     extend: {},
   },
-  plugins: [tailwindScrollbar, flowbite], // Use the core Flowbite plugin
-};
+  plugins: [
+    require('flowbite/plugin')
+  ],
+  corePlugins: {
+    // Disable version checking to prevent version.js errors
+    version: false
+  }
+}
