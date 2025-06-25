@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Button, Badge, Spinner, Alert, Dropdown, 
-  TextInput, RangeSlider, Skeleton 
+  TextInput, RangeSlider 
 } from 'flowbite-react';
 import { 
   HiSearch, HiArrowUp, HiPrinter, 
@@ -164,20 +164,14 @@ const Services = () => {
     }
   };
 
-  // Loading skeleton
+  // Loading state with Spinner
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <Skeleton className="h-8 w-32 mx-auto mb-4" />
-            <Skeleton className="h-12 w-3/4 mx-auto mb-4" />
-            <Skeleton className="h-6 w-2/3 mx-auto" />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[...Array(6)].map((_, i) => (
-              <Skeleton key={i} className="h-96 rounded-xl" />
-            ))}
+            <Spinner size="xl" className="mx-auto" />
+            <p className="mt-4 text-gray-600 dark:text-gray-300">Loading services...</p>
           </div>
         </div>
       </div>
