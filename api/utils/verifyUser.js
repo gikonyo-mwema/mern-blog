@@ -32,3 +32,13 @@ export const verifyToken = (req, res, next) => {
     next();
   });
 };
+
+export const verifyAdmin = (req, res, next) => {
+  verifyToken(req, res, () => {
+    if (req.user && req.user.isAdmin) {
+      next();
+    } else {
+      return next(errorHandler(403, 'Forbidden - Admin access required'));
+    }
+  });
+};
