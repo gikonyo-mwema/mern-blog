@@ -17,7 +17,7 @@ const ServiceFormTabs = ({
   addProcessStep,
   removeProcessStep,
   projectTypes,
-  handleProjectTypeChange,
+  handleProjectTypeChange, 
   addProjectType,
   removeProjectType,
   benefits,
