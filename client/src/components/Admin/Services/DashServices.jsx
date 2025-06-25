@@ -10,15 +10,11 @@ import {
   HiOutlineRefresh, HiOutlineCloudUpload, HiOutlineClock,
   HiOutlineCheckCircle, HiOutlineXCircle, HiDotsVertical
 } from 'react-icons/hi';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import axios from 'axios';
-import ServiceCard from './ServiceCard';
+import ServiceCard from './serviceCard';
 import ServiceTable from './ServiceTable';
 import ServiceForm from './ServiceForm/ServiceFormTabs';
 import PaymentModal from '../../Modal/PaymentModal';
-import ImageOptimizer from '../../utils/ImageOptimizer';
-import HistoryModal from '../../Modal/HistoryModal';
-import TemplateModal from '../../Modal/TemplateModal';
 import useAutoSave from './hooks/useAutoSave';
 import { useServices } from './hooks/useServices';
 
@@ -48,6 +44,7 @@ const DashServices = () => {
   const [currentService, setCurrentService] = useState(null);
   const [draft, setDraft] = useState(null);
   const [versionHistory, setVersionHistory] = useState([]);
+  const [selectedService, setSelectedService] = useState(null);
 
   // Auto-save hook
   const { autoSave } = useAutoSave();
@@ -110,33 +107,12 @@ const DashServices = () => {
     }
   };
 
-  // Handle process steps reordering
-  const handleDragEnd = (result) => {
-    if (!result.destination) return;
-    
-    const steps = [...formData.processSteps];
-    const [reorderedStep] = steps.splice(result.source.index, 1);
-    steps.splice(result.destination.index, 0, reorderedStep);
-    
+  // Handle process steps reordering - modified to not use react-beautiful-dnd
+  const handleStepReorder = (steps) => {
     setFormData(prev => ({
       ...prev,
       processSteps: steps.map((step, index) => ({ ...step, order: index + 1 }))
     }));
-  };
-
-  // Handle image optimization before upload
-  const handleImageUpload = async (file) => {
-    try {
-      const optimizedImage = await ImageOptimizer.optimize(file, {
-        quality: 80,
-        width: 1200,
-        height: 800
-      });
-      return optimizedImage;
-    } catch (error) {
-      showAlert('Image optimization failed', 'failure');
-      throw error;
-    }
   };
 
   // Save as draft
@@ -352,15 +328,13 @@ const DashServices = () => {
             )}
           </div>
 
-          <DragDropContext onDragEnd={handleDragEnd}>
-            <ServiceForm
-              formData={formData}
-              setFormData={setFormData}
-              handleImageUpload={handleImageUpload}
-              loading={loading}
-              editMode={editMode}
-            />
-          </DragDropContext>
+          <ServiceForm
+            formData={formData}
+            setFormData={setFormData}
+            loading={loading}
+            editMode={editMode}
+            onStepReorder={handleStepReorder}
+          />
         </Modal.Body>
         <Modal.Footer>
           <div className="flex justify-between w-full">
@@ -441,26 +415,6 @@ const DashServices = () => {
         show={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
         service={selectedService}
-      />
-
-      {/* Version History Modal */}
-      <HistoryModal
-        show={showHistoryModal}
-        onClose={() => setShowHistoryModal(false)}
-        history={versionHistory}
-        onRestore={(version) => {
-          setFormData(version.data);
-          setShowHistoryModal(false);
-          showAlert('Version restored', 'success');
-        }}
-      />
-
-      {/* Template Modal */}
-      <TemplateModal
-        show={showTemplateModal}
-        onClose={() => setShowTemplateModal(false)}
-        onSave={saveAsTemplate}
-        formData={formData}
       />
     </div>
   );
