@@ -1,21 +1,12 @@
 import { Table, Modal, Button, Alert, TextInput, Select } from 'flowbite-react';
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { HiOutlineExclamationCircle } from 'react-icons/hi';
 import { FiUpload } from 'react-icons/fi';
 import { uploadToCloudinary } from '../../../utils/cloudinary.js';
-import dynamic from 'next/dynamic';
 
-const ReactQuill = dynamic(
-  () => import('react-quill'),
-  { 
-    ssr: false,
-    loading: () => <div className="h-72 flex items-center justify-center bg-gray-50 dark:bg-gray-700 rounded-lg">
-      <p>Loading editor...</p>
-    </div>
-  }
-);
+const ReactQuill = lazy(() => import('react-quill'));
 import 'react-quill/dist/quill.snow.css';
 
 export default function DashPosts() {
@@ -314,28 +305,32 @@ export default function DashPosts() {
               </div>
             )}
 
-            <ReactQuill
-              theme='snow'
-              placeholder='Write your post content here...'
-              className='h-72 mb-12 bg-white dark:bg-gray-700 rounded-lg'
-              value={formData.content}
-              onChange={(content) => setFormData({ ...formData, content })}
-              modules={{
-                toolbar: [
-                  [{ 'header': [1, 2, false] }],
-                  ['bold', 'italic', 'underline', 'strike', 'blockquote'],
-                  [{'list': 'ordered'}, {'list': 'bullet'}],
-                  ['link', 'image'],
-                  ['clean']
-                ]
-              }}
-              formats={[
-                'header',
-                'bold', 'italic', 'underline', 'strike', 'blockquote',
-                'list', 'bullet',
-                'link', 'image'
-              ]}
-            />
+            <Suspense fallback={<div className="h-72 flex items-center justify-center bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <p>Loading editor...</p>
+            </div>}>
+              <ReactQuill
+                theme='snow'
+                placeholder='Write your post content here...'
+                className='h-72 mb-12 bg-white dark:bg-gray-700 rounded-lg'
+                value={formData.content}
+                onChange={(content) => setFormData({ ...formData, content })}
+                modules={{
+                  toolbar: [
+                    [{ 'header': [1, 2, false] }],
+                    ['bold', 'italic', 'underline', 'strike', 'blockquote'],
+                    [{'list': 'ordered'}, {'list': 'bullet'}],
+                    ['link', 'image'],
+                    ['clean']
+                  ]
+                }}
+                formats={[
+                  'header',
+                  'bold', 'italic', 'underline', 'strike', 'blockquote',
+                  'list', 'bullet',
+                  'link', 'image'
+                ]}
+              />
+            </Suspense>
             
             <Button
               type='submit'
