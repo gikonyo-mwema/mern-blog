@@ -1,13 +1,12 @@
 import { useEffect, useRef } from 'react';
-//import debounce from 'lodash.debounce';
 import axios from 'axios';
 
 const useAutoSave = () => {
   const draftRef = useRef(null);
   const isFirstRender = useRef(true);
 
-  // Debounced auto-save function
-  const autoSave = debounce(async (formData) => {
+  // Auto-save function without debounce
+  const autoSave = async (formData) => {
     try {
       if (!formData.title) return; // Don't save empty drafts
       
@@ -29,12 +28,12 @@ const useAutoSave = () => {
       console.error('Auto-save failed:', error);
       throw error;
     }
-  }, 2000); // 2-second debounce
+  };
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      autoSave.cancel(); // Cancel any pending auto-saves
+      // No need to cancel debounce anymore
     };
   }, []);
 
