@@ -1,185 +1,19 @@
-import { useState, useEffect, useCallback } from 'react';
-import { validateServiceForm } from '../../utils/serviceValidation';
+import { useState, useCallback } from 'react';
 
-export const useServiceForm = (initialService = null) => {
-  const initialFormData = {
-    title: '',
-    shortDescription: '',
-    description: '',
-    fullDescription: '',
-    category: '',
-    price: 0,
-    icon: '📋',
-    heroText: '',
-    introduction: '',
-    isFeatured: false,
-    isPublished: false,
-    processSteps: [{ title: '', description: '', order: 1 }],
-    projectTypes: [''],
-    benefits: [{ title: '', description: '', icon: '✅' }],
-    features: [''],
-    contactInfo: {
-      email: '',
-      phone: '',
-      website: '',
-      calendlyLink: ''
-    },
-    socialLinks: [{ platform: '', url: '' }],
-    image: ''
-  };
-
-  const [formData, setFormData] = useState(initialService || initialFormData);
-  const [activeTab, setActiveTab] = useState('basic');
+export const useServiceForm = (initialData) => {
+  const [formData, setFormData] = useState(initialData);
   const [errors, setErrors] = useState({});
-  const [draftSaved, setDraftSaved] = useState(false);
-  const [lastSaved, setLastSaved] = useState(null);
 
-  // Initialize form with service data
-  useEffect(() => {
-    if (initialService) {
-      setFormData({
-        ...initialFormData,
-        ...initialService,
-        processSteps: initialService.processSteps || initialFormData.processSteps,
-        projectTypes: initialService.projectTypes || initialFormData.projectTypes,
-        benefits: initialService.benefits || initialFormData.benefits,
-        features: initialService.features || initialFormData.features,
-        contactInfo: {
-          ...initialFormData.contactInfo,
-          ...(initialService.contactInfo || {})
-        },
-        socialLinks: initialService.socialLinks || initialFormData.socialLinks
-      });
-    }
-  }, [initialService]);
-
-  // Basic field change handler
+  // Generic field change handler
   const handleChange = useCallback((e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ 
-      ...prev, 
-      [name]: value 
-    }));
-    setDraftSaved(false);
-  }, []);
-
-  // Process steps handlers
-  const handleProcessStepChange = useCallback((index, field, value) => {
-    setFormData(prev => {
-      const newSteps = [...prev.processSteps];
-      newSteps[index] = { ...newSteps[index], [field]: value };
-      return { ...prev, processSteps: newSteps };
-    });
-    setDraftSaved(false);
-  }, []);
-
-  const addProcessStep = useCallback(() => {
+    const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
-      processSteps: [
-        ...prev.processSteps,
-        { title: '', description: '', order: prev.processSteps.length + 1 }
-      ]
+      [name]: type === 'checkbox' ? checked : value
     }));
-    setDraftSaved(false);
   }, []);
 
-  const removeProcessStep = useCallback((index) => {
-    if (formData.processSteps.length > 1) {
-      setFormData(prev => ({
-        ...prev,
-        processSteps: prev.processSteps.filter((_, i) => i !== index)
-          .map((step, idx) => ({ ...step, order: idx + 1 }))
-      }));
-      setDraftSaved(false);
-    }
-  }, [formData.processSteps.length]);
-
-  // Project types handlers
-  const handleProjectTypeChange = useCallback((index, value) => {
-    setFormData(prev => {
-      const newTypes = [...prev.projectTypes];
-      newTypes[index] = value;
-      return { ...prev, projectTypes: newTypes };
-    });
-    setDraftSaved(false);
-  }, []);
-
-  const addProjectType = useCallback(() => {
-    setFormData(prev => ({
-      ...prev,
-      projectTypes: [...prev.projectTypes, '']
-    }));
-    setDraftSaved(false);
-  }, []);
-
-  const removeProjectType = useCallback((index) => {
-    if (formData.projectTypes.length > 1) {
-      setFormData(prev => ({
-        ...prev,
-        projectTypes: prev.projectTypes.filter((_, i) => i !== index)
-      }));
-      setDraftSaved(false);
-    }
-  }, [formData.projectTypes.length]);
-
-  // Benefits handlers
-  const handleBenefitChange = useCallback((index, field, value) => {
-    setFormData(prev => {
-      const newBenefits = [...prev.benefits];
-      newBenefits[index] = { ...newBenefits[index], [field]: value };
-      return { ...prev, benefits: newBenefits };
-    });
-    setDraftSaved(false);
-  }, []);
-
-  const addBenefit = useCallback(() => {
-    setFormData(prev => ({
-      ...prev,
-      benefits: [...prev.benefits, { title: '', description: '', icon: '✅' }]
-    }));
-    setDraftSaved(false);
-  }, []);
-
-  const removeBenefit = useCallback((index) => {
-    if (formData.benefits.length > 1) {
-      setFormData(prev => ({
-        ...prev,
-        benefits: prev.benefits.filter((_, i) => i !== index)
-      }));
-      setDraftSaved(false);
-    }
-  }, [formData.benefits.length]);
-
-  // Features handlers
-  const handleFeatureChange = useCallback((index, value) => {
-    setFormData(prev => {
-      const newFeatures = [...prev.features];
-      newFeatures[index] = value;
-      return { ...prev, features: newFeatures };
-    });
-    setDraftSaved(false);
-  }, []);
-
-  const addFeature = useCallback(() => {
-    setFormData(prev => ({
-      ...prev,
-      features: [...prev.features, '']
-    }));
-    setDraftSaved(false);
-  }, []);
-
-  const removeFeature = useCallback((index) => {
-    if (formData.features.length > 1) {
-      setFormData(prev => ({
-        ...prev,
-        features: prev.features.filter((_, i) => i !== index)
-      }));
-      setDraftSaved(false);
-    }
-  }, [formData.features.length]);
-
-  // Contact info handlers
+  // Contact info change handler
   const handleContactInfoChange = useCallback((e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -189,102 +23,177 @@ export const useServiceForm = (initialService = null) => {
         [name]: value
       }
     }));
-    setDraftSaved(false);
   }, []);
 
-  // Social links handlers
-  const handleSocialLinkChange = useCallback((index, field, value) => {
+  // Process Steps handlers
+  const handleProcessStepChange = useCallback((index, e) => {
+    const { name, value } = e.target;
     setFormData(prev => {
-      const newLinks = [...prev.socialLinks];
-      newLinks[index] = { ...newLinks[index], [field]: value };
-      return { ...prev, socialLinks: newLinks };
+      const newProcessSteps = [...prev.processSteps];
+      newProcessSteps[index] = {
+        ...newProcessSteps[index],
+        [name]: value
+      };
+      return { ...prev, processSteps: newProcessSteps };
     });
-    setDraftSaved(false);
+  }, []);
+
+  const addProcessStep = useCallback(() => {
+    setFormData(prev => ({
+      ...prev,
+      processSteps: [
+        ...prev.processSteps,
+        { title: "", description: "", order: prev.processSteps.length + 1 }
+      ]
+    }));
+  }, []);
+
+  const removeProcessStep = useCallback((index) => {
+    setFormData(prev => ({
+      ...prev,
+      processSteps: prev.processSteps.filter((_, i) => i !== index)
+    }));
+  }, []);
+
+  // Project Types handlers
+  const handleProjectTypeChange = useCallback((index, value) => {
+    setFormData(prev => {
+      const newProjectTypes = [...prev.projectTypes];
+      newProjectTypes[index] = value;
+      return { ...prev, projectTypes: newProjectTypes };
+    });
+  }, []);
+
+  const addProjectType = useCallback(() => {
+    setFormData(prev => ({
+      ...prev,
+      projectTypes: [...prev.projectTypes, ""]
+    }));
+  }, []);
+
+  const removeProjectType = useCallback((index) => {
+    setFormData(prev => ({
+      ...prev,
+      projectTypes: prev.projectTypes.filter((_, i) => i !== index)
+    }));
+  }, []);
+
+  // Benefits handlers
+  const handleBenefitChange = useCallback((index, e) => {
+    const { name, value } = e.target;
+    setFormData(prev => {
+      const newBenefits = [...prev.benefits];
+      newBenefits[index] = {
+        ...newBenefits[index],
+        [name]: value
+      };
+      return { ...prev, benefits: newBenefits };
+    });
+  }, []);
+
+  const addBenefit = useCallback(() => {
+    setFormData(prev => ({
+      ...prev,
+      benefits: [
+        ...prev.benefits,
+        { title: "", description: "", icon: "✅" }
+      ]
+    }));
+  }, []);
+
+  const removeBenefit = useCallback((index) => {
+    setFormData(prev => ({
+      ...prev,
+      benefits: prev.benefits.filter((_, i) => i !== index)
+    }));
+  }, []);
+
+  // Features handlers
+  const handleFeatureChange = useCallback((index, e) => {
+    const { name, value } = e.target;
+    setFormData(prev => {
+      const newFeatures = [...prev.features];
+      newFeatures[index] = {
+        ...newFeatures[index],
+        [name]: value
+      };
+      return { ...prev, features: newFeatures };
+    });
+  }, []);
+
+  const addFeature = useCallback(() => {
+    setFormData(prev => ({
+      ...prev,
+      features: [
+        ...prev.features,
+        { title: "", description: "" }
+      ]
+    }));
+  }, []);
+
+  const removeFeature = useCallback((index) => {
+    setFormData(prev => ({
+      ...prev,
+      features: prev.features.filter((_, i) => i !== index)
+    }));
+  }, []);
+
+  // Social Links handlers
+  const handleSocialLinkChange = useCallback((index, e) => {
+    const { name, value } = e.target;
+    setFormData(prev => {
+      const newSocialLinks = [...prev.socialLinks];
+      newSocialLinks[index] = {
+        ...newSocialLinks[index],
+        [name]: value
+      };
+      return { ...prev, socialLinks: newSocialLinks };
+    });
   }, []);
 
   const addSocialLink = useCallback(() => {
     setFormData(prev => ({
       ...prev,
-      socialLinks: [...prev.socialLinks, { platform: '', url: '' }]
+      socialLinks: [
+        ...prev.socialLinks,
+        { platform: "", url: "" }
+      ]
     }));
-    setDraftSaved(false);
   }, []);
 
   const removeSocialLink = useCallback((index) => {
-    if (formData.socialLinks.length > 1) {
-      setFormData(prev => ({
-        ...prev,
-        socialLinks: prev.socialLinks.filter((_, i) => i !== index)
-      }));
-      setDraftSaved(false);
-    }
-  }, [formData.socialLinks.length]);
-
-  // Image handler
-  const handleImageChange = useCallback((imageUrl) => {
     setFormData(prev => ({
       ...prev,
-      image: imageUrl
+      socialLinks: prev.socialLinks.filter((_, i) => i !== index)
     }));
-    setDraftSaved(false);
   }, []);
-
-  // Form validation
-  const validateForm = useCallback(() => {
-    const validationErrors = validateServiceForm(formData);
-    setErrors(validationErrors);
-    return Object.keys(validationErrors).length === 0;
-  }, [formData]);
-
-  // Reset form
-  const resetForm = useCallback(() => {
-    setFormData(initialFormData);
-    setActiveTab('basic');
-    setErrors({});
-    setDraftSaved(false);
-  }, [initialFormData]);
-
-  // Save draft
-  const saveDraft = useCallback(() => {
-    const draftData = {
-      ...formData,
-      isDraft: true,
-      isPublished: false
-    };
-    // In a real app, you would save to localStorage or backend here
-    setLastSaved(new Date());
-    setDraftSaved(true);
-    return draftData;
-  }, [formData]);
 
   return {
     formData,
     setFormData,
-    activeTab,
-    setActiveTab,
     errors,
-    draftSaved,
-    lastSaved,
+    setErrors,
     handleChange,
+    handleContactInfoChange,
+    // Process Steps
     handleProcessStepChange,
     addProcessStep,
     removeProcessStep,
+    // Project Types
     handleProjectTypeChange,
     addProjectType,
     removeProjectType,
+    // Benefits
     handleBenefitChange,
     addBenefit,
     removeBenefit,
+    // Features
     handleFeatureChange,
     addFeature,
     removeFeature,
-    handleContactInfoChange,
+    // Social Links
     handleSocialLinkChange,
     addSocialLink,
-    removeSocialLink,
-    handleImageChange,
-    validateForm,
-    resetForm,
-    saveDraft
+    removeSocialLink
   };
 };
