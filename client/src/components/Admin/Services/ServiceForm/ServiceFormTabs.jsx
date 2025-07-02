@@ -1,6 +1,5 @@
 import { Tabs, Alert } from 'flowbite-react';
 import BasicInfoTab from './BasicInfoTab';
-import ProcessStepsTab from './ProcessStepsTab';
 import ProjectTypesTab from './ProjectTypesTab';
 import BenefitsTab from './BenefitsTab';
 import ContactSocialTab from './ContactSocialTab';
@@ -12,33 +11,33 @@ const ServiceFormTabs = ({
   formData,
   handleChange,
   setFormData,
-  processSteps,
-  handleProcessStepChange,
-  addProcessStep,
-  removeProcessStep,
-  projectTypes,
   handleProjectTypeChange, 
   addProjectType,
   removeProjectType,
-  benefits,
   handleBenefitChange,
   addBenefit,
   removeBenefit,
-  features,
   handleFeatureChange,
   addFeature,
   removeFeature,
-  contactInfo,
   handleContactInfoChange,
-  socialLinks,
   handleSocialLinkChange,
   addSocialLink,
   removeSocialLink,
   errors,
   formError,
   loading,
-  categories
+  categories = []
 }) => {
+  // Destructure the needed properties from formData
+  const {
+    projectTypes = [],
+    benefits = [],
+    features = [],
+    contactInfo = {},
+    socialLinks = []
+  } = formData;
+
   return (
     <>
       {formError && (
@@ -60,17 +59,6 @@ const ServiceFormTabs = ({
             errors={errors}
             loading={loading}
             categories={categories}
-          />
-        </Tabs.Item>
-
-        <Tabs.Item active={activeTab === 'process'} title="Process Steps">
-          <ProcessStepsTab
-            processSteps={processSteps}
-            handleProcessStepChange={handleProcessStepChange}
-            addProcessStep={addProcessStep}
-            removeProcessStep={removeProcessStep}
-            errors={errors}
-            loading={loading}
           />
         </Tabs.Item>
 
