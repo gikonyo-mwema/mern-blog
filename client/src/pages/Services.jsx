@@ -10,9 +10,6 @@ import {
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import ServiceCard from '../components/Admin/Services/serviceCard';
-//import ErrorBoundary from '../components/ErrorBoundary';
-//import EmptyState from '../components/EmptyState';
-//import useDebounce from '../hooks/useDebounce';
 
 const Services = () => {
   // State management
@@ -26,8 +23,6 @@ const Services = () => {
   const [sortOption, setSortOption] = useState('newest');
   const [visibleCount, setVisibleCount] = useState(6);
   
-  const debouncedSearch = useDebounce(searchQuery, 300);
-
   // Categories data
   const categories = [
     { id: 'all', name: 'All Services', icon: '🌐' },
@@ -48,62 +43,111 @@ const Services = () => {
     { value: 'name-desc', label: 'Name (Z-A)' }
   ];
 
-  // Fetch services
+  // Fetch services with improved error handling
   const fetchServices = useCallback(async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get('/api/services');
-      setServices(data);
-      setFilteredServices(data);
+      const response = await axios.get('/api/services');
+      
+      // Handle both possible response formats
+      let servicesData = [];
+      if (Array.isArray(response.data)) {
+        // If backend returns direct array
+        servicesData = response.data;
+      } else if (response.data?.data?.services && Array.isArray(response.data.data.services)) {
+        // If backend returns wrapped response
+        servicesData = response.data.data.services;
+      } else {
+        throw new Error('Invalid data format received from server');
+      }
+
+      // Validate each service item
+      const validatedData = servicesData.map(service => ({
+        _id: service._id || Math.random().toString(36).substr(2, 9),
+        title: service.title || 'Untitled Service',
+        description: service.description || '',
+        shortDescription: service.shortDescription || service.description?.substring(0, 100) || '',
+        category: service.category || 'uncategorized',
+        price: Number(service.price) || 0,
+        createdAt: service.createdAt || new Date().toISOString(),
+        image: service.image || '/images/service-placeholder.jpg'
+      }));
+
+      setServices(validatedData);
+      setFilteredServices(validatedData);
+      setError(null);
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      console.error('Error fetching services:', err);
+      setError(err.response?.data?.message || err.message || 'Failed to load services');
+      setServices([]);
+      setFilteredServices([]);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Filter and sort services
+  // Filter and sort services with safety checks
   useEffect(() => {
-    if (services.length === 0) return;
-
-    let result = [...services];
-
-    // Category filter
-    if (activeTab !== 'all') {
-      result = result.filter(service => service.category === activeTab);
-    }
-
-    // Search filter
-    if (debouncedSearch) {
-      const query = debouncedSearch.toLowerCase();
-      result = result.filter(service => 
-        service.title.toLowerCase().includes(query) ||
-        service.description.toLowerCase().includes(query) ||
-        service.category.toLowerCase().includes(query)
-      );
-    }
-
-    // Price filter
-    result = result.filter(service => 
-      service.price >= priceRange[0] && service.price <= priceRange[1]
-    );
-
-    // Sorting
-    result.sort((a, b) => {
-      switch (sortOption) {
-        case 'newest': return new Date(b.createdAt) - new Date(a.createdAt);
-        case 'oldest': return new Date(a.createdAt) - new Date(b.createdAt);
-        case 'price-high': return b.price - a.price;
-        case 'price-low': return a.price - b.price;
-        case 'name-asc': return a.title.localeCompare(b.title);
-        case 'name-desc': return b.title.localeCompare(a.title);
-        default: return 0;
+    try {
+      // Early return if services is not an array or empty
+      if (!Array.isArray(services) || services.length === 0) {
+        setFilteredServices([]);
+        return;
       }
-    });
 
-    setFilteredServices(result);
-    setVisibleCount(6); // Reset visible count when filters change
-  }, [services, activeTab, debouncedSearch, priceRange, sortOption]);
+      let result = [...services]; // Safe spread operation
+
+      // Category filter
+      if (activeTab !== 'all') {
+        result = result.filter(service => 
+          service.category && service.category.toLowerCase() === activeTab.toLowerCase()
+        );
+      }
+
+      // Search filter
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase().trim();
+        result = result.filter(service => 
+          (service.title && service.title.toLowerCase().includes(query)) ||
+          (service.description && service.description.toLowerCase().includes(query)) ||
+          (service.category && service.category.toLowerCase().includes(query))
+        );
+      }
+
+      // Price filter
+      result = result.filter(service => {
+        const price = Number(service.price) || 0;
+        return price >= priceRange[0] && price <= priceRange[1];
+      });
+
+      // Sorting with fallbacks
+      result.sort((a, b) => {
+        const aTitle = a.title || '';
+        const bTitle = b.title || '';
+        const aPrice = Number(a.price) || 0;
+        const bPrice = Number(b.price) || 0;
+        const aDate = new Date(a.createdAt || 0);
+        const bDate = new Date(b.createdAt || 0);
+
+        switch (sortOption) {
+          case 'newest': return bDate - aDate;
+          case 'oldest': return aDate - bDate;
+          case 'price-high': return bPrice - aPrice;
+          case 'price-low': return aPrice - bPrice;
+          case 'name-asc': return aTitle.localeCompare(bTitle);
+          case 'name-desc': return bTitle.localeCompare(aTitle);
+          default: return 0;
+        }
+      });
+
+      setFilteredServices(result);
+      setVisibleCount(6);
+    } catch (err) {
+      console.error('Error filtering services:', err);
+      setError('Error processing services data');
+      setFilteredServices([]);
+    }
+  }, [services, activeTab, searchQuery, priceRange, sortOption]);
 
   // Initial fetch
   useEffect(() => {
@@ -112,46 +156,55 @@ const Services = () => {
 
   // Load more handler
   const loadMore = () => {
-    setVisibleCount(prev => prev + 6);
+    setVisibleCount(prev => Math.min(prev + 6, filteredServices.length));
   };
 
   // Print services list
   const printServices = () => {
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Our Services</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 20px; }
-            h1 { color: #047857; }
-            .service { margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 20px; }
-            .price { font-weight: bold; color: #065f46; }
-          </style>
-        </head>
-        <body>
-          <h1>Our Services</h1>
-          ${filteredServices.slice(0, visibleCount).map(service => `
-            <div class="service">
-              <h2>${service.title}</h2>
-              <p>${service.shortDescription}</p>
-              <p class="price">KES ${service.price.toLocaleString()}</p>
-            </div>
-          `).join('')}
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => printWindow.print(), 500);
+    try {
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) return;
+
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Our Services</title>
+            <style>
+              body { font-family: Arial, sans-serif; padding: 20px; }
+              h1 { color: #047857; }
+              .service { margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 20px; }
+              .price { font-weight: bold; color: #065f46; }
+            </style>
+          </head>
+          <body>
+            <h1>Our Services</h1>
+            ${filteredServices.slice(0, visibleCount).map(service => `
+              <div class="service">
+                <h2>${service.title || 'Untitled Service'}</h2>
+                <p>${service.shortDescription || ''}</p>
+                <p class="price">KES ${(service.price || 0).toLocaleString()}</p>
+              </div>
+            `).join('')}
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => printWindow.print(), 500);
+    } catch (err) {
+      console.error('Error printing services:', err);
+      setError('Failed to generate print preview');
+    }
   };
 
   // Download as PDF
   const downloadBrochure = async () => {
     try {
+      setLoading(true);
       const response = await axios.get('/api/services/brochure', {
         responseType: 'blob'
       });
+      
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -159,8 +212,11 @@ const Services = () => {
       document.body.appendChild(link);
       link.click();
       link.remove();
+      setLoading(false);
     } catch (err) {
+      console.error('Error downloading brochure:', err);
       setError('Failed to download brochure');
+      setLoading(false);
     }
   };
 
@@ -181,20 +237,18 @@ const Services = () => {
   // Error state
   if (error) {
     return (
-      <ErrorBoundary>
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-          <Alert color="failure" className="max-w-md mx-4">
-            <span className="font-medium">Error loading services:</span> {error}
-            <Button 
-              gradientDuoTone="tealToLime" 
-              onClick={fetchServices}
-              className="mt-4"
-            >
-              Try Again
-            </Button>
-          </Alert>
-        </div>
-      </ErrorBoundary>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <Alert color="failure" className="max-w-md mx-4">
+          <span className="font-medium">Error:</span> {error}
+          <Button 
+            gradientDuoTone="tealToLime" 
+            onClick={fetchServices}
+            className="mt-4"
+          >
+            Try Again
+          </Button>
+        </Alert>
+      </div>
     );
   }
 
@@ -234,11 +288,11 @@ const Services = () => {
             </div>
 
             <div className="flex gap-2">
-              <Button color="light" onClick={printServices}>
+              <Button color="light" onClick={printServices} disabled={filteredServices.length === 0}>
                 <HiPrinter className="mr-2" />
                 Print
               </Button>
-              <Button color="light" onClick={downloadBrochure}>
+              <Button color="light" onClick={downloadBrochure} disabled={loading}>
                 <HiDownload className="mr-2" />
                 Brochure
               </Button>
@@ -257,7 +311,7 @@ const Services = () => {
               label={
                 <>
                   <HiFilter className="mr-2" />
-                  {sortOptions.find(opt => opt.value === sortOption)?.label}
+                  {sortOptions.find(opt => opt.value === sortOption)?.label || 'Sort By'}
                 </>
               }
               placement="bottom-start"
@@ -281,7 +335,10 @@ const Services = () => {
                 max={100000}
                 step={1000}
                 value={priceRange}
-                onChange={(e) => setPriceRange([parseInt(e.target.value[0]), parseInt(e.target.value[1])])}
+                onChange={(e) => setPriceRange([
+                  parseInt(e.target.value[0] || 0), 
+                  parseInt(e.target.value[1] || 100000)
+                ])}
               />
             </div>
           </div>
@@ -308,25 +365,30 @@ const Services = () => {
                   onClick={loadMore}
                   className="mx-auto"
                 >
-                  Load More Services
+                  Load More Services ({filteredServices.length - visibleCount} remaining)
                 </Button>
               </div>
             )}
           </>
         ) : (
-          <EmptyState
-            title="No services found"
-            description="Try adjusting your filters or search query"
-            action={
-              <Button color="light" onClick={() => {
-                setActiveTab('all');
-                setSearchQuery('');
-                setPriceRange([0, 100000]);
-              }}>
-                Reset Filters
-              </Button>
-            }
-          />
+          <div className="text-center py-12">
+            <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-2">
+              No services found
+            </h3>
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
+              {services.length === 0 ? 
+                'No services available' : 
+                'Try adjusting your filters or search query'}
+            </p>
+            <Button color="light" onClick={() => {
+              setActiveTab('all');
+              setSearchQuery('');
+              setPriceRange([0, 100000]);
+              setSortOption('newest');
+            }}>
+              Reset Filters
+            </Button>
+          </div>
         )}
 
         {/* CTA Section */}
