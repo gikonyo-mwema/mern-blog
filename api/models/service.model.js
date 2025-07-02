@@ -34,18 +34,8 @@ const serviceSchema = new mongoose.Schema(
     category: {
       type: String,
       required: [true, 'Category is required'],
-      enum: {
-        values: [
-          'assessments', 
-          'compliance', 
-          'safeguards', 
-          'planning', 
-          'sustainability',
-          'consulting',
-          'training'
-        ],
-        message: 'Invalid service category'
-      }
+      trim: true,
+      maxlength: [50, 'Category cannot exceed 50 characters']
     },
     features: [{
       title: {
@@ -88,34 +78,11 @@ const serviceSchema = new mongoose.Schema(
         return `Professional ${this.title} services`;
       }
     },
-    processSteps: [{
-      title: {
-        type: String,
-        required: [true, 'Process step title is required'],
-        trim: true,
-        maxlength: [100, 'Step title cannot exceed 100 characters']
-      },
-      description: {
-        type: String,
-        required: [true, 'Process step description is required'],
-        trim: true
-      },
-      order: {
-        type: Number,
-        min: 1
-      }
-    }],
     projectTypes: [{
-      name: {
-        type: String,
-        required: true,
-        trim: true,
-        maxlength: 100
-      },
-      description: {
-        type: String,
-        trim: true
-      }
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: [100, 'Project type cannot exceed 100 characters']
     }],
     benefits: [{
       title: {
@@ -142,7 +109,7 @@ const serviceSchema = new mongoose.Schema(
         lowercase: true,
         validate: {
           validator: function(v) {
-            return /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(v);
+            return v === '' || /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(v);
           },
           message: 'Please enter a valid email'
         }
@@ -152,7 +119,7 @@ const serviceSchema = new mongoose.Schema(
         trim: true,
         validate: {
           validator: function(v) {
-            return /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/.test(v);
+            return v === '' || /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/.test(v);
           },
           message: 'Please enter a valid phone number'
         }
@@ -162,11 +129,39 @@ const serviceSchema = new mongoose.Schema(
         trim: true,
         validate: {
           validator: function(v) {
-            return /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(v);
+            return v === '' || /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(v);
           },
           message: 'Please enter a valid website URL'
         }
-      }
+      },
+      calendlyLink: {
+        type: String,
+        trim: true,
+        validate: {
+          validator: function(v) {
+            return v === '' || /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(v);
+          },
+          message: 'Please enter a valid URL'
+        }
+      },
+      socialLinks: [{
+        platform: {
+          type: String,
+          required: true,
+          enum: ['twitter', 'facebook', 'linkedin', 'instagram', 'youtube', 'other']
+        },
+        url: {
+          type: String,
+          required: true,
+          trim: true,
+          validate: {
+            validator: function(v) {
+              return /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(v);
+            },
+            message: 'Please enter a valid URL'
+          }
+        }
+      }]
     },
     isFeatured: {
       type: Boolean,
@@ -180,39 +175,6 @@ const serviceSchema = new mongoose.Schema(
       type: Boolean,
       default: true
     },
-    calendlyLink: {
-      type: String,
-      trim: true,
-      validate: {
-        validator: function(v) {
-          return /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(v);
-        },
-        message: 'Please enter a valid URL'
-      }
-    },
-    socialLinks: [{
-      platform: {
-        type: String,
-        required: true,
-        enum: ['twitter', 'facebook', 'linkedin', 'instagram', 'youtube', 'other']
-      },
-      url: {
-        type: String,
-        required: true,
-        trim: true,
-        validate: {
-          validator: function(v) {
-            return /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(v);
-          },
-          message: 'Please enter a valid URL'
-        }
-      }
-    }],
-    images: [{
-      url: String,
-      altText: String,
-      isPrimary: Boolean
-    }],
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -284,8 +246,8 @@ serviceSchema.pre('findOneAndUpdate', async function(next) {
 });
 
 // Indexes for better performance
-serviceSchema.index({ title: 'text', description: 'text', shortDescription: 'text' }, { weights: { title: 10, shortDescription: 5, description: 1 } });
-{/*serviceSchema.index({ slug: 1 });*/}
+serviceSchema.index({ title: 'text', description: 'text', shortDescription: 'text' }, 
+  { weights: { title: 10, shortDescription: 5, description: 1 } });
 serviceSchema.index({ category: 1 });
 serviceSchema.index({ price: 1 });
 serviceSchema.index({ isFeatured: 1 });
@@ -298,12 +260,11 @@ serviceSchema.virtual('formattedPrice').get(function() {
   return `KES ${this.price.toLocaleString()}`;
 });
 
-// Query helper for active services
+// Query helpers
 serviceSchema.query.active = function() {
   return this.where({ isActive: true, isDeleted: false });
 };
 
-// Query helper for published services
 serviceSchema.query.published = function() {
   return this.where({ isPublished: true, isActive: true, isDeleted: false });
 };
