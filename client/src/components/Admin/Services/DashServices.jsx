@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { 
-  Button, Alert, Spinner, Modal, Dropdown, 
+  Button, Alert, Spinner, Dropdown, 
   Badge, Tooltip, Checkbox 
 } from 'flowbite-react';
 import { 
@@ -11,15 +11,80 @@ import {
   HiOutlineCheckCircle, HiOutlineXCircle, HiDotsVertical
 } from 'react-icons/hi';
 import axios from 'axios';
+
+// Component imports
 import ServiceCard from './serviceCard';
 import ServiceTable from './ServiceTable';
-import ServiceForm from './ServiceForm/ServiceFormTabs';
 import PaymentModal from '../../Modal/PaymentModal';
+
+// Modal imports
+import ServiceFormModal from './modals/ServiceFormModal';
+import DeleteModal from './modals/DeleteModal';
+import PreviewModal from './modals/PreviewModal';
+import TemplateModal from './modals/TemplateModal';
+import VersionHistoryModal from './modals/VersionHistoryModal';
+
+// Hook imports
 import useAutoSave from './hooks/useAutoSave';
 import { useServices } from './hooks/useServices';
+import { useServiceForm } from './hooks/useServiceForm';
+import { useServiceModals } from "./hooks/useServiceModal";
+
+// Default form data
+const DEFAULT_FORM_DATA = {
+  title: "",
+  category: "",
+  price: "",
+  shortDescription: "",
+  description: "",
+  // featuredImage: null,
+  // imageUrl: "",
+  metaTitle: "",
+  metaDescription: "",
+  isFeatured: false,
+  //processSteps: [{ title: "", description: "", order: 1 }],
+  projectTypes: [""],
+  benefits: [{ title: "", description: "", icon: "✅" }],
+  features: [{ title: "", description: "" }],
+  contactInfo: {
+    email: "",
+    phone: "",
+    website: "",
+    calendlyLink: ""
+  },
+  socialLinks: [{ platform: "", url: "" }]
+};
+
+// Validation function
+
+const validateForm = (formData) => {
+  const errors = {};
+  
+  // Basic fields
+  if (!formData.title?.trim()) errors.title = 'Title is required';
+  if (!formData.category?.trim()) errors.category = 'Category is required';
+  if (!formData.shortDescription?.trim()) errors.shortDescription = 'Short description is required';
+  if (!formData.description?.trim()) errors.description = 'Description is required';
+  
+  // Validate features
+  if (formData.features) {
+    formData.features.forEach((feature, index) => {
+      if (!feature.title?.trim()) {
+        errors[`features[${index}].title`] = 'Feature title is required';
+      }
+      if (!feature.description?.trim()) {
+        errors[`features[${index}].description`] = 'Feature description is required';
+      }
+    });
+  }
+  
+  return errors;
+};
 
 const DashServices = () => {
   const { currentUser } = useSelector((state) => state.user);
+  
+  // Services hook
   const {
     services,
     loading,
@@ -32,32 +97,64 @@ const DashServices = () => {
     showAlert
   } = useServices();
 
-  // State management
+  // Modals hook
+  const {
+    showFormModal, setShowFormModal,
+    showDeleteModal, setShowDeleteModal,
+    showPreviewModal, setShowPreviewModal,
+    showPaymentModal, setShowPaymentModal,
+    showTemplateModal, setShowTemplateModal,
+    showHistoryModal, setShowHistoryModal,
+    selectedService, setSelectedService,
+    currentService, setCurrentService
+  } = useServiceModals();
+
+  // Local state
   const [selectedServices, setSelectedServices] = useState([]);
-  const [showModal, setShowModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [showHistoryModal, setShowHistoryModal] = useState(false);
-  const [showTemplateModal, setShowTemplateModal] = useState(false);
-  const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [currentService, setCurrentService] = useState(null);
-  const [draft, setDraft] = useState(null);
   const [versionHistory, setVersionHistory] = useState([]);
-  const [selectedService, setSelectedService] = useState(null);
+  const [errors, setErrors] = useState({});
+
+  // Initialize form data
+  const initialFormData = useMemo(() => (
+    currentService ? { ...DEFAULT_FORM_DATA, ...currentService } : DEFAULT_FORM_DATA
+  ), [currentService]);
+
+  // Form handling
+  const formHandlers = useServiceForm(initialFormData);
+  const {
+    formData,
+    setFormData,
+    handleChange,
+    handleContactInfoChange,
+    handleProcessStepChange,
+    addProcessStep,
+    removeProcessStep,
+    handleProjectTypeChange,
+    addProjectType,
+    removeProjectType,
+    handleBenefitChange,
+    addBenefit,
+    removeBenefit,
+    handleFeatureChange,
+    addFeature,
+    removeFeature,
+    handleSocialLinkChange,
+    addSocialLink,
+    removeSocialLink,
+    saveDraft,
+    saveAsTemplate
+  } = formHandlers;
 
   // Auto-save hook
   const { autoSave } = useAutoSave();
 
-  // Form state
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    fullDescription: '',
-    category: '',
-    price: 0,
-    // ... other initial fields
-  });
+  // Memoized categories
+  const categories = useMemo(() => (
+    services.length > 0 
+      ? [...new Set(services.map(service => service.category))]
+      : []
+  ), [services]);
 
   // Fetch version history
   const fetchVersionHistory = useCallback(async (serviceId) => {
@@ -69,22 +166,17 @@ const DashServices = () => {
     }
   }, [showAlert]);
 
-  // Handle service selection
-  const toggleServiceSelection = (serviceId) => {
+  // Service selection handler
+  const toggleServiceSelection = useCallback((serviceId) => {
     setSelectedServices(prev => 
       prev.includes(serviceId) 
         ? prev.filter(id => id !== serviceId)
         : [...prev, serviceId]
     );
-  };
+  }, []);
 
-  // Handle bulk actions
-  const handleBulkAction = async (action) => {
-    if (selectedServices.length === 0) {
-      showAlert('Please select at least one service', 'warning');
-      return;
-    }
-
+  // Bulk actions handler
+  const handleBulkAction = useCallback(async (action) => {
     try {
       if (action === 'delete') {
         await deleteMultipleServices(selectedServices);
@@ -92,65 +184,88 @@ const DashServices = () => {
         await publishMultipleServices(selectedServices);
       }
       setSelectedServices([]);
+      showAlert(`${action === 'delete' ? 'Deleted' : 'Published'} services successfully`, 'success');
     } catch (error) {
-      showAlert(`Bulk ${action} failed`, 'failure');
+      showAlert(`Failed to ${action} services`, 'failure');
     }
-  };
+  }, [selectedServices, deleteMultipleServices, publishMultipleServices, showAlert]);
 
-  // Handle duplicate service
-  const handleDuplicate = async (serviceId) => {
+  // Form submission handler
+  const onSubmit = useCallback(async (formData) => {      
     try {
-      const duplicated = await duplicateService(serviceId);
-      showAlert(`Service duplicated as "${duplicated.title}"`, 'success');
+      const errors = validateForm(formData);
+      if (Object.keys(errors).length > 0) {
+        setErrors(errors);
+        return;
+      }
+
+      const method = editMode ? 'put' : 'post';
+      const url = editMode 
+        ? `/api/services/${currentService._id}` 
+        : '/api/services';
+      
+      const { data } = await axios[method](url, formData);
+      
+      showAlert(
+        `Service ${editMode ? 'updated' : 'created'} successfully`, 
+        'success'
+      );
+      setShowFormModal(false);
+      fetchServices();
+    } catch (error) {
+      showAlert(
+        error.response?.data?.message || 
+        `Failed to ${editMode ? 'update' : 'create'} service`, 
+        'failure'
+      );
+    }
+  }, [editMode, currentService, formData, fetchServices, showAlert]);
+
+  // Edit handler
+  const handleEdit = useCallback((service) => {
+    setCurrentService(service);
+    setEditMode(true);
+    setShowFormModal(true);
+    fetchVersionHistory(service._id);
+  }, [fetchVersionHistory, setCurrentService]);
+
+  // Duplicate handler
+  const handleDuplicate = useCallback(async (serviceId) => {
+    try {
+      await duplicateService(serviceId);
+      showAlert('Service duplicated successfully', 'success');
     } catch (error) {
       showAlert('Failed to duplicate service', 'failure');
     }
-  };
+  }, [duplicateService, showAlert]);
 
-  // Handle process steps reordering - modified to not use react-beautiful-dnd
-  const handleStepReorder = (steps) => {
-    setFormData(prev => ({
-      ...prev,
-      processSteps: steps.map((step, index) => ({ ...step, order: index + 1 }))
-    }));
-  };
+  // Add service handler
+  const handleAddService = useCallback(() => {
+    setEditMode(false);
+    setCurrentService(null);
+    setFormData(DEFAULT_FORM_DATA);
+    setShowFormModal(true);
+  }, [setCurrentService, setFormData]);
 
-  // Save as draft
-  const saveDraft = () => {
-    autoSave(formData);
-    showAlert('Draft saved successfully', 'success');
-  };
-
-  // Save as template
-  const saveAsTemplate = async () => {
-    try {
-      await axios.post('/api/service-templates', formData);
-      showAlert('Template saved successfully', 'success');
-      setShowTemplateModal(false);
-    } catch (error) {
-      showAlert('Failed to save template', 'failure');
-    }
-  };
-
-  // Load service for editing
-  const handleEdit = (service) => {
-    setCurrentService(service);
-    setFormData(service);
-    setEditMode(true);
-    setShowModal(true);
-    fetchVersionHistory(service._id);
-  };
-
-  // Preview service
-  const handlePreview = (service) => {
+  // Preview handler
+  const handlePreview = useCallback((service) => {
     setCurrentService(service);
     setShowPreviewModal(true);
-  };
+  }, [setCurrentService]);
 
-  // Initialize
+  // Initialize services
   useEffect(() => {
-    fetchServices();
-  }, [fetchServices]);
+    let isMounted = true;
+    const fetchData = async () => {
+      try {
+        if (isMounted) await fetchServices();
+      } catch (error) {
+        if (isMounted) showAlert('Failed to fetch services', 'failure');
+      }
+    };
+    fetchData();
+    return () => { isMounted = false };
+  }, [fetchServices, showAlert]);
 
   return (
     <div className="p-4 md:p-6 relative">
@@ -194,16 +309,7 @@ const DashServices = () => {
 
           <Button 
             gradientDuoTone="tealToLime"
-            onClick={() => {
-              setEditMode(false);
-              setCurrentService(null);
-              setFormData({
-                title: '',
-                description: '',
-                // ... reset other fields
-              });
-              setShowModal(true);
-            }}
+            onClick={handleAddService}
             disabled={loading.operation}
           >
             <HiOutlinePlus className="mr-2" />
@@ -290,131 +396,80 @@ const DashServices = () => {
       )}
 
       {/* Service Form Modal */}
-      <Modal show={showModal} onClose={() => setShowModal(false)} size="7xl">
-        <Modal.Header>
-          {editMode ? `Edit ${currentService?.title}` : 'Create New Service'}
-          {editMode && (
-            <Badge color="gray" className="ml-2">
-              {currentService?.isPublished ? 'Published' : 'Draft'}
-            </Badge>
-          )}
-        </Modal.Header>
-        <Modal.Body>
-          <div className="flex justify-end gap-2 mb-4">
-            <Button
-              color="light"
-              onClick={saveDraft}
-              disabled={loading.operation}
-            >
-              <HiOutlineSave className="mr-2" />
-              Save Draft
-            </Button>
-            <Button
-              gradientMonochrome="info"
-              onClick={() => setShowTemplateModal(true)}
-              disabled={loading.operation}
-            >
-              <HiOutlineTemplate className="mr-2" />
-              Save as Template
-            </Button>
-            {editMode && (
-              <Button
-                color="light"
-                onClick={() => setShowHistoryModal(true)}
-              >
-                <HiOutlineClock className="mr-2" />
-                Version History
-              </Button>
-            )}
-          </div>
-
-          <ServiceForm
-            formData={formData}
-            setFormData={setFormData}
-            loading={loading}
-            editMode={editMode}
-            onStepReorder={handleStepReorder}
-          />
-        </Modal.Body>
-        <Modal.Footer>
-          <div className="flex justify-between w-full">
-            <Button color="gray" onClick={() => setShowModal(false)}>
-              Cancel
-            </Button>
-            <div className="flex gap-2">
-              <Button
-                gradientDuoTone="tealToLime"
-                onClick={() => {
-                  // Handle form submission
-                  onSubmit({ ...formData, isPublished: false });
-                }}
-                disabled={loading.operation}
-              >
-                Save as Draft
-              </Button>
-              <Button
-                gradientDuoTone="purpleToBlue"
-                onClick={() => {
-                  // Handle form submission with publish
-                  onSubmit({ ...formData, isPublished: true });
-                }}
-                disabled={loading.operation}
-              >
-                {editMode ? 'Update and Publish' : 'Publish Service'}
-              </Button>
-            </div>
-          </div>
-        </Modal.Footer>
-      </Modal>
+      <ServiceFormModal
+        show={showFormModal}
+        onClose={() => setShowFormModal(false)}
+        editMode={editMode}
+        currentService={currentService}
+        formData={formData}
+        onSaveDraft={saveDraft}
+        onSaveTemplate={() => setShowTemplateModal(true)}
+        onViewHistory={() => setShowHistoryModal(true)}
+        onSubmit={onSubmit}
+        loading={loading}
+        categories={categories}
+        errors={errors}
+        formHandlers={{
+          handleChange,
+          handleContactInfoChange,
+          handleProcessStepChange,
+          addProcessStep,
+          removeProcessStep,
+          handleProjectTypeChange,
+          addProjectType,
+          removeProjectType,
+          handleBenefitChange,
+          addBenefit,
+          removeBenefit,
+          handleFeatureChange,
+          addFeature,
+          removeFeature,
+          handleSocialLinkChange,
+          addSocialLink,
+          removeSocialLink,
+          setFormData
+        }}
+      />
 
       {/* Delete Confirmation Modal */}
-      <Modal show={showDeleteModal} onClose={() => setShowDeleteModal(false)} size="md">
-        <Modal.Header>Confirm Deletion</Modal.Header>
-        <Modal.Body>
-          <div className="text-center">
-            <p className="mb-4">Are you sure you want to delete this service?</p>
-            <p className="font-semibold">{selectedService?.title}</p>
-          </div>
-        </Modal.Body>
-        <Modal.Footer>
-          <div className="flex justify-end gap-2 w-full">
-            <Button color="gray" onClick={() => setShowDeleteModal(false)}>
-              Cancel
-            </Button>
-            <Button
-              color="failure"
-              onClick={async () => {
-                await deleteService(selectedService._id);
-                setShowDeleteModal(false);
-              }}
-              disabled={loading.operation}
-            >
-              Delete Service
-            </Button>
-          </div>
-        </Modal.Footer>
-      </Modal>
+      <DeleteModal
+        show={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        service={selectedService}
+        onConfirm={async () => {
+          await deleteService(selectedService._id);
+          setShowDeleteModal(false);
+        }}
+        loading={loading.operation}
+      />
 
       {/* Preview Modal */}
-      <Modal show={showPreviewModal} onClose={() => setShowPreviewModal(false)} size="7xl">
-        <Modal.Header>Service Preview: {currentService?.title}</Modal.Header>
-        <Modal.Body>
-          {/* Render the service preview using the actual ServiceDetail component */}
-          <div className="prose max-w-none">
-            <h1>{currentService?.title}</h1>
-            <div dangerouslySetInnerHTML={{ __html: currentService?.fullDescription }} />
-          </div>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button onClick={() => setShowPreviewModal(false)}>Close Preview</Button>
-        </Modal.Footer>
-      </Modal>
+      <PreviewModal
+        show={showPreviewModal}
+        onClose={() => setShowPreviewModal(false)}
+        service={currentService}
+      />
 
       {/* Payment Modal */}
       <PaymentModal
         show={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
         service={selectedService}
+      />
+
+      {/* Template Modal */}
+      <TemplateModal
+        show={showTemplateModal}
+        onClose={() => setShowTemplateModal(false)}
+        onSave={saveAsTemplate}
+        loading={loading.operation}
+      />
+
+      {/* Version History Modal */}
+      <VersionHistoryModal
+        show={showHistoryModal}
+        onClose={() => setShowHistoryModal(false)}
+        history={versionHistory}
       />
     </div>
   );
