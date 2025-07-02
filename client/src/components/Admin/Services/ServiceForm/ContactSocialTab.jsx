@@ -135,3 +135,28 @@ const ContactSocialTab = ({
 };
 
 export default ContactSocialTab;
+
+// Update handlers to nest socialLinks inside contactInfo:
+const handleSocialLinkChange = (index, field, value) => {
+  setFormData({
+    ...formData,
+    contactInfo: {
+      ...formData.contactInfo,
+      socialLinks: formData.contactInfo.socialLinks.map((link, i) => 
+        i === index ? { ...link, [field]: value } : link
+      )
+    }
+  });
+};
+
+// Update the initial data structure in DashServices.jsx:
+const DEFAULT_FORM_DATA = {
+  contactInfo: {
+    email: "",
+    phone: "",
+    website: "",
+    calendlyLink: "",
+    socialLinks: [{ platform: "", url: "" }]
+  }
+  // ... other fields
+};
