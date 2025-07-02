@@ -1,3 +1,6 @@
+import flowbite from 'flowbite/plugin';
+import tailwindcss from 'tailwindcss';
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
@@ -10,10 +13,9 @@ export default {
     extend: {},
   },
   plugins: [
-    import('flowbite/plugin')
+    flowbite
   ],
   corePlugins: {
-    // Disable version checking to prevent version.js errors
     version: false
   }
 }
