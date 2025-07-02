@@ -29,6 +29,7 @@
     "express-fileupload": "^1.5.1",
     "flowbite": "^2.5.2",
     "flowbite-react": "^0.10.2",
+    "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
     "lodash": "^4.17.21",
     "mongoose": "^8.8.3",
