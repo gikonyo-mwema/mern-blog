@@ -1,8 +1,5 @@
-import { useState } from 'react';
 import { Modal, Button, Badge } from 'flowbite-react';
-import {
-  HiOutlineSave, HiOutlineTemplate, HiOutlineClock
-} from 'react-icons/hi';
+import { HiOutlineClock } from 'react-icons/hi';
 import ServiceFormTabs from "../ServiceForm/ServiceFormTabs";
 
 const ServiceFormModal = ({
@@ -11,8 +8,6 @@ const ServiceFormModal = ({
   editMode, 
   currentService, 
   formData,
-  onSaveDraft, 
-  onSaveTemplate, 
   onViewHistory,
   onSubmit, 
   loading = {},
@@ -20,8 +15,6 @@ const ServiceFormModal = ({
   errors = {}, 
   formHandlers
 }) => {
-  const [activeTab, setActiveTab] = useState('basic');
-
   const {
     handleChange,
     handleContactInfoChange,
@@ -43,11 +36,11 @@ const ServiceFormModal = ({
     setFormData
   } = formHandlers || {};
 
-  const handleSubmit = (shouldPublish) => (e) => {
+  const handlePublish = (e) => {
     e.preventDefault();
     onSubmit({ 
       ...formData, 
-      isPublished: shouldPublish 
+      isPublished: true 
     });
   };
 
@@ -61,29 +54,10 @@ const ServiceFormModal = ({
           </Badge>
         )}
       </Modal.Header>
-      <Modal.Body>
-        <div className="flex justify-end gap-2 mb-4">
-          <Button 
-            color="light" 
-            onClick={(e) => {
-              e.preventDefault();
-              onSaveDraft(formData);
-            }}
-            disabled={loading.operation}
-          >
-            <HiOutlineSave className="mr-2" /> Save Draft
-          </Button>
-          <Button 
-            gradientMonochrome="info" 
-            onClick={(e) => {
-              e.preventDefault();
-              onSaveTemplate(formData);
-            }}
-            disabled={loading.operation}
-          >
-            <HiOutlineTemplate className="mr-2" /> Save as Template
-          </Button>
-          {editMode && (
+      
+      <Modal.Body className="max-h-[80vh] overflow-y-auto">
+        {editMode && (
+          <div className="flex justify-end mb-4">
             <Button 
               color="light" 
               onClick={(e) => {
@@ -94,12 +68,10 @@ const ServiceFormModal = ({
             >
               <HiOutlineClock className="mr-2" /> Version History
             </Button>
-          )}
-        </div>
+          </div>
+        )}
 
         <ServiceFormTabs
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
           formData={formData}
           handleChange={handleChange}
           setFormData={setFormData}
@@ -124,24 +96,18 @@ const ServiceFormModal = ({
           categories={categories}
         />
       </Modal.Body>
-      <Modal.Footer>
-        <Button color="gray" onClick={onClose}>Cancel</Button>
-        <div className="flex gap-2">
-          <Button
-            gradientDuoTone="tealToLime"
-            onClick={handleSubmit(false)}
-            disabled={loading.operation}
-          >
-            Save as Draft
-          </Button>
-          <Button
-            gradientDuoTone="purpleToBlue"
-            onClick={handleSubmit(true)}
-            disabled={loading.operation}
-          >
-            {editMode ? 'Update and Publish' : 'Publish Service'}
-          </Button>
-        </div>
+
+      <Modal.Footer className="flex justify-end gap-3">
+        <Button color="gray" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button
+          gradientDuoTone="purpleToBlue"
+          onClick={handlePublish}
+          disabled={loading.operation}
+        >
+          {editMode ? 'Update Service' : 'Publish Service'}
+        </Button>
       </Modal.Footer>
     </Modal>
   );
