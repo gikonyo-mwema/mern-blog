@@ -5,8 +5,7 @@ export const useServiceModals = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [showTemplateModal, setShowTemplateModal] = useState(false);
-  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  
   
   const [selectedService, setSelectedService] = useState(null);
   const [currentService, setCurrentService] = useState(null);
@@ -16,8 +15,7 @@ export const useServiceModals = () => {
     showDeleteModal, setShowDeleteModal,
     showPreviewModal, setShowPreviewModal,
     showPaymentModal, setShowPaymentModal,
-    showTemplateModal, setShowTemplateModal,
-    showHistoryModal, setShowHistoryModal,
+  
     selectedService, setSelectedService,
     currentService, setCurrentService
   };
