@@ -1,14 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { 
-  Button, Alert, Spinner, Dropdown, 
-  Badge, Tooltip, Checkbox 
+  Button, Alert, Spinner
 } from 'flowbite-react';
 import { 
-  HiOutlinePlus, HiOutlineTrash, HiOutlineDuplicate,
-  HiOutlineEye, HiOutlineSave, HiOutlineTemplate,
-  HiOutlineRefresh, HiOutlineCloudUpload, HiOutlineClock,
-  HiOutlineCheckCircle, HiOutlineXCircle, HiDotsVertical
+  HiOutlineRefresh, HiOutlineCheckCircle, HiOutlineXCircle
 } from 'react-icons/hi';
 import axios from 'axios';
 
@@ -21,13 +17,11 @@ import PaymentModal from '../../Modal/PaymentModal';
 import ServiceFormModal from './modals/ServiceFormModal';
 import DeleteModal from './modals/DeleteModal';
 import PreviewModal from './modals/PreviewModal';
-import TemplateModal from './modals/TemplateModal';
-import VersionHistoryModal from './modals/VersionHistoryModal';
 
 // Hook imports
-import useAutoSave from './hooks/useAutoSave';
 import { useServices } from './hooks/useServices';
 import { useServiceForm } from './hooks/useServiceForm';
+
 import { useServiceModals } from "./hooks/useServiceModal";
 
 // Default form data
@@ -37,12 +31,9 @@ const DEFAULT_FORM_DATA = {
   price: "",
   shortDescription: "",
   description: "",
-  // featuredImage: null,
-  // imageUrl: "",
   metaTitle: "",
   metaDescription: "",
   isFeatured: false,
-  //processSteps: [{ title: "", description: "", order: 1 }],
   projectTypes: [""],
   benefits: [{ title: "", description: "", icon: "✅" }],
   features: [{ title: "", description: "" }],
@@ -56,17 +47,12 @@ const DEFAULT_FORM_DATA = {
 };
 
 // Validation function
-
 const validateForm = (formData) => {
   const errors = {};
-  
-  // Basic fields
   if (!formData.title?.trim()) errors.title = 'Title is required';
   if (!formData.category?.trim()) errors.category = 'Category is required';
   if (!formData.shortDescription?.trim()) errors.shortDescription = 'Short description is required';
   if (!formData.description?.trim()) errors.description = 'Description is required';
-  
-  // Validate features
   if (formData.features) {
     formData.features.forEach((feature, index) => {
       if (!feature.title?.trim()) {
@@ -77,50 +63,43 @@ const validateForm = (formData) => {
       }
     });
   }
-  
   return errors;
 };
 
 const DashServices = () => {
   const { currentUser } = useSelector((state) => state.user);
-  
-  // Services hook
+
+  // Custom hooks for services and modals
   const {
     services,
     loading,
     alert,
     fetchServices,
     deleteService,
-    deleteMultipleServices,
-    publishMultipleServices,
     duplicateService,
     showAlert
   } = useServices();
 
-  // Modals hook
   const {
     showFormModal, setShowFormModal,
     showDeleteModal, setShowDeleteModal,
     showPreviewModal, setShowPreviewModal,
     showPaymentModal, setShowPaymentModal,
-    showTemplateModal, setShowTemplateModal,
-    showHistoryModal, setShowHistoryModal,
     selectedService, setSelectedService,
     currentService, setCurrentService
   } = useServiceModals();
 
   // Local state
-  const [selectedServices, setSelectedServices] = useState([]);
+
   const [editMode, setEditMode] = useState(false);
-  const [versionHistory, setVersionHistory] = useState([]);
   const [errors, setErrors] = useState({});
 
-  // Initialize form data
+  // Memoized initial form data
   const initialFormData = useMemo(() => (
     currentService ? { ...DEFAULT_FORM_DATA, ...currentService } : DEFAULT_FORM_DATA
   ), [currentService]);
 
-  // Form handling
+  // Form handlers from custom hook
   const formHandlers = useServiceForm(initialFormData);
   const {
     formData,
@@ -141,32 +120,17 @@ const DashServices = () => {
     removeFeature,
     handleSocialLinkChange,
     addSocialLink,
-    removeSocialLink,
-    saveDraft,
-    saveAsTemplate
+    removeSocialLink
   } = formHandlers;
 
-  // Auto-save hook
-  const { autoSave } = useAutoSave();
-
-  // Memoized categories
+  // Memoized categories for dropdowns
   const categories = useMemo(() => (
     services.length > 0 
       ? [...new Set(services.map(service => service.category))]
       : []
   ), [services]);
 
-  // Fetch version history
-  const fetchVersionHistory = useCallback(async (serviceId) => {
-    try {
-      const { data } = await axios.get(`/api/services/${serviceId}/history`);
-      setVersionHistory(data);
-    } catch (error) {
-      showAlert('Failed to load version history', 'failure');
-    }
-  }, [showAlert]);
-
-  // Service selection handler
+  // Toggle selection for bulk actions
   const toggleServiceSelection = useCallback((serviceId) => {
     setSelectedServices(prev => 
       prev.includes(serviceId) 
@@ -175,22 +139,7 @@ const DashServices = () => {
     );
   }, []);
 
-  // Bulk actions handler
-  const handleBulkAction = useCallback(async (action) => {
-    try {
-      if (action === 'delete') {
-        await deleteMultipleServices(selectedServices);
-      } else if (action === 'publish') {
-        await publishMultipleServices(selectedServices);
-      }
-      setSelectedServices([]);
-      showAlert(`${action === 'delete' ? 'Deleted' : 'Published'} services successfully`, 'success');
-    } catch (error) {
-      showAlert(`Failed to ${action} services`, 'failure');
-    }
-  }, [selectedServices, deleteMultipleServices, publishMultipleServices, showAlert]);
-
-  // Form submission handler
+  // Handle form submit (create or update)
   const onSubmit = useCallback(async (formData) => {      
     try {
       const errors = validateForm(formData);
@@ -198,14 +147,11 @@ const DashServices = () => {
         setErrors(errors);
         return;
       }
-
       const method = editMode ? 'put' : 'post';
       const url = editMode 
         ? `/api/services/${currentService._id}` 
         : '/api/services';
-      
-      const { data } = await axios[method](url, formData);
-      
+      await axios[method](url, formData);
       showAlert(
         `Service ${editMode ? 'updated' : 'created'} successfully`, 
         'success'
@@ -219,17 +165,16 @@ const DashServices = () => {
         'failure'
       );
     }
-  }, [editMode, currentService, formData, fetchServices, showAlert]);
+  }, [editMode, currentService, fetchServices, showAlert]);
 
-  // Edit handler
+  // Edit service handler
   const handleEdit = useCallback((service) => {
     setCurrentService(service);
     setEditMode(true);
     setShowFormModal(true);
-    fetchVersionHistory(service._id);
-  }, [fetchVersionHistory, setCurrentService]);
+  }, [setCurrentService]);
 
-  // Duplicate handler
+  // Duplicate service handler
   const handleDuplicate = useCallback(async (serviceId) => {
     try {
       await duplicateService(serviceId);
@@ -239,7 +184,7 @@ const DashServices = () => {
     }
   }, [duplicateService, showAlert]);
 
-  // Add service handler
+  // Add new service handler
   const handleAddService = useCallback(() => {
     setEditMode(false);
     setCurrentService(null);
@@ -247,13 +192,13 @@ const DashServices = () => {
     setShowFormModal(true);
   }, [setCurrentService, setFormData]);
 
-  // Preview handler
+  // Preview service handler
   const handlePreview = useCallback((service) => {
     setCurrentService(service);
     setShowPreviewModal(true);
   }, [setCurrentService]);
 
-  // Initialize services
+  // Fetch services on mount
   useEffect(() => {
     let isMounted = true;
     const fetchData = async () => {
@@ -268,14 +213,15 @@ const DashServices = () => {
   }, [fetchServices, showAlert]);
 
   return (
-    <div className="p-4 md:p-6 relative">
+    <div className="p-4 md:p-8 bg-gray-50 min-h-screen relative">
       {/* Alert Notification */}
       {alert.show && (
-        <div className="fixed top-4 right-4 z-50 w-96">
+        <div className="fixed top-4 right-4 z-50 w-full max-w-md">
           <Alert 
             color={alert.type}
             icon={alert.type === 'success' ? HiOutlineCheckCircle : HiOutlineXCircle}
             onDismiss={() => showAlert('', alert.type, false)}
+            className="shadow-lg"
           >
             {alert.message}
           </Alert>
@@ -283,79 +229,40 @@ const DashServices = () => {
       )}
 
       {/* Header and Action Buttons */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-        <h2 className="text-2xl font-semibold">Manage Services</h2>
-        
-        <div className="flex flex-wrap gap-2 w-full md:w-auto">
-          <Dropdown
-            label="Bulk Actions"
-            placement="bottom-end"
-            disabled={selectedServices.length === 0 || loading.operation}
-          >
-            <Dropdown.Item 
-              icon={HiOutlineCloudUpload}
-              onClick={() => handleBulkAction('publish')}
-            >
-              Publish Selected
-            </Dropdown.Item>
-            <Dropdown.Item 
-              icon={HiOutlineTrash}
-              onClick={() => handleBulkAction('delete')}
-              className="text-red-600"
-            >
-              Delete Selected
-            </Dropdown.Item>
-          </Dropdown>
-
-          <Button 
-            gradientDuoTone="tealToLime"
-            onClick={handleAddService}
-            disabled={loading.operation}
-          >
-            <HiOutlinePlus className="mr-2" />
-            Add Service
-          </Button>
-        </div>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+        <h2 className="text-3xl font-bold text-gray-800">Manage Services</h2>
+        <Button
+          color="primary"
+          onClick={handleAddService}
+          className="w-full md:w-auto"
+        >
+          + Add Service
+        </Button>
       </div>
-
-      {/* Selected Services Counter */}
-      {selectedServices.length > 0 && (
-        <div className="mb-4 flex items-center gap-2">
-          <Badge color="info" className="px-3 py-1">
-            {selectedServices.length} selected
-          </Badge>
-          <Button 
-            size="xs" 
-            color="light" 
-            onClick={() => setSelectedServices([])}
-          >
-            Clear selection
-          </Button>
-        </div>
-      )}
 
       {/* Content */}
       {loading.table ? (
-        <div className="flex justify-center py-12">
+        <div className="flex justify-center items-center py-24">
           <Spinner size="xl" aria-label="Loading services..." />
         </div>
       ) : services.length > 0 ? (
         <>
-          {/* Service Preview */}
-          <div className="mb-8">
+          {/* Service Preview Section */}
+          <div className="mb-10">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold">Services Preview</h3>
+              <h3 className="text-xl font-semibold text-gray-700">Services Preview</h3>
               <Button 
                 color="light" 
                 size="xs" 
                 onClick={fetchServices}
                 disabled={loading.table}
+                className="flex items-center gap-1"
               >
-                <HiOutlineRefresh className="mr-2" />
+                <HiOutlineRefresh className="mr-1" />
                 Refresh
               </Button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {services.slice(0, 3).map(service => (
                 <ServiceCard 
                   key={service._id} 
@@ -367,29 +274,32 @@ const DashServices = () => {
                   onPreviewClick={() => handlePreview(service)}
                   selected={selectedServices.includes(service._id)}
                   onSelectChange={() => toggleServiceSelection(service._id)}
+                  className="shadow-md hover:shadow-lg transition"
                 />
               ))}
             </div>
           </div>
 
-          {/* Service Table */}
-          <ServiceTable 
-            services={services}
-            onEdit={handleEdit}
-            onDelete={(id) => {
-              setSelectedService(services.find(s => s._id === id));
-              setShowDeleteModal(true);
-            }}
-            onDuplicate={handleDuplicate}
-            onPreview={handlePreview}
-            selectedServices={selectedServices}
-            onSelectChange={toggleServiceSelection}
-            loading={loading}
-          />
+          {/* Service Table Section */}
+          <div className="bg-white rounded-lg shadow-md p-4">
+            <ServiceTable 
+              services={services}
+              onEdit={handleEdit}
+              onDelete={(id) => {
+                setSelectedService(services.find(s => s._id === id));
+                setShowDeleteModal(true);
+              }}
+              onDuplicate={handleDuplicate}
+              onPreview={handlePreview}
+              selectedServices={selectedServices}
+              onSelectChange={toggleServiceSelection}
+              loading={loading}
+            />
+          </div>
         </>
       ) : (
-        <div className="text-center py-12">
-          <Alert color="info">
+        <div className="text-center py-24">
+          <Alert color="info" className="inline-block">
             No services found. Create your first service.
           </Alert>
         </div>
@@ -402,9 +312,6 @@ const DashServices = () => {
         editMode={editMode}
         currentService={currentService}
         formData={formData}
-        onSaveDraft={saveDraft}
-        onSaveTemplate={() => setShowTemplateModal(true)}
-        onViewHistory={() => setShowHistoryModal(true)}
         onSubmit={onSubmit}
         loading={loading}
         categories={categories}
@@ -455,21 +362,6 @@ const DashServices = () => {
         show={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
         service={selectedService}
-      />
-
-      {/* Template Modal */}
-      <TemplateModal
-        show={showTemplateModal}
-        onClose={() => setShowTemplateModal(false)}
-        onSave={saveAsTemplate}
-        loading={loading.operation}
-      />
-
-      {/* Version History Modal */}
-      <VersionHistoryModal
-        show={showHistoryModal}
-        onClose={() => setShowHistoryModal(false)}
-        history={versionHistory}
       />
     </div>
   );
