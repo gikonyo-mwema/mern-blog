@@ -16,12 +16,14 @@ import ScrollToTop from './components/ScrollToTop';
 import Search from './pages/Search';
 import ThemeProvider from './components/ThemeProvider';
 import Services from './pages/Services';
+import ServiceDetail from './pages/ServiceDetail'; // ✅ Added import
 import Courses from './pages/Courses';
 import CourseDetails from './pages/CourseDetails';
 import UserCourses from './components/UserCourses';
 import { CreateCourse } from './components/Admin/Courses/CreateCourse';
 import { EditCourse } from './components/Admin/Courses/EditCourse';
 import DashServices from './components/Admin/Services/DashServices';
+import Contact from './pages/Contact'; 
 
 export default function App() {
   return (
@@ -34,6 +36,7 @@ export default function App() {
           <Route path='/' element={<Home />} />
           <Route path='/about' element={<About />} />
           <Route path='/services' element={<Services />} />
+          <Route path='/services/:id' element={<ServiceDetail />} /> {/* ✅ Added Route */}
           <Route path='/courses' element={<Courses />} />
           <Route path='/courses/:slug' element={<CourseDetails />} />
           <Route path='/sign-in' element={<SignIn />} />
@@ -41,6 +44,7 @@ export default function App() {
           <Route path='/search' element={<Search />} />
           <Route path='/projects' element={<Projects />} />
           <Route path='/post/:postSlug' element={<PostPage />} />
+           <Route path="/contact" element={<Contact />} />
 
           {/* Authenticated User Routes */}
           <Route element={<PrivateRoute />}>
