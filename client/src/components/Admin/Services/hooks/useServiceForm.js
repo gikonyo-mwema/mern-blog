@@ -78,14 +78,15 @@ export const useServiceForm = (initialData) => {
     }));
   }, []);
 
-  // Benefits handlers
-  const handleBenefitChange = useCallback((index, e) => {
-    const { name, value } = e.target;
+  // Benefits handlers - UPDATED to match component usage
+  const handleBenefitChange = useCallback((index, field, value) => {
     setFormData(prev => {
       const newBenefits = [...prev.benefits];
+      if (!newBenefits[index]) return prev; // safety check
+      
       newBenefits[index] = {
         ...newBenefits[index],
-        [name]: value
+        [field]: value
       };
       return { ...prev, benefits: newBenefits };
     });
@@ -108,14 +109,15 @@ export const useServiceForm = (initialData) => {
     }));
   }, []);
 
-  // Features handlers
-  const handleFeatureChange = useCallback((index, e) => {
-    const { name, value } = e.target;
+  // Features handlers - UPDATED to match benefits pattern
+  const handleFeatureChange = useCallback((index, field, value) => {
     setFormData(prev => {
       const newFeatures = [...prev.features];
+      if (!newFeatures[index]) return prev; // safety check
+      
       newFeatures[index] = {
         ...newFeatures[index],
-        [name]: value
+        [field]: value
       };
       return { ...prev, features: newFeatures };
     });
@@ -138,14 +140,15 @@ export const useServiceForm = (initialData) => {
     }));
   }, []);
 
-  // Social Links handlers
-  const handleSocialLinkChange = useCallback((index, e) => {
-    const { name, value } = e.target;
+  // Social Links handlers - UPDATED to match benefits pattern
+  const handleSocialLinkChange = useCallback((index, field, value) => {
     setFormData(prev => {
       const newSocialLinks = [...prev.socialLinks];
+      if (!newSocialLinks[index]) return prev; // safety check
+      
       newSocialLinks[index] = {
         ...newSocialLinks[index],
-        [name]: value
+        [field]: value
       };
       return { ...prev, socialLinks: newSocialLinks };
     });

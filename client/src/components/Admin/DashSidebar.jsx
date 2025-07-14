@@ -5,7 +5,7 @@ import {
   HiArrowSmRight, 
   HiDocumentText, 
   HiOutlineUserGroup, 
-  HiAnnotation, 
+  HiAnnotation,  
   HiChartPie,
   HiClipboardCheck,
   HiBookOpen,
@@ -16,7 +16,7 @@ import {
 } from "react-icons/hi";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { signOut } from "../../redux/user/userSlice"; // Import the signOut thunk
+import { signOut } from "../../redux/user/userSlice"; 
 
 export default function DashSidebar() {
   const location = useLocation();

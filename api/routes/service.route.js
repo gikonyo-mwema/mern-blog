@@ -1,49 +1,39 @@
+// routes/service.route.js
 import express from 'express';
-import { 
-  createService,
-  getServices,
-  getService,
-  updateService,
-  deleteService,
-  getServiceStats,
-  publishService,
-  duplicateService,
-  getServiceHistory,
-  bulkUpdateServices
-} from '../controllers/service.controller.js';
-import { verifyToken, verifyAdmin } from '../utils/verifyUser.js';
-import uploadRouter from '../utils/upload.js'; // Import the upload router
+import Service from '../models/service.model.js';
 
 const router = express.Router();
 
-// Use the upload router for image uploads
-// router.use('/upload', uploadRouter);
+// Get all services (for cards)
+router.get('/', async (req, res) => {
+  try {
+    const services = await Service.find({}, 'title shortDescription icon');
+    res.json(services);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 
-// Admin dashboard routes
-router.get('/stats', verifyToken, verifyAdmin, getServiceStats);
-router.post('/bulk-update', verifyToken, verifyAdmin, bulkUpdateServices);
-router.put('/publish/:id', verifyToken, verifyAdmin, publishService);
-router.post('/duplicate/:id', verifyToken, verifyAdmin, duplicateService);
-router.get('/history/:id', verifyToken, getServiceHistory);
+// Get single service details
+router.get('/:id', async (req, res) => {
+  try {
+    const service = await Service.findById(req.params.id);
+    if (!service) return res.status(404).json({ message: 'Service not found' });
+    res.json(service);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 
-// Regular CRUD routes
-router.post('/', 
-  verifyToken, 
-  // Client should first upload images via /upload endpoint
-  // and then include the image URLs in the request body
-  createService
-);
-
-router.get('/', getServices);
-router.get('/:id', getService);
-
-router.put('/:id', 
-  verifyToken,
-  // Client should first upload new images via /upload endpoint
-  // and then include the updated image URLs in the request body
-  updateService
-);
-
-router.delete('/:id', verifyToken, deleteService);
+// Create new service
+router.post('/', async (req, res) => {
+  try {
+    const newService = new Service(req.body);
+    const savedService = await newService.save();
+    res.status(201).json(savedService);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
 
 export default router;

@@ -4,8 +4,26 @@ import cloneDeep from 'lodash/cloneDeep.js';
 
 export const createService = async (req, res, next) => {
   try {
+    // Prepare service data with proper structure
+    const serviceData = {
+      ...req.body,
+      metaTitle: req.body.metaTitle || req.body.title,
+      metaDescription: req.body.metaDescription || req.body.shortDescription,
+      isFeatured: req.body.isFeatured || false,
+      createdBy: req.user.id,
+      lastUpdatedBy: req.user.id
+    };
+
+    // Handle socialLinks if provided (frontend sends at root level)
+    if (req.body.socialLinks) {
+      serviceData.contactInfo = {
+        ...(req.body.contactInfo || {}),
+        socialLinks: req.body.socialLinks
+      };
+    }
+
     // Validate input data
-    const validation = validateServiceData(req.body);
+    const validation = validateServiceData(serviceData);
     if (!validation.valid) {
       return res.status(400).json({
         success: false,
@@ -13,12 +31,6 @@ export const createService = async (req, res, next) => {
         errors: validation.errors
       });
     }
-
-    const serviceData = {
-      ...req.body,
-      createdBy: req.user.id,
-      lastUpdatedBy: req.user.id
-    };
 
     // Handle process steps ordering
     if (serviceData.processSteps) {
@@ -36,24 +48,31 @@ export const createService = async (req, res, next) => {
     });
 
   } catch (error) {
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: error.errors
+      });
+    }
     next(error);
   }
 };
 
 export const getServices = async (req, res, next) => {
   try {
-    // 1. Filtering
-    const queryObj = { ...req.query };
+    // Filtering
+    const queryObj = { ...req.query, isDeleted: false };
     const excludedFields = ['page', 'sort', 'limit', 'fields', 'search'];
     excludedFields.forEach(el => delete queryObj[el]);
 
-    // 2. Advanced filtering
+    // Advanced filtering
     let queryStr = JSON.stringify(queryObj);
     queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, match => `$${match}`);
     
     let query = Service.find(JSON.parse(queryStr));
 
-    // 3. Search
+    // Search
     if (req.query.search) {
       query = query.find({
         $text: { $search: req.query.search },
@@ -61,7 +80,7 @@ export const getServices = async (req, res, next) => {
       }).sort({ score: { $meta: "textScore" } });
     }
 
-    // 4. Sorting
+    // Sorting
     if (req.query.sort) {
       const sortBy = req.query.sort.split(',').join(' ');
       query = query.sort(sortBy);
@@ -69,15 +88,15 @@ export const getServices = async (req, res, next) => {
       query = query.sort('-createdAt');
     }
 
-    // 5. Field limiting
+    // Field limiting
     if (req.query.fields) {
       const fields = req.query.fields.split(',').join(' ');
       query = query.select(fields);
     } else {
-      query = query.select('-__v');
+      query = query.select('-__v -versionHistory');
     }
 
-    // 6. Pagination
+    // Pagination
     const page = req.query.page * 1 || 1;
     const limit = req.query.limit * 1 || 10;
     const skip = (page - 1) * limit;
@@ -110,7 +129,7 @@ export const getService = async (req, res, next) => {
       .populate('createdBy', 'name email')
       .populate('lastUpdatedBy', 'name email');
 
-    if (!service) {
+    if (!service || service.isDeleted) {
       return res.status(404).json({ 
         success: false,
         message: 'Service not found' 
@@ -134,6 +153,22 @@ export const updateService = async (req, res, next) => {
     const { id } = req.params;
     const updates = req.body;
 
+    // Prepare updates with proper structure
+    const serviceUpdates = {
+      ...updates,
+      lastUpdatedBy: req.user.id,
+      updatedAt: new Date()
+    };
+
+    // Handle socialLinks if provided
+    if (updates.socialLinks) {
+      serviceUpdates.contactInfo = {
+        ...(updates.contactInfo || {}),
+        socialLinks: updates.socialLinks
+      };
+      delete serviceUpdates.socialLinks;
+    }
+
     // Validate updates if provided
     if (Object.keys(updates).length > 0) {
       const validation = validateServiceData(updates, true);
@@ -148,7 +183,7 @@ export const updateService = async (req, res, next) => {
 
     // Verify service exists and user has permission
     const existingService = await Service.findById(id);
-    if (!existingService) {
+    if (!existingService || existingService.isDeleted) {
       return res.status(404).json({
         success: false,
         message: 'Service not found'
@@ -162,13 +197,6 @@ export const updateService = async (req, res, next) => {
         message: 'Not authorized to update this service'
       });
     }
-
-    // Prepare updates
-    const serviceUpdates = {
-      ...updates,
-      lastUpdatedBy: req.user.id,
-      updatedAt: new Date()
-    };
 
     // Handle process steps reordering
     if (updates.processSteps) {
@@ -195,6 +223,13 @@ export const updateService = async (req, res, next) => {
     });
 
   } catch (error) {
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: error.errors
+      });
+    }
     next(error);
   }
 };
@@ -205,7 +240,7 @@ export const deleteService = async (req, res, next) => {
 
     // Verify service exists and user has permission
     const service = await Service.findById(id);
-    if (!service) {
+    if (!service || service.isDeleted) {
       return res.status(404).json({
         success: false,
         message: 'Service not found'
@@ -236,9 +271,46 @@ export const deleteService = async (req, res, next) => {
   }
 };
 
+export const getServiceCategories = async (req, res, next) => {
+  try {
+    const categories = await Service.distinct('category', { isDeleted: false });
+    res.status(200).json({
+      success: true,
+      data: {
+        categories
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getFeaturedServices = async (req, res, next) => {
+  try {
+    const services = await Service.find({ 
+      isFeatured: true,
+      isDeleted: false 
+    })
+    .limit(5)
+    .select('title shortDescription price icon category');
+
+    res.status(200).json({
+      success: true,
+      data: {
+        services
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getServiceStats = async (req, res, next) => {
   try {
     const stats = await Service.aggregate([
+      {
+        $match: { isDeleted: false }
+      },
       {
         $facet: {
           totalServices: [{ $count: "count" }],
@@ -272,11 +344,15 @@ export const publishService = async (req, res, next) => {
 
     const service = await Service.findByIdAndUpdate(
       id,
-      { isPublished: true, lastUpdatedBy: req.user.id },
+      { 
+        isPublished: true, 
+        lastUpdatedBy: req.user.id,
+        updatedAt: new Date()
+      },
       { new: true }
     );
 
-    if (!service) {
+    if (!service || service.isDeleted) {
       return res.status(404).json({
         success: false,
         message: 'Service not found'
@@ -299,7 +375,7 @@ export const duplicateService = async (req, res, next) => {
     const { id } = req.params;
     
     const originalService = await Service.findById(id);
-    if (!originalService) {
+    if (!originalService || originalService.isDeleted) {
       return res.status(404).json({
         success: false,
         message: 'Service not found'
@@ -312,12 +388,14 @@ export const duplicateService = async (req, res, next) => {
     delete serviceData.slug;
     delete serviceData.createdAt;
     delete serviceData.updatedAt;
+    delete serviceData.versionHistory;
     
     // Modify the title to indicate it's a copy
     serviceData.title = `Copy of ${serviceData.title}`;
     serviceData.createdBy = req.user.id;
     serviceData.lastUpdatedBy = req.user.id;
     serviceData.isPublished = false;
+    serviceData.isFeatured = false;
 
     const newService = await Service.create(serviceData);
 
@@ -340,7 +418,7 @@ export const getServiceHistory = async (req, res, next) => {
       .select('versionHistory title')
       .populate('versionHistory.changedBy', 'name email');
 
-    if (!service) {
+    if (!service || service.isDeleted) {
       return res.status(404).json({
         success: false,
         message: 'Service not found'
@@ -375,23 +453,43 @@ export const bulkUpdateServices = async (req, res, next) => {
 
     switch (action) {
       case 'publish':
-        update = { isPublished: true, lastUpdatedBy: req.user.id };
+        update = { 
+          isPublished: true, 
+          lastUpdatedBy: req.user.id,
+          updatedAt: new Date()
+        };
         message = 'Services published successfully';
         break;
       case 'unpublish':
-        update = { isPublished: false, lastUpdatedBy: req.user.id };
+        update = { 
+          isPublished: false, 
+          lastUpdatedBy: req.user.id,
+          updatedAt: new Date()
+        };
         message = 'Services unpublished successfully';
         break;
       case 'feature':
-        update = { isFeatured: true, lastUpdatedBy: req.user.id };
+        update = { 
+          isFeatured: true, 
+          lastUpdatedBy: req.user.id,
+          updatedAt: new Date()
+        };
         message = 'Services featured successfully';
         break;
       case 'unfeature':
-        update = { isFeatured: false, lastUpdatedBy: req.user.id };
+        update = { 
+          isFeatured: false, 
+          lastUpdatedBy: req.user.id,
+          updatedAt: new Date()
+        };
         message = 'Services unfeatured successfully';
         break;
       case 'delete':
-        update = { isDeleted: true, deletedAt: new Date(), deletedBy: req.user.id };
+        update = { 
+          isDeleted: true, 
+          deletedAt: new Date(), 
+          deletedBy: req.user.id 
+        };
         message = 'Services marked as deleted successfully';
         break;
       default:
@@ -402,7 +500,7 @@ export const bulkUpdateServices = async (req, res, next) => {
     }
 
     const result = await Service.updateMany(
-      { _id: { $in: ids } },
+      { _id: { $in: ids }, isDeleted: false },
       update
     );
 

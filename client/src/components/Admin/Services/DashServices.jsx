@@ -21,7 +21,6 @@ import PreviewModal from './modals/PreviewModal';
 // Hook imports
 import { useServices } from './hooks/useServices';
 import { useServiceForm } from './hooks/useServiceForm';
-
 import { useServiceModals } from "./hooks/useServiceModal";
 
 // Default form data
@@ -90,9 +89,9 @@ const DashServices = () => {
   } = useServiceModals();
 
   // Local state
-
   const [editMode, setEditMode] = useState(false);
   const [errors, setErrors] = useState({});
+  const [selectedServices, setSelectedServices] = useState([]);
 
   // Memoized initial form data
   const initialFormData = useMemo(() => (
@@ -213,7 +212,7 @@ const DashServices = () => {
   }, [fetchServices, showAlert]);
 
   return (
-    <div className="p-4 md:p-8 bg-gray-50 min-h-screen relative">
+    <div className="p-4 md:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen relative transition-colors duration-300">
       {/* Alert Notification */}
       {alert.show && (
         <div className="fixed top-4 right-4 z-50 w-full max-w-md">
@@ -221,20 +220,20 @@ const DashServices = () => {
             color={alert.type}
             icon={alert.type === 'success' ? HiOutlineCheckCircle : HiOutlineXCircle}
             onDismiss={() => showAlert('', alert.type, false)}
-            className="shadow-lg"
+            className="shadow-lg dark:bg-gray-800"
           >
-            {alert.message}
+            <span className="dark:text-white">{alert.message}</span>
           </Alert>
         </div>
       )}
 
       {/* Header and Action Buttons */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-        <h2 className="text-3xl font-bold text-gray-800">Manage Services</h2>
+        <h2 className="text-3xl font-bold text-gray-800 dark:text-white">Manage Services</h2>
         <Button
           color="primary"
           onClick={handleAddService}
-          className="w-full md:w-auto"
+          className="w-full md:w-auto dark:bg-blue-600 dark:hover:bg-blue-700"
         >
           + Add Service
         </Button>
@@ -243,20 +242,20 @@ const DashServices = () => {
       {/* Content */}
       {loading.table ? (
         <div className="flex justify-center items-center py-24">
-          <Spinner size="xl" aria-label="Loading services..." />
+          <Spinner size="xl" aria-label="Loading services..." className="dark:text-white" />
         </div>
       ) : services.length > 0 ? (
         <>
           {/* Service Preview Section */}
           <div className="mb-10">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold text-gray-700">Services Preview</h3>
+              <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300">Services Preview</h3>
               <Button 
                 color="light" 
                 size="xs" 
                 onClick={fetchServices}
                 disabled={loading.table}
-                className="flex items-center gap-1"
+                className="flex items-center gap-1 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
               >
                 <HiOutlineRefresh className="mr-1" />
                 Refresh
@@ -274,14 +273,14 @@ const DashServices = () => {
                   onPreviewClick={() => handlePreview(service)}
                   selected={selectedServices.includes(service._id)}
                   onSelectChange={() => toggleServiceSelection(service._id)}
-                  className="shadow-md hover:shadow-lg transition"
+                  className="shadow-md hover:shadow-lg transition dark:bg-gray-800 dark:border-gray-700"
                 />
               ))}
             </div>
           </div>
 
           {/* Service Table Section */}
-          <div className="bg-white rounded-lg shadow-md p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 dark:border dark:border-gray-700">
             <ServiceTable 
               services={services}
               onEdit={handleEdit}
@@ -299,8 +298,8 @@ const DashServices = () => {
         </>
       ) : (
         <div className="text-center py-24">
-          <Alert color="info" className="inline-block">
-            No services found. Create your first service.
+          <Alert color="info" className="inline-block dark:bg-gray-800">
+            <span className="dark:text-white">No services found. Create your first service.</span>
           </Alert>
         </div>
       )}

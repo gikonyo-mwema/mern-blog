@@ -8,23 +8,28 @@ const benefitSchema = Joi.object({
 });
 
 const featureSchema = Joi.object({
-  title: Joi.string().required().max(100),
-  description: Joi.string().required()
+  title: Joi.string().max(100),
+  description: Joi.string()
+});
+
+const processStepSchema = Joi.object({
+  title: Joi.string().required(),
+  description: Joi.string().required(),
+  order: Joi.number()
 });
 
 const socialPlatforms = ['twitter', 'facebook', 'linkedin', 'instagram', 'youtube', 'other'];
+
+const socialLinkSchema = Joi.object({
+  platform: Joi.string().valid(...socialPlatforms).required(),
+  url: Joi.string().uri().required()
+});
 
 const contactInfoSchema = Joi.object({
   email: Joi.string().email().allow(''),
   phone: Joi.string().pattern(/^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/).allow(''),
   website: Joi.string().uri().allow(''),
-  calendlyLink: Joi.string().uri().allow(''),
-  socialLinks: Joi.array().items(
-    Joi.object({
-      platform: Joi.string().valid(...socialPlatforms).required(),
-      url: Joi.string().uri().required()
-    })
-  ).default([])
+  calendlyLink: Joi.string().uri().allow('')
 });
 
 /**
@@ -46,8 +51,13 @@ export const validateServiceData = (serviceData, isUpdate = false) => {
     description: Joi.string()
       .required(),
     
-    fullDescription: Joi.string()
-      .required(),
+    metaTitle: Joi.string()
+      .max(100)
+      .allow(''),
+    
+    metaDescription: Joi.string()
+      .max(200)
+      .allow(''),
     
     category: Joi.string()
       .required()
@@ -55,8 +65,7 @@ export const validateServiceData = (serviceData, isUpdate = false) => {
     
     features: Joi.array()
       .items(featureSchema)
-      .min(1)
-      .required(),
+      .default([]),
     
     icon: Joi.string()
       .default('📋'),
@@ -65,18 +74,33 @@ export const validateServiceData = (serviceData, isUpdate = false) => {
       .min(0)
       .default(0),
     
+    priceNote: Joi.string()
+      .max(100)
+      .allow(''),
+    
     projectTypes: Joi.array()
-      .items(Joi.string().required().max(100))
-      .min(1)
-      .required(),
+      .items(Joi.string().max(100))
+      .default(['']),
     
     benefits: Joi.array()
       .items(benefitSchema)
-      .min(1)
-      .required(),
+      .default([{ title: '', description: '', icon: '✅' }]),
+    
+    processSteps: Joi.array()
+      .items(processStepSchema)
+      .default([]),
     
     contactInfo: contactInfoSchema
-      .required(),
+      .default({
+        email: '',
+        phone: '',
+        website: '',
+        calendlyLink: ''
+      }),
+    
+    socialLinks: Joi.array()
+      .items(socialLinkSchema)
+      .default([]),
     
     isFeatured: Joi.boolean()
       .default(false),
@@ -87,7 +111,11 @@ export const validateServiceData = (serviceData, isUpdate = false) => {
     changeReason: Joi.string()
       .max(200)
       .allow('')
-  }).options({ abortEarly: false, allowUnknown: true });
+  }).options({ 
+    abortEarly: false, 
+    allowUnknown: true,
+    stripUnknown: true
+  });
 
   const { error, value } = schema.validate(serviceData);
 
@@ -114,20 +142,23 @@ export const getDefaultServiceData = () => ({
   title: '',
   shortDescription: '',
   description: '',
-  fullDescription: '',
+  metaTitle: '',
+  metaDescription: '',
   category: '',
   features: [{ title: '', description: '' }],
   icon: '📋',
   price: 0,
+  priceNote: '',
   projectTypes: [''],
   benefits: [{ title: '', description: '', icon: '✅' }],
+  processSteps: [{ title: '', description: '', order: 0 }],
   contactInfo: {
     email: '',
     phone: '',
     website: '',
-    calendlyLink: '',
-    socialLinks: [{ platform: '', url: '' }]
+    calendlyLink: ''
   },
+  socialLinks: [{ platform: '', url: '' }],
   isFeatured: false,
   isPublished: false
 });
