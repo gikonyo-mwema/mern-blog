@@ -20,11 +20,10 @@ export default function PostCard({ post, isCompact = false, className = '' }) {
     'environmental-policy': 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
     'sustainable-architecture': 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200',
     'eco-tourism': 'bg-lime-100 text-lime-800 dark:bg-lime-900 dark:text-lime-200',
-    'default': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+    'default': 'bg-brand-yellow text-brand-blue dark:bg-brand-blue dark:text-brand-yellow'
   };
 
   useEffect(() => {
-    // Initialize with empty string to prevent flash of default image
     if (post?.image) {
       const img = new Image();
       img.src = post.image;
@@ -60,7 +59,7 @@ export default function PostCard({ post, isCompact = false, className = '' }) {
     : stripHtml(post?.content || '').substring(0, 120) + '...';
 
   return (
-    <div className={`rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all duration-300 h-full flex flex-col bg-white dark:bg-gray-800 dark:shadow-gray-900/50 ${className}`}>
+    <div className={`rounded-lg shadow-md overflow-hidden hover:shadow-[0_4px_12px_rgba(5,24,54,0.2)] hover:ring-1 hover:ring-brand-blue transition-all duration-300 h-full flex flex-col bg-white dark:bg-gray-800 dark:shadow-gray-900/50 ${className}`}>
       {/* Image Container */}
       <Link 
         to={`/post/${post?.slug || '#'}`} 
@@ -70,7 +69,6 @@ export default function PostCard({ post, isCompact = false, className = '' }) {
           backgroundColor: !imageLoaded ? '#f3f4f6' : 'transparent'
         }}
       >
-        {/* Main Image - Only show when loaded */}
         {currentImage && (
           <img
             src={currentImage}
@@ -86,12 +84,10 @@ export default function PostCard({ post, isCompact = false, className = '' }) {
           />
         )}
 
-        {/* Loading Skeleton - Show while loading */}
         {!imageLoaded && (
           <div className="absolute inset-0 bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
         )}
 
-        {/* Category Badge */}
         {post?.category && (
           <div className="absolute top-2 right-2 z-10">
             <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
@@ -110,7 +106,7 @@ export default function PostCard({ post, isCompact = false, className = '' }) {
         } text-gray-900 dark:text-white`}>
           <Link 
             to={`/post/${post?.slug || '#'}`} 
-            className="hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
+            className="hover:text-brand-green dark:hover:text-brand-green transition-colors"
           >
             {post?.title || 'Untitled Post'}
           </Link>
@@ -135,7 +131,7 @@ export default function PostCard({ post, isCompact = false, className = '' }) {
                   e.target.src = defaultProfilePic;
                 }}
               />
-              <span className="font-medium hover:text-teal-600 dark:hover:text-teal-400 transition-colors truncate">
+              <span className="font-medium hover:text-brand-green dark:hover:text-brand-green transition-colors truncate">
                 {post?.author || 'Eco Author'}
               </span>
             </Link>
