@@ -10,7 +10,15 @@ export default {
     "./node_modules/flowbite-react/**/*.{js,jsx,ts,tsx}"
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        brand: {
+          green: '#008037',
+          yellow: '#F8BF0F',
+          blue: '#051836',
+        },
+      },
+    },
   },
   plugins: [
     flowbite
@@ -19,3 +27,4 @@ export default {
     version: false
   }
 }
+
