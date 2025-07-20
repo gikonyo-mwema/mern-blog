@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { Spinner } from 'flowbite-react';
 
 export default function Sidebar() {
   const [trendingPosts, setTrendingPosts] = useState([]);
@@ -18,137 +19,160 @@ export default function Sidebar() {
 
   useEffect(() => {
     // Fetch trending posts
-    fetch('/api/posts/trending')
-      .then(res => res.json())
-      .then(data => {
+    const fetchTrending = async () => {
+      try {
+        const res = await fetch('/api/posts/trending');
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Failed to fetch trending posts');
         setTrendingPosts(data.posts);
-        setLoading(prev => ({...prev, trending: false}));
-      })
-      .catch(err => {
+      } catch (err) {
         setError(prev => ({...prev, trending: err.message}));
+      } finally {
         setLoading(prev => ({...prev, trending: false}));
-      });
+      }
+    };
 
     // Fetch categories
-    fetch('/api/categories')
-      .then(res => res.json())
-      .then(data => {
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch('/api/categories');
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Failed to fetch categories');
         setCategories(data);
-        setLoading(prev => ({...prev, categories: false}));
-      })
-      .catch(err => {
+      } catch (err) {
         setError(prev => ({...prev, categories: err.message}));
+      } finally {
         setLoading(prev => ({...prev, categories: false}));
-      });
+      }
+    };
 
     // Fetch random quote (with fallback)
-    fetch('https://api.quotable.io/random')
-      .then(res => res.json())
-      .then(data => {
+    const fetchQuote = async () => {
+      try {
+        const res = await fetch('https://api.quotable.io/random');
+        const data = await res.json();
+        if (!res.ok) throw new Error('Failed to fetch quote');
         setQuote(data);
-        setLoading(prev => ({...prev, quote: false}));
-      })
-      .catch(err => {
+      } catch (err) {
         // Fallback quote if API fails
         setQuote({
-          content: "The best way to predict the future is to create it.",
-          author: "Abraham Lincoln"
+          content: "The environment is where we all meet; where we all have a mutual interest; it is the one thing all of us share.",
+          author: "Lady Bird Johnson"
         });
-        setLoading(prev => ({...prev, quote: false}));
         setError(prev => ({...prev, quote: err.message}));
-      });
+      } finally {
+        setLoading(prev => ({...prev, quote: false}));
+      }
+    };
+
+    fetchTrending();
+    fetchCategories();
+    fetchQuote();
   }, []);
 
   return (
     <div className="space-y-6">
-      {/* Search Widget */}
-      <div className="bg-white p-4 rounded-lg shadow">
-        <h3 className="font-bold mb-2">Search</h3>
+      {/* Search Widget - Updated with brand colors */}
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+        <h3 className="font-bold mb-2 text-gray-800 dark:text-white">Search</h3>
         <div className="flex">
           <input 
             type="text" 
             placeholder="Search posts..."
-            className="flex-grow px-3 py-2 border rounded-l-md focus:outline-none"
+            className="flex-grow px-3 py-2 border rounded-l-md focus:outline-none focus:ring-2 focus:ring-brand-green dark:bg-gray-700 dark:border-gray-600 dark:text-white"
           />
-          <button className="bg-teal-500 text-white px-4 py-2 rounded-r-md hover:bg-teal-600">
-            Go
+          <button className="bg-brand-green text-white px-4 py-2 rounded-r-md hover:bg-brand-green/90 transition-colors">
+            Search
           </button>
         </div>
       </div>
 
       {/* Trending Posts */}
-      <div className="bg-white p-4 rounded-lg shadow">
-        <h3 className="font-bold mb-3">Trending Now</h3>
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+        <h3 className="font-bold mb-3 text-gray-800 dark:text-white">Trending Now</h3>
         {loading.trending ? (
-          <div>Loading trending posts...</div>
+          <div className="flex justify-center py-4">
+            <Spinner size="sm" />
+          </div>
         ) : error.trending ? (
-          <div className="text-red-500">Error: {error.trending}</div>
+          <div className="text-red-500 text-sm">{error.trending}</div>
         ) : (
           <div className="space-y-3">
             {trendingPosts?.length > 0 ? (
               trendingPosts.map(post => (
-                <div key={post._id} className="flex gap-3">
+                <Link 
+                  key={post._id} 
+                  to={`/post/${post.slug}`}
+                  className="flex gap-3 hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded transition-colors"
+                >
                   <img 
                     src={post.image} 
                     alt={post.title}
                     className="w-16 h-16 object-cover rounded"
                   />
                   <div>
-                    <Link to={`/post/${post.slug}`} className="font-medium hover:underline">
+                    <h4 className="font-medium text-gray-800 dark:text-gray-200 hover:underline line-clamp-2">
                       {post.title}
-                    </Link>
-                    <p className="text-xs text-gray-500">
+                    </h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                       {new Date(post.createdAt).toLocaleDateString()}
                     </p>
                   </div>
-                </div>
+                </Link>
               ))
             ) : (
-              <p>No trending posts found</p>
+              <p className="text-gray-500 dark:text-gray-400">No trending posts found</p>
             )}
           </div>
         )}
       </div>
 
       {/* Categories */}
-      <div className="bg-white p-4 rounded-lg shadow">
-        <h3 className="font-bold mb-3">Categories</h3>
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+        <h3 className="font-bold mb-3 text-gray-800 dark:text-white">Categories</h3>
         {loading.categories ? (
-          <div>Loading categories...</div>
+          <div className="flex justify-center py-4">
+            <Spinner size="sm" />
+          </div>
         ) : error.categories ? (
-          <div className="text-red-500">Error: {error.categories}</div>
+          <div className="text-red-500 text-sm">{error.categories}</div>
         ) : (
           <div className="space-y-2">
             {categories?.length > 0 ? (
               categories.map(cat => (
-                <div key={cat._id} className="flex justify-between">
+                <div 
+                  key={cat._id} 
+                  className="flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded transition-colors"
+                >
                   <Link 
                     to={`/category/${cat.slug}`} 
-                    className="hover:underline"
+                    className="text-gray-700 dark:text-gray-300 hover:text-brand-green dark:hover:text-brand-yellow hover:underline flex-grow"
                   >
                     {cat.name}
                   </Link>
-                  <span className="bg-gray-100 px-2 rounded-full text-xs">
+                  <span className="bg-gray-100 dark:bg-gray-600 px-2 rounded-full text-xs text-gray-800 dark:text-gray-200">
                     {cat.count}
                   </span>
                 </div>
               ))
             ) : (
-              <p>No categories found</p>
+              <p className="text-gray-500 dark:text-gray-400">No categories found</p>
             )}
           </div>
         )}
       </div>
 
       {/* Quote Widget */}
-      <div className="bg-white p-4 rounded-lg shadow">
-        <h3 className="font-bold mb-3">Quote of the Day</h3>
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+        <h3 className="font-bold mb-3 text-gray-800 dark:text-white">Environmental Quote</h3>
         {loading.quote ? (
-          <div>Loading quote...</div>
+          <div className="flex justify-center py-4">
+            <Spinner size="sm" />
+          </div>
         ) : (
           <>
-            <blockquote className="italic">"{quote?.content}"</blockquote>
-            <cite className="block text-right mt-2 text-sm">— {quote?.author}</cite>
+            <blockquote className="italic text-gray-700 dark:text-gray-300">"{quote?.content}"</blockquote>
+            <cite className="block text-right mt-2 text-sm text-gray-600 dark:text-gray-400">— {quote?.author}</cite>
           </>
         )}
       </div>
