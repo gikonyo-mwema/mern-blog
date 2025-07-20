@@ -4,6 +4,13 @@ import { Footer } from 'flowbite-react';
 import { Link } from 'react-router-dom';
 
 export default function FooterComponent() {
+    const services = [
+        { name: "Environmental Audits", path: "/services#audits" },
+        { name: "Climate Change & Sustainability Solutions", path: "/services#climate" },
+        { name: "Environmental Impact Assessments", path: "/services#eia" },
+        { name: "Environmental Safeguards & Policy Advisory", path: "/services#policy" }
+    ];
+
     return (
         <Footer container className="border-t-8 border-yellow-400 bg-gray-50 dark:bg-[#051836] mt-auto">
             <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -15,7 +22,12 @@ export default function FooterComponent() {
                             <img
                                 src="https://res.cloudinary.com/dcrubaesi/image/upload/v1737333837/ECODEED_COLORED_LOGO_wj2yy8.png"
                                 alt="Ecodeed Logo"
-                                className="h-16 w-16 mr-3"
+                                className="h-16 w-16 mr-3 dark:hidden"
+                            />
+                            <img
+                                src="https://res.cloudinary.com/dcrubaesi/image/upload/v1753007363/ECODEED_BLACK_LOGO_xtwjoy.png"
+                                alt="Ecodeed Logo"
+                                className="h-16 w-16 mr-3 hidden dark:block"
                             />
                             <span className="self-center text-2xl font-semibold whitespace-nowrap text-gray-900 dark:text-white">
                                 Ecodeed
@@ -28,27 +40,27 @@ export default function FooterComponent() {
                             <Footer.Icon 
                                 href="https://www.facebook.com/ecodeedcompany/" 
                                 icon={BsFacebook} 
-                                className="text-gray-600 hover:text-[#F8BF0F] dark:text-gray-300 dark:hover:text-[#F8BF0F]"
+                                className="text-gray-600 hover:text-[#F8BF0F] dark:text-gray-300 dark:hover:text-[#F8BF0F] transition-colors duration-200"
                             />
                             <Footer.Icon 
                                 href="https://x.com/EcodeedC" 
                                 icon={BsTwitter} 
-                                className="text-gray-600 hover:text-[#F8BF0F] dark:text-gray-300 dark:hover:text-[#F8BF0F]"
+                                className="text-gray-600 hover:text-[#F8BF0F] dark:text-gray-300 dark:hover:text-[#F8BF0F] transition-colors duration-200"
                             />
                             <Footer.Icon 
                                 href="https://www.instagram.com/ecodeedcompany/" 
                                 icon={BsInstagram} 
-                                className="text-gray-600 hover:text-[#F8BF0F] dark:text-gray-300 dark:hover:text-[#F8BF0F]"
+                                className="text-gray-600 hover:text-[#F8BF0F] dark:text-gray-300 dark:hover:text-[#F8BF0F] transition-colors duration-200"
                             />
                             <Footer.Icon 
                                 href="https://youtube.com" 
                                 icon={BsYoutube} 
-                                className="text-gray-600 hover:text-[#F8BF0F] dark:text-gray-300 dark:hover:text-[#F8BF0F]"
+                                className="text-gray-600 hover:text-[#F8BF0F] dark:text-gray-300 dark:hover:text-[#F8BF0F] transition-colors duration-200"
                             />
                             <Footer.Icon 
                                 href="https://www.linkedin.com/company/ecodeed-consultancy-company" 
                                 icon={BsLinkedin} 
-                                className="text-gray-600 hover:text-[#F8BF0F] dark:text-gray-300 dark:hover:text-[#F8BF0F]"
+                                className="text-gray-600 hover:text-[#F8BF0F] dark:text-gray-300 dark:hover:text-[#F8BF0F] transition-colors duration-200"
                             />
                         </div>
                     </div>
@@ -57,18 +69,18 @@ export default function FooterComponent() {
                     <div>
                         <Footer.Title title="Quick Links" className="mb-4 text-lg font-semibold text-gray-900 dark:text-white" />
                         <Footer.LinkGroup col className="space-y-2">
-                            <Footer.Link href="/" className="text-gray-600 hover:text-[#008037] dark:text-gray-300 dark:hover:text-[#008037]">
+                            <Link to="/" className="text-gray-600 hover:text-[#008037] dark:text-gray-300 dark:hover:text-[#008037] transition-colors duration-200">
                                 Home
-                            </Footer.Link>
-                            <Footer.Link href="/about" className="text-gray-600 hover:text-[#008037] dark:text-gray-300 dark:hover:text-[#008037]">
+                            </Link>
+                            <Link to="/about" className="text-gray-600 hover:text-[#008037] dark:text-gray-300 dark:hover:text-[#008037] transition-colors duration-200">
                                 About Us
-                            </Footer.Link>
-                            <Footer.Link href="/services" className="text-gray-600 hover:text-[#008037] dark:text-gray-300 dark:hover:text-[#008037]">
+                            </Link>
+                            <Link to="/services" className="text-gray-600 hover:text-[#008037] dark:text-gray-300 dark:hover:text-[#008037] transition-colors duration-200">
                                 Services
-                            </Footer.Link>
-                            <Footer.Link href="/courses" className="text-gray-600 hover:text-[#008037] dark:text-gray-300 dark:hover:text-[#008037]">
+                            </Link>
+                            <Link to="/courses" className="text-gray-600 hover:text-[#008037] dark:text-gray-300 dark:hover:text-[#008037] transition-colors duration-200">
                                 Courses
-                            </Footer.Link>
+                            </Link>
                         </Footer.LinkGroup>
                     </div>
 
@@ -76,18 +88,15 @@ export default function FooterComponent() {
                     <div>
                         <Footer.Title title="Our Services" className="mb-4 text-lg font-semibold text-gray-900 dark:text-white" />
                         <Footer.LinkGroup col className="space-y-2">
-                            <Footer.Link href="/services/eia" className="text-gray-600 hover:text-[#008037] dark:text-gray-300 dark:hover:text-[#008037]">
-                                EIA Reports
-                            </Footer.Link>
-                            <Footer.Link href="/services/audits" className="text-gray-600 hover:text-[#008037] dark:text-gray-300 dark:hover:text-[#008037]">
-                                Environmental Audits
-                            </Footer.Link>
-                            <Footer.Link href="/services/surveys" className="text-gray-600 hover:text-[#008037] dark:text-gray-300 dark:hover:text-[#008037]">
-                                Environmental Surveys
-                            </Footer.Link>
-                            <Footer.Link href="/services/consulting" className="text-gray-600 hover:text-[#008037] dark:text-gray-300 dark:hover:text-[#008037]">
-                                Consulting Services
-                            </Footer.Link>
+                            {services.map((service, index) => (
+                                <Link 
+                                    key={index}
+                                    to={service.path}
+                                    className="text-gray-600 hover:text-[#008037] dark:text-gray-300 dark:hover:text-[#008037] transition-colors duration-200"
+                                >
+                                    {service.name}
+                                </Link>
+                            ))}
                         </Footer.LinkGroup>
                     </div>
                 </div>
@@ -95,25 +104,14 @@ export default function FooterComponent() {
                 {/* Divider */}
                 <Footer.Divider className="my-8 border-gray-200 dark:border-yellow-500" />
 
-                {/* Bottom Section */}
-                <div className="w-full flex flex-col md:flex-row justify-between items-center">
+                {/* Bottom Section - Simplified */}
+                <div className="w-full text-center pt-4">
                     <Footer.Copyright
                         href="/"
                         by="Ecodeed"
                         year={new Date().getFullYear()}
                         className="text-gray-600 dark:text-gray-300"
                     />
-                    <div className="mt-4 md:mt-0 flex space-x-6">
-                        <Link to="/privacy-policy" className="text-sm text-gray-600 hover:text-[#F8BF0F] dark:text-gray-300 dark:hover:text-[#F8BF0F]">
-                            Privacy Policy
-                        </Link>
-                        <Link to="/terms" className="text-sm text-gray-600 hover:text-[#F8BF0F] dark:text-gray-300 dark:hover:text-[#F8BF0F]">
-                            Terms & Conditions
-                        </Link>
-                        <Link to="/sitemap" className="text-sm text-gray-600 hover:text-[#F8BF0F] dark:text-gray-300 dark:hover:text-[#F8BF0F]">
-                            Sitemap
-                        </Link>
-                    </div>
                 </div>
             </div>
         </Footer>
