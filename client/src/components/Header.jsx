@@ -46,15 +46,24 @@ export default function Header() {
     navigate(`/search?${urlParams.toString()}`);
   };
 
+  // Logo based on theme
+  const logoUrl = theme === "light" 
+    ? "https://res.cloudinary.com/dcrubaesi/image/upload/v1753007363/ECODEED_BLACK_LOGO_xtwjoy.png"
+    : "https://res.cloudinary.com/dcrubaesi/image/upload/v1737333837/ECODEED_COLORED_LOGO_wj2yy8.png";
+
+  // Default user avatar
+  const userAvatar = currentUser?.profilePicture || 
+    "https://res.cloudinary.com/dcrubaesi/image/upload/v1753008847/EcodeedUser2_ekhqvm.jpg";
+
   return (
-    <header className="bg-[#051836] sticky top-0 z-50">
+    <header className={`sticky top-0 z-50 ${theme === "light" ? "bg-white shadow-md" : "bg-brand-blue"}`}>
       {/* Top Quote Bar */}
-      <div className="bg-[#008037] py-2 px-4 text-center">
+      <div className="bg-brand-green py-2 px-4 text-center">
         <p className="text-sm italic text-white inline">
           "Empowering a sustainable future through expert environmental consulting"{" "}
           <Link
             to="/about"
-            className="text-xs text-[#F8BF0F] hover:underline inline"
+            className="text-xs text-brand-yellow hover:underline inline font-medium"
           >
             Learn more →
           </Link>
@@ -65,36 +74,44 @@ export default function Header() {
       <Navbar
         fluid
         rounded
-        className="border-b border-gray-700 max-w-7xl mx-auto px-4 py-3 bg-[#051836]"
+        className={`border-b ${theme === "light" ? "border-gray-200" : "border-gray-700"} max-w-7xl mx-auto px-4 py-3 ${theme === "light" ? "bg-white" : "bg-brand-blue"}`}
       >
         {/* Logo Section */}
-        <Navbar.Brand as={Link} to="/" className="flex items-center space-x-2">
+        <Navbar.Brand as={Link} to="/" className="flex items-center space-x-2 hover:scale-105 transition-transform duration-200">
           <img
-            src="https://res.cloudinary.com/dcrubaesi/image/upload/v1737333837/ECODEED_COLORED_LOGO_wj2yy8.png"
+            src={logoUrl}
             alt="Ecodeed Logo"
             className="h-10 w-10"
           />
-          <span className="self-center text-xl font-semibold whitespace-nowrap text-white">
+          <span className={`self-center text-xl font-semibold whitespace-nowrap ${theme === "light" ? "text-brand-blue" : "text-white"}`}>
             Ecodeed
           </span>
         </Navbar.Brand>
 
-        {/* Search Form */}
+        {/* Search Form - Updated with continuous border */}
         <form
           onSubmit={handleSubmit}
           className="flex-1 max-w-xs md:max-w-md mx-2 md:mx-4"
         >
-          <div className="relative">
-            <TextInput
+          <div className={`relative flex items-center rounded-full border ${
+            theme === "light" 
+              ? "border-gray-300 bg-gray-50 focus-within:border-brand-green" 
+              : "border-gray-600 bg-gray-700 focus-within:border-brand-yellow"
+          } transition-colors duration-200`}>
+            <input
               type="text"
               placeholder="Search articles..."
-              className="rounded-full w-full h-10 pl-4 pr-10 text-sm border-gray-300 focus:ring-2 focus:ring-[#008037] focus:border-[#008037] dark:bg-gray-700 dark:border-gray-600"
+              className={`w-full h-10 pl-4 pr-10 text-sm bg-transparent outline-none rounded-full ${
+                theme === "light" ? "text-gray-800" : "text-white"
+              }`}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
             <button
               type="submit"
-              className="absolute right-2.5 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#008037]"
+              className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${
+                theme === "light" ? "text-gray-500" : "text-gray-300"
+              } hover:text-brand-green`}
             >
               <AiOutlineSearch className="w-5 h-5" />
             </button>
@@ -102,7 +119,7 @@ export default function Header() {
         </form>
 
         {/* Navbar Links - Center */}
-        <div className="hidden lg:flex lg:items-center lg:space-x-6">
+        <div className="hidden lg:flex lg:items-center lg:space-x-4">
           {[
             { to: "/", label: "Home" },
             { to: "/about", label: "About" },
@@ -112,10 +129,12 @@ export default function Header() {
             <Link
               key={to}
               to={to}
-              className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+              className={`px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
                 path === to
-                  ? "text-white bg-[#008037]"
-                  : "text-white hover:text-[#008037] hover:bg-gray-100 dark:hover:bg-gray-700"
+                  ? "text-white bg-brand-green"
+                  : theme === "light"
+                    ? "text-brand-blue hover:text-brand-green hover:bg-gray-100"
+                    : "text-white hover:text-brand-yellow hover:bg-gray-700"
               }`}
             >
               {label}
@@ -137,7 +156,7 @@ export default function Header() {
             }
           >
             {theme === "light" ? (
-              <FaSun className="text-[#F8BF0F]" />
+              <FaSun className="text-brand-yellow" />
             ) : (
               <FaMoon className="text-white" />
             )}
@@ -151,10 +170,10 @@ export default function Header() {
               label={
                 <Avatar
                   alt="user"
-                  img={currentUser.profilePicture}
+                  img={userAvatar}
                   rounded
                   size="sm"
-                  className="border-2 border-[#008037] cursor-pointer"
+                  className={`border-2 ${theme === "light" ? "border-brand-green" : "border-brand-yellow"} cursor-pointer hover:scale-105 transition-transform duration-200`}
                 />
               }
             >
@@ -167,15 +186,24 @@ export default function Header() {
                 </span>
               </Dropdown.Header>
               <Link to="/dashboard?tab=profile">
-                <Dropdown.Item>My Profile</Dropdown.Item>
+                <Dropdown.Item className="hover:bg-brand-green hover:text-white transition-colors duration-200">
+                  My Profile
+                </Dropdown.Item>
               </Link>
               {currentUser.isAdmin && (
                 <Link to="/dashboard">
-                  <Dropdown.Item>Admin Dashboard</Dropdown.Item>
+                  <Dropdown.Item className="hover:bg-brand-green hover:text-white transition-colors duration-200">
+                    Admin Dashboard
+                  </Dropdown.Item>
                 </Link>
               )}
               <Dropdown.Divider />
-              <Dropdown.Item onClick={handleSignout}>Sign out</Dropdown.Item>
+              <Dropdown.Item 
+                onClick={handleSignout}
+                className="hover:bg-red-500 hover:text-white transition-colors duration-200"
+              >
+                Sign out
+              </Dropdown.Item>
             </Dropdown>
           ) : (
             <Dropdown
@@ -186,24 +214,33 @@ export default function Header() {
                   alt="user"
                   rounded
                   size="sm"
-                  className="border-2 border-gray-300 cursor-pointer bg-gray-100 dark:bg-gray-600"
+                  img={userAvatar}
+                  className={`border-2 cursor-pointer hover:scale-105 transition-transform duration-200 ${
+                    theme === "light" 
+                      ? "border-brand-green bg-gray-100" 
+                      : "border-brand-yellow bg-gray-700"
+                  }`}
                 />
               }
             >
               <Link to="/sign-in">
-                <Dropdown.Item>Sign In</Dropdown.Item>
+                <Dropdown.Item className={`${theme === "light" ? "hover:bg-gray-100" : "hover:bg-gray-700"} transition-colors duration-200`}>
+                  Sign In
+                </Dropdown.Item>
               </Link>
               <Link to="/sign-up">
-                <Dropdown.Item>Sign Up</Dropdown.Item>
+                <Dropdown.Item className={`${theme === "light" ? "hover:bg-gray-100" : "hover:bg-gray-700"} transition-colors duration-200`}>
+                  Sign Up
+                </Dropdown.Item>
               </Link>
             </Dropdown>
           )}
 
-          <Navbar.Toggle className="lg:hidden" />
+          <Navbar.Toggle className="lg:hidden text-brand-green dark:text-brand-yellow" />
         </div>
 
         {/* Mobile Menu */}
-        <Navbar.Collapse className="lg:hidden w-full mt-3 bg-[#051836] rounded-lg shadow-lg">
+        <Navbar.Collapse className="lg:hidden w-full mt-3 bg-white dark:bg-brand-blue rounded-lg shadow-lg">
           {[
             { to: "/", label: "Home" },
             { to: "/about", label: "About" },
@@ -215,10 +252,12 @@ export default function Header() {
               active={path === to}
               as={Link}
               to={to}
-              className={`px-4 py-3 rounded-md text-white ${
+              className={`px-4 py-3 rounded-md transition-colors duration-200 ${
                 path === to
-                  ? "bg-[#008037]"
-                  : "hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-[#008037]"
+                  ? "bg-brand-green text-white"
+                  : theme === "light"
+                    ? "text-brand-blue hover:bg-gray-100 hover:text-brand-green"
+                    : "text-white hover:bg-gray-700 hover:text-brand-yellow"
               }`}
             >
               {label}
