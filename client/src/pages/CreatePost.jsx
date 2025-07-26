@@ -29,7 +29,6 @@ export default function CreatePost() {
 
   const navigate = useNavigate();
 
-  // Inject editor styles from editorConfig.js
   useEffect(() => {
     const style = document.createElement('style');
     style.innerHTML = editorStyles;
@@ -39,24 +38,34 @@ export default function CreatePost() {
     };
   }, []);
 
+  useEffect(() => {
+    if (quillRef.current && formData.content) {
+      const editor = quillRef.current.getEditor();
+      const images = editor.root.querySelectorAll('img');
+      images.forEach((img) => {
+        if (!img.classList.contains('ql-image-resizable')) {
+          const index = Array.from(editor.root.childNodes).indexOf(img.parentNode);
+          img.classList.add('ql-image-resizable', 'relative', 'max-w-full');
+          addResizeHandlers(img, editor, index);
+        }
+      });
+    }
+  }, [formData.content]);
+
   const handleUploadImage = async () => {
     if (!file) {
       setImageUploadError('Please select an image');
       return;
     }
-
     try {
       setImageUploadProgress(0);
       setImageUploadError(null);
-
       const result = await uploadToCloudinary(file, {
         onProgress: (progress) => setImageUploadProgress(progress)
       });
-
       setFormData((prev) => ({ ...prev, image: result.url }));
       setImageUploadProgress(null);
     } catch (error) {
-      console.error('Image upload error:', error);
       setImageUploadError(error.message || 'Image upload failed');
       setImageUploadProgress(null);
     }
@@ -66,27 +75,35 @@ export default function CreatePost() {
     e.preventDefault();
     setIsSubmitting(true);
     setPublishError(null);
-
     try {
       if (!formData.title.trim()) throw new Error('Title is required');
-      if (!formData.content.trim()) throw new Error('Content is required');
+      if (!formData.content.trim() || formData.content === '<p><br></p>') {
+        throw new Error('Content is required');
+      }
       if (!formData.image) throw new Error('Please upload an image');
-
       const res = await fetch('/api/post/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
-
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to create post');
-
       navigate(`/post/${data.slug}`);
     } catch (error) {
-      console.error('Post creation error:', error);
       setPublishError(error.message || 'Something went wrong');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const customModules = {
+    ...modules,
+    toolbar: {
+      ...modules.toolbar,
+      handlers: {
+        ...modules.toolbar.handlers,
+        image: () => imageHandler(quillRef, uploadToCloudinary, addResizeHandlers)
+      }
     }
   };
 
@@ -181,44 +198,7 @@ export default function CreatePost() {
             className='h-96 mb-12'
             value={formData.content}
             onChange={(content) => setFormData({ ...formData, content })}
-            modules={{
-              ...modules,
-              toolbar: {
-                ...modules.toolbar,
-                handlers: {
-                  image: async () => {
-                    const fileInput = document.createElement('input');
-                    fileInput.setAttribute('type', 'file');
-                    fileInput.setAttribute('accept', 'image/*');
-                    fileInput.click();
-
-                    fileInput.onchange = async () => {
-                      const file = fileInput.files[0];
-                      if (!file) return;
-
-                      const editor = quillRef.current.getEditor();
-                      const range = editor.getSelection();
-                      editor.insertEmbed(range.index, 'image', 'loading.gif');
-                      editor.setSelection(range.index + 1);
-
-                      try {
-                        const result = await uploadToCloudinary(file);
-                        const url = result.url;
-
-                        editor.deleteText(range.index, 1);
-                        editor.insertEmbed(range.index, 'image', url);
-
-                        const imgElement = editor.getLeaf(range.index)[0].domNode;
-                        imgElement.classList.add('ql-image-resizable', 'relative', 'max-w-full');
-                        addResizeHandlers(imgElement, editor, range.index);
-                      } catch (error) {
-                        console.error('Image upload error:', error);
-                      }
-                    };
-                  },
-                },
-              },
-            }}
+            modules={customModules}
             formats={formats}
             ref={quillRef}
           />
@@ -242,5 +222,3 @@ export default function CreatePost() {
     </div>
   );
 }
-
-

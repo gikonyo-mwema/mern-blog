@@ -1,23 +1,12 @@
 import { Table, Modal, Button, Alert, TextInput, Select } from 'flowbite-react';
-import React, { useEffect, useState, useCallback, lazy, Suspense, useRef  } from 'react';
+import React, { useEffect, useState, useCallback, lazy, Suspense, useRef, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { HiOutlineExclamationCircle } from 'react-icons/hi';
 import { FiEdit2 } from 'react-icons/fi';
 import { uploadToCloudinary } from '../../../utils/cloudinary.js';
+import { modules, formats, editorStyles } from '../../../editorConfig.js';
 
-
-
-import { 
-  modules, 
-  formats, 
-  imageHandler, 
-  addResizeHandlers, 
-  editorStyles,
-  Font,
-  Size
-} from '../../../editorConfig.js';
-
-const ReactQuill = lazy(() => import('react-quill'));
+const ReactQuill = lazy(() => import('react-quill').then(module => ({ default: module.default })));
 import 'react-quill/dist/quill.snow.css';
 
 export default function DashPosts() {
@@ -31,7 +20,8 @@ export default function DashPosts() {
   const [showEditForm, setShowEditForm] = useState(false);
   const [currentPost, setCurrentPost] = useState(null);
   const quillRef = useRef(null);
-  
+  const editorContainerRef = useRef(null);
+
   // Post form state
   const [file, setFile] = useState(null);
   const [imageUploadProgress, setImageUploadProgress] = useState(null);
@@ -44,6 +34,9 @@ export default function DashPosts() {
   });
   const [publishError, setPublishError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Memoized posts data
+  const memoizedUserPosts = useMemo(() => userPosts, [userPosts]);
 
   // Apply editor styles
   useEffect(() => {
@@ -71,18 +64,14 @@ export default function DashPosts() {
     setLoading(true);
     try {
       const res = await fetch('/api/post/getPosts', {
-        headers: {
-          'Authorization': `Bearer ${currentUser.token}`
-        }
+        headers: { 'Authorization': `Bearer ${currentUser.token}` },
+        credentials: 'include'
       });
-      
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || `HTTP error! status: ${res.status}`);
-
       setUserPosts(data.posts || []);
       setShowMore(data.posts.length >= 9);
     } catch (error) {
-      console.error('Error fetching posts:', error);
       setPublishError(error.message);
     } finally {
       setLoading(false);
@@ -93,29 +82,35 @@ export default function DashPosts() {
     if (currentUser?.isAdmin) fetchPosts();
   }, [fetchPosts, currentUser]);
 
-  const handleDeletePost = async () => {
+  useEffect(() => {
+    if ((showCreateForm || showEditForm) && quillRef.current) {
+      const editor = quillRef.current.getEditor();
+      if (editor) {
+        editor.root.style.height = '100%';
+        editor.root.style.overflow = 'auto';
+      }
+    }
+  }, [showCreateForm, showEditForm]);
+
+  const handleDeletePost = useCallback(async () => {
     setShowModal(false);
     try {
       const res = await fetch(`/api/post/deletePost/${postIdToDelete}/${currentUser._id}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${currentUser.token}`
-        }
+        headers: { 'Authorization': `Bearer ${currentUser.token}` },
+        credentials: 'include'
       });
-
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.message || 'Failed to delete post');
       }
-
       setUserPosts((prev) => prev.filter((post) => post._id !== postIdToDelete));
     } catch (error) {
-      console.error('Error deleting post:', error);
       setPublishError(error.message);
     }
-  };
+  }, [postIdToDelete, currentUser._id, currentUser.token]);
 
-  const handleEditPost = (post) => {
+  const handleEditPost = useCallback((post) => {
     setCurrentPost(post);
     setFormData({
       title: post.title,
@@ -125,13 +120,17 @@ export default function DashPosts() {
     });
     setShowEditForm(true);
     setShowCreateForm(false);
-  };
+  }, []);
 
-  const handleUpdatePost = async (e) => {
+  const handleDeleteClick = useCallback((postId) => {
+    setShowModal(true);
+    setPostIdToDelete(postId);
+  }, []);
+
+  const handleUpdatePost = useCallback(async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     setPublishError(null);
-
     try {
       const res = await fetch(`/api/post/updatePost/${currentPost._id}/${currentUser._id}`, {
         method: 'PUT',
@@ -139,91 +138,68 @@ export default function DashPosts() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${currentUser.token}`
         },
+        credentials: 'include',
         body: JSON.stringify(formData)
       });
-
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to update post');
-
       setShowEditForm(false);
       fetchPosts();
     } catch (error) {
-      console.error('Error updating post:', error);
       setPublishError(error.message);
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [currentPost, currentUser, formData, fetchPosts]);
 
-  const handleUploadImage = async () => {
+  const handleUploadImage = useCallback(async () => {
     if (!file) {
       setImageUploadError('Please select an image');
       return;
     }
-
     try {
       setImageUploadProgress(0);
       setImageUploadError(null);
-      
       const result = await uploadToCloudinary(file, {
-        onProgress: (progress) => {
-          setImageUploadProgress(Math.round(progress));
-        }
+        onProgress: (progress) => setImageUploadProgress(Math.round(progress))
       });
-      
       setFormData(prev => ({ ...prev, image: result.url }));
       setImageUploadProgress(null);
     } catch (error) {
-      console.error('Image upload error:', error);
       setImageUploadError(error.message || 'Image upload failed');
       setImageUploadProgress(null);
     }
-  };
+  }, [file]);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     setPublishError(null);
-
     try {
       if (!formData.title.trim()) throw new Error('Title is required');
-      if (!formData.content.trim() || formData.content === '<p><br></p>') {
-        throw new Error('Content is required');
-      }
+      if (!formData.content.trim() || formData.content === '<p><br></p>') throw new Error('Content is required');
       if (!formData.image) throw new Error('Please upload an image');
-
       const res = await fetch('/api/post/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${currentUser.token}`
         },
-        body: JSON.stringify({
-          ...formData,
-          userId: currentUser._id
-        }),
+        credentials: 'include',
+        body: JSON.stringify({ ...formData, userId: currentUser._id }),
       });
-
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to create post');
-
-      // Reset form and refresh posts
-      setFormData({
-        title: '',
-        content: '',
-        category: 'uncategorized',
-        image: ''
-      });
+      setFormData({ title: '', content: '', category: 'uncategorized', image: '' });
       setFile(null);
       setShowCreateForm(false);
       await fetchPosts();
     } catch (error) {
-      console.error('Post creation error:', error);
       setPublishError(error.message);
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [formData, currentUser, fetchPosts]);
 
   if (!currentUser || !currentUser.isAdmin) {
     return (
@@ -234,6 +210,49 @@ export default function DashPosts() {
       </div>
     );
   }
+
+  // Memoized table row component
+  const PostTableRow = useCallback(({ post }) => (
+    <Table.Row className="bg-white dark:border-gray-700 dark:bg-gray-800">
+      <Table.Cell>
+        {new Date(post.updatedAt).toLocaleDateString()}
+      </Table.Cell>
+      <Table.Cell>
+        <img
+          src={post.image}
+          alt={post.title}
+          className="w-20 h-10 object-cover rounded"
+          loading="lazy"
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = '/default-post-image.jpg';
+          }}
+        />
+      </Table.Cell>
+      <Table.Cell className="font-medium text-gray-900 dark:text-white">
+        {post.title}
+      </Table.Cell>
+      <Table.Cell className="capitalize">
+        {post.category.replace('-', ' ')}
+      </Table.Cell>
+      <Table.Cell>
+        <button
+          onClick={() => handleDeleteClick(post._id)}
+          className="font-medium text-red-500 hover:underline"
+        >
+          Delete
+        </button>
+      </Table.Cell>
+      <Table.Cell>
+        <button
+          onClick={() => handleEditPost(post)}
+          className="font-medium text-blue-500 hover:underline flex items-center gap-1"
+        >
+          <FiEdit2 /> Edit
+        </button>
+      </Table.Cell>
+    </Table.Row>
+  ), [handleDeleteClick, handleEditPost]);
 
   return (
     <div className="p-3 max-w-6xl mx-auto min-h-screen">
@@ -247,12 +266,7 @@ export default function DashPosts() {
             setShowCreateForm(!showCreateForm);
             setShowEditForm(false);
             if (!showCreateForm) {
-              setFormData({
-                title: '',
-                content: '',
-                category: 'uncategorized',
-                image: ''
-              });
+              setFormData({ title: '', content: '', category: 'uncategorized', image: '' });
               setFile(null);
             }
           }}
@@ -270,113 +284,132 @@ export default function DashPosts() {
 
       {/* Create/Edit Form */}
       {(showCreateForm || showEditForm) && (
-        <div className='mb-8 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg'>
-          <form className='flex flex-col gap-4' onSubmit={showEditForm ? handleUpdatePost : handleSubmit}>
-            <div className='flex flex-col gap-4 sm:flex-row justify-between'>
-              <TextInput
-                type='text'
-                placeholder='Title'
-                required
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className='flex-1'
-              />
-              <Select
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              >
-                {categories.map((cat) => (
-                  <option key={cat.value} value={cat.value}>
-                    {cat.label}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            
-            <div className='flex gap-4 items-center justify-between border-4 border-teal-500 border-dotted p-3'>
-              <input
-                type='file'
-                accept='image/*'
-                onChange={(e) => {
-                  setFile(e.target.files[0]);
-                  setImageUploadError(null);
-                }}
-                className="block w-full text-sm text-gray-500
-                  file:mr-4 file:py-2 file:px-4
-                  file:rounded-md file:border-0
-                  file:text-sm file:font-semibold
-                  file:bg-blue-50 file:text-blue-700
-                  hover:file:bg-blue-100"
-                disabled={!!imageUploadProgress}
-              />
-              <Button
-                type='button'
-                gradientDuoTone='purpleToBlue'
-                size='sm'
-                outline
-                onClick={handleUploadImage}
-                disabled={!!imageUploadProgress || !file}
-              >
-                {imageUploadProgress ? `Uploading ${imageUploadProgress}%` : 'Upload Image'}
-              </Button>
-            </div>
-            
-            {imageUploadError && (
-              <Alert color='failure' onDismiss={() => setImageUploadError(null)}>
-                {imageUploadError}
-              </Alert>
-            )}
-            
-            {formData.image && (
-              <div className='relative group'>
-                <img
-                  src={formData.image}
-                  alt='Preview'
-                  className='w-full h-72 object-cover rounded-lg'
-                  onError={() => {
-                    setImageUploadError('Failed to load image preview');
-                    setFormData(prev => ({ ...prev, image: '' }));
-                  }}
-                />
-              </div>
-            )}
-
-            <Suspense fallback={<div className="h-72 flex items-center justify-center bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <p>Loading editor...</p>
-            </div>}>
-              <ReactQuill
-                theme='snow'
-                placeholder='Write your post content here...'
-                className='h-72 mb-12 bg-white dark:bg-gray-700 rounded-lg'
-                value={formData.content}
-                onChange={(content) => setFormData({ ...formData, content })}
-                modules={modules}
-                formats={formats}
-                ref={quillRef}
-              />
-            </Suspense>
-            
-            <div className="flex gap-4">
-              <Button
-                type='submit'
-                gradientDuoTone='purpleToPink'
-                disabled={isSubmitting || !formData.image || !formData.content.trim()}
-                isProcessing={isSubmitting}
-              >
-                {isSubmitting ? (showEditForm ? 'Updating...' : 'Publishing...') : (showEditForm ? 'Update Post' : 'Publish')}
-              </Button>
-              <Button
-                color="gray"
-                onClick={() => showEditForm ? setShowEditForm(false) : setShowCreateForm(false)}
-              >
-                Cancel
-              </Button>
-            </div>
-          </form>
+  <div className='mb-8 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg'>
+    <form 
+      key={showEditForm ? 'edit-form' : 'create-form'}
+      className='flex flex-col gap-4' 
+      onSubmit={showEditForm ? handleUpdatePost : handleSubmit}
+    >
+      <div className='flex flex-col gap-4 sm:flex-row justify-between'>
+        <TextInput
+          type='text'
+          placeholder='Title'
+          required
+          value={formData.title}
+          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+          className='flex-1'
+        />
+        <Select
+          value={formData.category}
+          onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+        >
+          {categories.map((cat) => (
+            <option key={cat.value} value={cat.value}>
+              {cat.label}
+            </option>
+          ))}
+        </Select>
+      </div>
+      
+      <div className='flex gap-4 items-center justify-between border-4 border-teal-500 border-dotted p-3'>
+        <input
+          type='file'
+          accept='image/*'
+          onChange={(e) => {
+            setFile(e.target.files[0]);
+            setImageUploadError(null);
+          }}
+          className="block w-full text-sm text-gray-500
+            file:mr-4 file:py-2 file:px-4
+            file:rounded-md file:border-0
+            file:text-sm file:font-semibold
+            file:bg-blue-50 file:text-blue-700
+            hover:file:bg-blue-100"
+          disabled={!!imageUploadProgress}
+        />
+        <Button
+          type='button'
+          gradientDuoTone='purpleToBlue'
+          size='sm'
+          outline
+          onClick={handleUploadImage}
+          disabled={!!imageUploadProgress || !file}
+        >
+          {imageUploadProgress ? `Uploading ${imageUploadProgress}%` : 'Upload Image'}
+        </Button>
+      </div>
+      
+      {imageUploadError && (
+        <Alert color='failure' onDismiss={() => setImageUploadError(null)}>
+          {imageUploadError}
+        </Alert>
+      )}
+      
+      {formData.image && (
+        <div className='flex justify-center mb-4'>
+          <img
+            src={formData.image}
+            alt='Preview'
+            className='w-full max-w-xs h-auto object-cover rounded-lg'
+            onError={() => {
+              setImageUploadError('Failed to load image preview');
+              setFormData(prev => ({ ...prev, image: '' }));
+            }}
+          />
         </div>
       )}
 
-      {/* Posts Table (only shown when not in create/edit mode) */}
+      {/* Editor Container */}
+      <div 
+        ref={editorContainerRef}
+        className="editor-container"
+        style={{ 
+          maxHeight: '400px',
+          overflowY: 'auto',
+          borderRadius: '0.5rem',
+          backgroundColor: 'white',
+          border: '1px solid #e5e7eb'
+        }}
+      >
+        <Suspense fallback={<div className="h-72 flex items-center justify-center bg-gray-50 dark:bg-gray-700 rounded-lg">
+          <p>Loading editor...</p>
+        </div>}>
+          <div ref={quillRef}>
+            <ReactQuill
+              key={showEditForm ? 'edit' : 'create'}
+              theme='snow'
+              placeholder='Write your post content here...'
+              className='min-h-[300px] bg-white dark:bg-gray-700'
+              value={formData.content}
+              onChange={(content) => setFormData({ ...formData, content })}
+              modules={modules(() => quillRef.current)}
+              formats={formats}
+            />
+          </div>
+        </Suspense>
+      </div>
+      
+      <div className="flex gap-4">
+        <Button
+          type='submit'
+          gradientDuoTone='purpleToPink'
+          disabled={isSubmitting || !formData.image || !formData.content.trim()}
+          isProcessing={isSubmitting}
+        >
+          {isSubmitting ? (showEditForm ? 'Updating...' : 'Publishing...') : (showEditForm ? 'Update Post' : 'Publish')}
+        </Button>
+        <Button
+          color="gray"
+          onClick={() => showEditForm ? setShowEditForm(false) : setShowCreateForm(false)}
+        >
+          Cancel
+        </Button>
+      </div>
+    </form>
+  </div>
+)}
+
+      {/* Posts Table */}
       {!showCreateForm && !showEditForm && (
         <>
           {loading ? (
@@ -405,6 +438,10 @@ export default function DashPosts() {
                           src={post.image}
                           alt={post.title}
                           className="w-20 h-10 object-cover rounded"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = '/default-post-image.jpg';
+                          }}
                         />
                       </Table.Cell>
                       <Table.Cell className="font-medium text-gray-900 dark:text-white">
