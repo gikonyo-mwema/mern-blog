@@ -37,9 +37,9 @@ export default function FooterComponent() {
                         </p>
                         <div className="flex space-x-4">
                             {[
-                                { icon: BsFacebook, href: "https://www.facebook.com/ecodeedcompany/", label: "Facebook" },
+                                { icon: BsFacebook, href: "https://web.facebook.com/ecodeedconsulting", label: "Facebook" },
                                 { icon: BsTwitter, href: "https://x.com/EcodeedC", label: "Twitter" },
-                                { icon: BsInstagram, href: "https://www.instagram.com/ecodeedcompany/", label: "Instagram" },
+                                { icon: BsInstagram, href: "https://www.instagram.com/ecodeed_consulting/", label: "Instagram" },
                                 { icon: BsYoutube, href: "https://youtube.com", label: "YouTube" },
                                 { icon: BsLinkedin, href: "https://www.linkedin.com/company/ecodeed-consultancy-company", label: "LinkedIn" }
                             ].map((social, index) => (
