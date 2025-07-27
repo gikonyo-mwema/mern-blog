@@ -62,7 +62,9 @@ export default function SignIn() {
             </span>
           </Link>
           <p className="text-gray-600 dark:text-gray-300 mt-6 text-lg">
-            Welcome back to our community of environmental advocates. Sign in to access your personalized dashboard and continue contributing to sustainable conversations.
+            Welcome back to our community of environmental advocates. Sign in to
+            access your personalized dashboard and continue contributing to
+            sustainable conversations.
           </p>
           <div className="mt-8 hidden md:block">
             <div className="bg-brand-green/10 p-4 rounded-lg border border-brand-green/20">
@@ -126,8 +128,8 @@ export default function SignIn() {
               />
             </div>
             <div className="flex justify-end">
-              <Link 
-                to="/forgot-password" 
+              <Link
+                to="/forgot-password"
                 className="text-sm text-brand-green hover:text-brand-green/80"
               >
                 Forgot password?
@@ -136,7 +138,7 @@ export default function SignIn() {
             <Button
               type="submit"
               disabled={loading || !formData.email || !formData.password}
-              className="mt-2 bg-brand-green hover:bg-brand-green/90 focus:ring-brand-green focus:ring-2 focus:ring-offset-2"
+              className="mt-2 bg-brand-green hover:!bg-brand-yellow hover:!text-brand-blue focus:!ring-brand-yellow focus:!ring-2 focus:!ring-offset-2 text-white transition-colors duration-200"
             >
               {loading ? (
                 <>
@@ -177,3 +179,4 @@ export default function SignIn() {
     </div>
   );
 }
+

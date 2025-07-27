@@ -151,10 +151,21 @@ export default function SignUp() {
                 className="focus:ring-brand-green focus:border-brand-green"
               />
             </div>
+
+            {/* ✅ Fixed Sign Up Button */}
             <Button
+              color="none"
               type="submit"
               disabled={loading}
-              className="mt-2 bg-brand-green hover:bg-brand-green/90 focus:ring-brand-green focus:ring-2 focus:ring-offset-2"
+              className="
+                !bg-brand-green !border-2 !border-brand-green !text-white
+                hover:!bg-brand-yellow hover:!text-brand-blue hover:!border-brand-yellow
+                focus:!ring-2 focus:!ring-brand-yellow focus:!outline-none
+                rounded-lg shadow-md
+                transition-all duration-200
+                hover:scale-105 active:scale-95
+                font-semibold w-full mt-2
+              "
             >
               {loading ? (
                 <>
@@ -165,6 +176,7 @@ export default function SignUp() {
                 "Sign Up"
               )}
             </Button>
+
             <div className="flex items-center my-4">
               <div className="flex-1 border-t border-gray-300 dark:border-gray-600"></div>
               <span className="px-3 text-gray-500 dark:text-gray-400 text-sm">
@@ -172,6 +184,7 @@ export default function SignUp() {
               </span>
               <div className="flex-1 border-t border-gray-300 dark:border-gray-600"></div>
             </div>
+
             <OAuth />
           </form>
 
@@ -195,3 +208,4 @@ export default function SignUp() {
     </div>
   );
 }
+

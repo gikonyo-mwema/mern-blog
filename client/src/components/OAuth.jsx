@@ -67,15 +67,22 @@ export default function OAuth() {
     };
 
     return (
-        <Button 
-            type="button" 
-            gradientDuoTone="pinkToOrange" 
-            outline 
+        <Button
+            color="none" // disables default Flowbite blue variant
+            type="button"
             onClick={handleGoogleClick}
-            className="w-full"
             aria-label="Continue with Google"
+            className="
+                !bg-white !border-2 !border-brand-green !text-brand-green
+                hover:!bg-brand-yellow hover:!text-brand-blue hover:!border-brand-yellow
+                focus:!ring-2 focus:!ring-brand-yellow focus:!outline-none
+                rounded-lg shadow-md
+                transition-all duration-200
+                hover:scale-105 active:scale-95
+                font-semibold w-full flex items-center justify-center
+            "
         >
-            <AiFillGoogleCircle className="w-6 h-6 mr-2" />
+            <AiFillGoogleCircle className="w-6 h-6 mr-2 text-current" />
             Continue with Google
         </Button>
     );
