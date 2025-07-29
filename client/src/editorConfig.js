@@ -1,107 +1,149 @@
-// editorConfig.js
-import ReactQuill from 'react-quill';
 import hljs from 'highlight.js';
 
-// Configure sizes
-const Size = ReactQuill.Quill.import('formats/size');
-Size.whitelist = ['extra-small', 'small', 'medium', 'large'];
-ReactQuill.Quill.register(Size, true);
+// ===== Configure Font Sizes =====
+const Size = typeof window !== 'undefined' ? window.Quill?.import('formats/size') : null;
+if (Size) {
+  Size.whitelist = ['extra-small', 'small', 'medium', 'large'];
+}
 
-// Configure fonts
-const Font = ReactQuill.Quill.import('formats/font');
-Font.whitelist = ['arial', 'comic-sans', 'courier-new', 'georgia', 'helvetica', 'lucida'];
-ReactQuill.Quill.register(Font, true);
+// ===== Configure Fonts =====
+const Font = typeof window !== 'undefined' ? window.Quill?.import('formats/font') : null;
+if (Font) {
+  Font.whitelist = ['arial', 'comic-sans', 'courier-new', 'georgia', 'helvetica', 'lucida'];
+}
 
-const imageHandler = () => {
-  const input = document.createElement('input');
-  input.setAttribute('type', 'file');
-  input.setAttribute('accept', 'image/*');
-  input.click();
-
-  input.onchange = async () => {
-    const file = input.files[0];
-    if (!file) return;
-
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
-};
-
+// ===== Image Resize Handlers =====
 const addResizeHandlers = (imgElement, editor, index) => {
-  const resizer = document.createElement('div');
-  resizer.className = 'absolute inset-0 w-full h-full cursor-default';
+  if (!imgElement) return;
 
-  const handle = document.createElement('div');
-  handle.className = 'absolute border-2 border-white rounded-sm cursor-se-resize';
-  handle.style.cssText = `
-    right: -6px;
-    bottom: -6px;
-    width: 12px;
-    height: 12px;
-    background-color: #4285f4;
-  `;
-
-  resizer.appendChild(handle);
-  imgElement.parentNode.insertBefore(resizer, imgElement);
-
-  let startX, startWidth;
-
-  handle.addEventListener('mousedown', (e) => {
-    e.preventDefault();
-    startX = e.clientX;
-    startWidth = imgElement.width;
-
-    document.addEventListener('mousemove', resize);
-    document.addEventListener('mouseup', stopResize);
+  // Create resize handles
+  const handleSize = 8;
+  const handles = ['nw', 'ne', 'sw', 'se'];
+  
+  handles.forEach(handle => {
+    const handleElement = document.createElement('div');
+    handleElement.className = `ql-resize-handle ql-resize-${handle}`;
+    handleElement.style.width = `${handleSize}px`;
+    handleElement.style.height = `${handleSize}px`;
+    imgElement.appendChild(handleElement);
   });
 
+  // Add resize functionality
+  let isResizing = false;
+  let startX, startY, startWidth, startHeight;
+
+  const startResize = (e) => {
+    isResizing = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    startWidth = parseInt(document.defaultView.getComputedStyle(imgElement).width, 10);
+    startHeight = parseInt(document.defaultView.getComputedStyle(imgElement).height, 10);
+    e.preventDefault();
+  };
+
   const resize = (e) => {
-    const deltaX = e.clientX - startX;
-    const newWidth = startWidth + deltaX;
-    imgElement.width = newWidth;
+    if (!isResizing) return;
+    const width = startWidth + e.clientX - startX;
+    const height = startHeight + e.clientY - startY;
+    imgElement.style.width = `${width}px`;
+    imgElement.style.height = `${height}px`;
   };
 
   const stopResize = () => {
+    isResizing = false;
+    // Update the delta in Quill
+    const delta = {
+      ops: [{
+        retain: index,
+        attributes: {
+          width: imgElement.style.width,
+          height: imgElement.style.height
+        }
+      }]
+    };
+    editor.updateContents(delta);
+  };
+
+  imgElement.addEventListener('mousedown', startResize);
+  document.addEventListener('mousemove', resize);
+  document.addEventListener('mouseup', stopResize);
+
+  return () => {
+    imgElement.removeEventListener('mousedown', startResize);
     document.removeEventListener('mousemove', resize);
     document.removeEventListener('mouseup', stopResize);
-
-    setTimeout(() => {
-      const delta = editor.getContents(index, 1);
-      editor.deleteText(index, 1);
-      editor.insertEmbed(index, 'image', imgElement.src, {
-        width: imgElement.width,
-        height: imgElement.height
-      });
-    }, 0);
   };
 };
 
-const modules = {
+// ===== Image & Video Upload Handler =====
+const imageHandler = (getQuillRef, uploadToCloudinary, addResizeHandlers) => {
+  return async () => {
+    const input = document.createElement('input');
+    input.setAttribute('type', 'file');
+    input.setAttribute('accept', 'image/*, video/*');
+    input.click();
+
+    input.onchange = async () => {
+      const file = input.files[0];
+      if (!file) return;
+
+      const quill = getQuillRef();
+      if (!quill) return;
+      
+      const editor = quill.getEditor();
+      const range = editor.getSelection();
+      
+      if (range) {
+        // Show loading indicator
+        editor.insertEmbed(range.index, 'image', 'data:image/gif;base64,R0lGODlhEAAQAPIAAP///wAAAMLCwkJCQgAAAGJiYoKCgpKSkiH/C05FVFNDQVBFMi4wAwEAAAAh/hpDcmVhdGVkIHdpdGggYWpheGxvYWQuaW5mbwAh+QQJCgAAACwAAAAAEAAQAAADMwi63P4wyklrE2MIOggZnAdOmGYJRbExwroUmcG2LmDEwnHQLVsYOd2mBzkYDAdKa+dIAAAh+QQJCgAAACwAAAAAEAAQAAADNAi63P5OjCEgG4QMu7DmikRxQlFUYDEZIGBMRVsaqHwctXXf7WEYB4Ag1xjihkMZsiUkKhIAIfkECQoAAAAsAAAAABAAEAAAAzYIujIjK8pByJDMlFYvBoVjHA70GU7xSUJhmKtwHPAKzLO9HMaoKwJZ7Rf8AYPDDzKpZBqfvwQAIfkECQoAAAAsAAAAABAAEAAAAzMIumIlK8oyhpHsnFZfhYumCYUhDAQxRIdhHBGqRoKw0R8DYlJd8z0fMDgsGo/IpHI5TAAAIfkECQoAAAAsAAAAABAAEAAAAzIIunInK0rnZBTwGPNMgQwmdsNgXGJUlIWEuR5oWUIpz8pAEAMe6TwfwyYsGo/IpFKSAAAh+QQJCgAAACwAAAAAEAAQAAADMwi6IMKQORfjdOe82p4wGccc4CEuQradylesojEMBgsUc2G7sDX3lQGBMLAJibufbSlKAAAh+QQJCgAAACwAAAAAEAAQAAADMgi63P7wCRHZnFVdmgHu2nFwlWCI3WGc3TSWhUFGxTAUkGCbtgENBMJAEJsxgMLWzpEAACH5BAkKAAAALAAAAAAQABAAAAMyCLrc/jDKSatlQtScKdceCAjDII7HcQ4EMTCpyrCuUBjCYRgHVtqlAiB1YhiCnlsRkAAAOwAAAAAAAAAAAA==');
+        editor.setSelection(range.index + 1);
+
+        try {
+          const result = await uploadToCloudinary(file);
+          
+          // Remove loading indicator and insert actual image
+          editor.deleteText(range.index, 1);
+          editor.insertEmbed(range.index, 'image', result.url);
+          
+          // Add resize handlers
+          const imgElement = editor.getLeaf(range.index)[0].domNode;
+          imgElement.classList.add('ql-image-resizable');
+          addResizeHandlers(imgElement, editor, range.index);
+          
+          editor.setSelection(range.index + 1);
+        } catch (error) {
+          console.error('Upload failed:', error);
+          // Remove loading indicator if upload fails
+          editor.deleteText(range.index, 1);
+        }
+      }
+    };
+  };
+};
+
+// ===== Quill Modules Configuration =====
+const modules = (getQuillRef) => ({
   toolbar: {
     container: [
       [
-        { 'header': [1, 2, 3, 4, 5, 6, false] },
-        { 'font': Font.whitelist },
-        { 'size': Size.whitelist },
+        { header: [1, 2, 3, 4, 5, 6, false] },
+        { font: Font?.whitelist || [] },
+        { size: Size?.whitelist || [] },
         'bold', 'italic', 'underline', 'strike',
-        { 'color': [] }, { 'background': [] },
-        { 'script': 'super' }, { 'script': 'sub' }
+        { color: [] }, { background: [] },
+        { script: 'super' }, { script: 'sub' }
       ],
       [
-        { 'align': [] },
-        { 'list': 'ordered' }, { 'list': 'bullet' },
-        { 'indent': '-1' }, { 'indent': '+1' },
+        { align: [] },
+        { list: 'ordered' }, { list: 'bullet' },
+        { indent: '-1' }, { indent: '+1' },
         'blockquote', 'code-block',
-        'link', 'image', 'video', 'table',
-        'clean'
+        'link', 'image', 'video', 'clean'
       ]
     ],
     handlers: {
-      image: imageHandler
+      image: imageHandler(getQuillRef, uploadToCloudinary, addResizeHandlers),
+      video: imageHandler(getQuillRef, uploadToCloudinary, addResizeHandlers)
     }
   },
   clipboard: {
@@ -115,8 +157,9 @@ const modules = {
     maxStack: 100,
     userOnly: true
   }
-};
+});
 
+// ===== Supported Formats =====
 const formats = [
   'header', 'font', 'size',
   'bold', 'italic', 'underline', 'strike',
@@ -124,9 +167,10 @@ const formats = [
   'script',
   'align', 'list', 'bullet', 'indent',
   'blockquote', 'code-block',
-  'link', 'image', 'video', 'table'
+  'link', 'image', 'video'
 ];
 
+// ===== Editor Styling =====
 const editorStyles = `
   .ql-snow .ql-toolbar {
     display: flex;
@@ -138,6 +182,7 @@ const editorStyles = `
     border: 1px solid #e2e8f0;
     border-radius: 8px 8px 0 0;
   }
+  
   .ql-toolbar-group {
     display: flex;
     flex-wrap: wrap;
@@ -145,6 +190,7 @@ const editorStyles = `
     align-items: center;
     margin-right: 8px;
   }
+  
   .ql-snow .ql-toolbar button {
     width: 32px;
     height: 32px;
@@ -154,56 +200,114 @@ const editorStyles = `
     border-radius: 4px;
     transition: all 0.2s;
   }
+  
   .ql-snow .ql-toolbar button:hover {
     background: #e2e8f0;
   }
+  
   .ql-snow .ql-toolbar button.ql-active {
     background: #cbd5e1;
   }
+  
   .ql-snow .ql-picker {
     height: 32px;
     margin-right: 4px;
   }
+  
   .ql-snow .ql-picker-label {
     padding: 0 8px;
   }
+  
   .ql-snow .ql-stroke {
     stroke-width: 2;
   }
+  
   .ql-snow .ql-picker:not(.ql-color-picker):not(.ql-icon-picker) svg {
     width: 18px;
     height: 18px;
   }
+  
   .ql-container.ql-snow {
     border: 1px solid #e2e8f0;
     border-top: none;
     border-radius: 0 0 8px 8px;
     font-family: inherit;
   }
+  
   .ql-editor {
     min-height: 300px;
     font-size: 16px;
     line-height: 1.6;
+    padding: 12px 15px;
   }
+  
+  .ql-editor.ql-blank::before {
+    color: rgba(0, 0, 0, 0.6);
+    font-style: normal;
+    left: 15px;
+  }
+  
+  .ql-video {
+    width: 100%;
+    height: 400px;
+  }
+  
+  .ql-snow .ql-tooltip {
+    z-index: 100;
+  }
+
+  /* Image resize styles */
   .ql-image-resizable {
     position: relative;
-    display: inline-block;
     max-width: 100%;
+    cursor: default;
   }
-  .ql-image-resizer {
+  
+  .ql-resize-handle {
     position: absolute;
-    width: 100%;
-    height: 100%;
-    top: 0;
-    left: 0;
+    width: 8px;
+    height: 8px;
+    background-color: #4299e1;
+    border: 1px solid #ffffff;
+    z-index: 10;
+  }
+  
+  .ql-resize-nw {
+    top: -4px;
+    left: -4px;
+    cursor: nw-resize;
+  }
+  
+  .ql-resize-ne {
+    top: -4px;
+    right: -4px;
+    cursor: ne-resize;
+  }
+  
+  .ql-resize-sw {
+    bottom: -4px;
+    left: -4px;
+    cursor: sw-resize;
+  }
+  
+  .ql-resize-se {
+    bottom: -4px;
+    right: -4px;
+    cursor: se-resize;
+  }
+  
+  @media (max-width: 768px) {
+    .ql-toolbar-group {
+      margin-bottom: 8px;
+    }
   }
 `;
 
-export { 
-  modules, 
-  formats, 
-  imageHandler, 
-  addResizeHandlers, 
+export {
+  modules,
+  formats,
+  imageHandler,
+  addResizeHandlers,
   editorStyles,
   Font,
   Size
